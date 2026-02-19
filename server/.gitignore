@@ -1,0 +1,53 @@
+.vs/
+**/bin/
+**/obj/
+*.suo
+*.user
+*.dll
+*.exe
+*.pdb
+*.bak
+*.~*
+# Visual Studio related directories
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb
+*.deps.json
+*.assets.cache
+*.AssemblyInfo.cs
+*.AssemblyInfoInputs.cache
+*.csproj.nuget.dgspec.json
+*.csproj.nuget.g.props
+*.csproj.nuget.g.targets
+*.GeneratedMSBuildEditorConfig.editorconfig
+*.GlobalUsings.g.cs
+*.rpswa.dswa.cache.json
+staticwebassets.removed.txt
+
+# Rider / JetBrains
+.idea/
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+
+# OS
+*.DS_Store
+Thumbs.db
+
