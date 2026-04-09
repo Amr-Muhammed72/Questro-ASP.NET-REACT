@@ -6,4 +6,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.14" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.14" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Questro.Core\Questro.Core.csproj" />
+    <ProjectReference Include="..\Questro.Infrastructure\Questro.Infrastructure.csproj" />
+    <ProjectReference Include="..\Questro.Shared\Questro.Shared.csproj" />
+  </ItemGroup>
+
 </Project>
