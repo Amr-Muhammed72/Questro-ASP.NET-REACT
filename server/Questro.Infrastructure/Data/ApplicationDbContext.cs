@@ -1,0 +1,50 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Questro.Core;
+using Questro.Core.Entities.Games;
+using Questro.Core.Entities.Movies;
+using Questro.Core.Entities.Social;
+using Questro.Core.Entities.UserManagement;
+
+namespace Questro.Infrastructure.Data;
+
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, long>
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<Movie> Movies => Set<Movie>();
+    public DbSet<MovieGenre> MovieGenres => Set<MovieGenre>();
+    public DbSet<Movie_MovieGenre> MovieMovieGenres => Set<Movie_MovieGenre>();
+    public DbSet<Staff> Staff => Set<Staff>();
+    public DbSet<Movie_Staff> MovieStaff => Set<Movie_Staff>();
+
+    public DbSet<Game> Games => Set<Game>();
+    public DbSet<GameGenre> GameGenres => Set<GameGenre>();
+    public DbSet<Game_GameGenre> GameGameGenres => Set<Game_GameGenre>();
+    public DbSet<GamePlatform> GamePlatforms => Set<GamePlatform>();
+    public DbSet<Game_GamePlatform> GameGamePlatforms => Set<Game_GamePlatform>();
+
+    public DbSet<UserMovieLike> UserMovieLikes => Set<UserMovieLike>();
+    public DbSet<UserMovieRate> UserMovieRates => Set<UserMovieRate>();
+    public DbSet<UserMovieReview> UserMovieReviews => Set<UserMovieReview>();
+    public DbSet<UserMovieWatchlist> UserMovieWatchlists => Set<UserMovieWatchlist>();
+    public DbSet<UserMovieRecommended> UserMovieRecommended => Set<UserMovieRecommended>();
+
+    public DbSet<UserGameLike> UserGameLikes => Set<UserGameLike>();
+    public DbSet<UserGameRate> UserGameRates => Set<UserGameRate>();
+    public DbSet<UserGameReview> UserGameReviews => Set<UserGameReview>();
+    public DbSet<UserGameWishlist> UserGameWishlists => Set<UserGameWishlist>();
+    public DbSet<UserGameRecommended> UserGameRecommended => Set<UserGameRecommended>();
+
+    public DbSet<UserFollow> UserFollows => Set<UserFollow>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(CoreAssemblyMarker).Assembly);
+    }
+}
