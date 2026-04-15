@@ -15,12 +15,14 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace Questro.Service.Services.Auth;
 
 public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _SignInManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly ApplicationDbContext _dbContext;
     private readonly JwtOptions _jwtOptions;
@@ -28,23 +30,27 @@ public class AuthService : IAuthService
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
         RoleManager<ApplicationRole> roleManager,
         ApplicationDbContext dbContext,
         IOptions<JwtOptions> jwtOptions,
-        IValidator<RegisterRequestDto> validator)
+        IValidator<RegisterRequestDto> validator
+        )
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _dbContext = dbContext;
         _jwtOptions = jwtOptions.Value;
         _validator = validator;
+        _SignInManager = signInManager;
     }
 
     public async Task<Result<RegisterResponseDto>> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
-            return Result.Failure<RegisterResponseDto>(UserError.InvalidRegistrationData);
+            return Result.Failure<RegisterResponseDto>
+                (UserError.InvalidRegistrationData, validationResult.Errors.Select(e => e.ErrorMessage).ToList());
 
         if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
             return Result.Failure<RegisterResponseDto>(UserError.PasswordsDoNotMatch);
@@ -75,19 +81,24 @@ public class AuthService : IAuthService
 
         var identityCreateResult = await _userManager.CreateAsync(identityUser, request.Password);
         if (!identityCreateResult.Succeeded)
-            return Result.Failure<RegisterResponseDto>(UserError.RegistrationFailed);
+            return Result.Failure<RegisterResponseDto>(
+             UserError.RegistrationFailed,
+                    identityCreateResult.Errors.Select(e => e.Description).ToList()
+                            );
 
         const string defaultRole = "User";
         if (!await _roleManager.RoleExistsAsync(defaultRole))
         {
             var roleResult = await _roleManager.CreateAsync(new ApplicationRole { Name = defaultRole });
             if (!roleResult.Succeeded)
-                return Result.Failure<RegisterResponseDto>(UserError.RegistrationFailed);
+                return Result.Failure<RegisterResponseDto>
+                    (UserError.RegistrationFailed, roleResult.Errors.Select(e => e.Description).ToList());
         }
 
         var addToRoleResult = await _userManager.AddToRoleAsync(identityUser, defaultRole);
         if (!addToRoleResult.Succeeded)
-            return Result.Failure<RegisterResponseDto>(UserError.RegistrationFailed);
+            return Result.Failure<RegisterResponseDto>(
+                UserError.RegistrationFailed, addToRoleResult.Errors.Select(e => e.Description).ToList());
 
         var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(identityUser);
         var refreshTokenValue = GenerateRefreshToken();
@@ -112,12 +123,89 @@ public class AuthService : IAuthService
             identityUser.FirstName ?? string.Empty,
             identityUser.LastName ?? string.Empty,
             identityUser.Email ?? string.Empty,
+            identityUser.Age ?? 0,
             accessToken,
             refreshTokenValue,
             accessTokenExpiresOnUtc,
             refreshTokenExpiresOnUtc));
     }
+    public async Task<Result<LogInResponseDto>> LogInAsync(LogInRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+            return Result.Failure<LogInResponseDto>(UserError.InvalidLogInData);
 
+        var input = request.Email.Trim();
+        var user = await _userManager.FindByEmailAsync(input);
+        if (user is null)
+        {
+            user = await _userManager.FindByNameAsync(input);
+            if(user is null)
+                return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
+        }
+        // pass check 
+        var isValid = await _SignInManager.CheckPasswordSignInAsync(user, request.Password , true);
+        if (isValid.IsLockedOut)
+            return Result.Failure<LogInResponseDto>(UserError.UserLockedOut);
+        if (isValid.IsNotAllowed)
+            return Result.Failure<LogInResponseDto>(UserError.LoginNotAllowed);
+        if (!isValid.Succeeded)
+            return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
+        // Create Accesss Tokens
+        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
+        // revoke old tokens 
+        var oldTokens = await _dbContext.RefreshTokens
+                          .Where(x => x.UserId == user.Id && x.RevokedOnUtc == null)
+                          .ToListAsync();
+
+        foreach (var token in oldTokens)
+        {
+            token.RevokedOnUtc = DateTime.UtcNow;
+        }
+        var refreshTokenValue = GenerateRefreshToken();
+        var refreshTokenExpiresOnUtc =
+            DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
+            ? _jwtOptions.RefreshTokenExpirationDays : 7);
+
+        // Save Refresh Token in DB
+        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshTokenValue,
+            CreatedOnUtc = DateTime.UtcNow,
+            ExpiresOnUtc = refreshTokenExpiresOnUtc
+        }, cancellationToken);
+
+        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        if (saved == 0)
+            return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
+        return Result.Success(new LogInResponseDto(
+             user.Id,
+             user.UserName ?? string.Empty,
+             user.FirstName ?? string.Empty,
+             user.LastName ?? string.Empty,
+             user.Email ?? string.Empty,
+             user.Age ?? 0,
+             accessToken,
+             refreshTokenValue,
+             accessTokenExpiresOnUtc,
+             refreshTokenExpiresOnUtc));
+    }
+
+    public async Task<Result> LogOutAsync(string? refreshToken, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(refreshToken))
+            return Result.Failure(UserError.InvalidRefreshToken);
+        var token = await _dbContext.RefreshTokens
+        .FirstOrDefaultAsync(x => x.Token == refreshToken, cancellationToken);
+        if(token is null) 
+            return Result.Failure(UserError.InvalidRefreshToken);
+
+        token.RevokedOnUtc = DateTime.UtcNow;
+        var done = await _dbContext.SaveChangesAsync(cancellationToken);
+        if (done == 0 )
+            return Result.Failure(UserError.LogoutFailed);
+        return Result.Success();
+    }
     public async Task<Result<RefreshTokenResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
     {
         var providedToken = request.RefreshToken?.Trim();
@@ -214,4 +302,6 @@ public class AuthService : IAuthService
 
         return age < 0 ? 0 : age;
     }
+
+    
 }

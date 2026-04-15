@@ -21,4 +21,23 @@ public static class UserError
 
     public static readonly Errors InvalidRefreshToken =
         new("User.InvalidRefreshToken", "Invalid or expired refresh token.", 401);
+    // Login Errors 
+
+    public static readonly Errors InvalidLogInData =
+      new("User.InvalidLoginData", "Email and password are required.", 400);
+
+    public static readonly Errors InvalidCredentials =
+        new("User.InvalidCredentials", "Invalid email or password.", 401);
+
+    public static readonly Errors LogInFailed =
+        new("User.LoginFailed", "Failed to login user.", 500);
+    public static readonly Errors UserLockedOut =
+    new("User.LockedOut", "User is locked out. Try again later.", 403);
+
+    public static readonly Errors LoginNotAllowed =
+        new("User.LoginNotAllowed", "Login not allowed. Please confirm your email.", 403);
+    // log out 
+    public static readonly Errors LogoutFailed =
+    new("User.LogoutFailed", "Failed to logout user.", 500);
+
 }

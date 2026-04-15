@@ -6,6 +6,7 @@ public sealed record RegisterResponseDto(
     string FirstName,
     string LastName,
     string Email,
+    int age,
     string AccessToken,
     string RefreshToken,
     DateTime AccessTokenExpiresOnUtc,
