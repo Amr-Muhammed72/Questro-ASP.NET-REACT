@@ -11,7 +11,6 @@ public record LogInResponseDto(
     string FirstName,
     string LastName,
     string Email,
-    int age,
     string AccessToken,
     string RefreshToken,
     DateTime AccessTokenExpiresOnUtc,

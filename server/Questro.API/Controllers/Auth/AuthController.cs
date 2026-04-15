@@ -40,7 +40,6 @@ public class AuthController : ControllerBase
             result.Value.FirstName,
             result.Value.LastName,
             result.Value.Email,
-            result.Value.age,
             result.Value.AccessToken,
             result.Value.AccessTokenExpiresOnUtc
         });
@@ -67,7 +66,6 @@ public class AuthController : ControllerBase
             result.Value.FirstName,
             result.Value.LastName,
             result.Value.Email,
-            result.Value.age,
             result.Value.AccessToken,
             result.Value.AccessTokenExpiresOnUtc
 
