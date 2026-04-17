@@ -20,9 +20,15 @@ public static class DependencyInjectionInfrastructure
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services
-            .AddIdentityCore<ApplicationUser>()
+            .AddIdentityCore<ApplicationUser>(options=>
+            {
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.AllowedForNewUsers = true;
+            }
+            )
             .AddRoles<ApplicationRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
+            .AddEntityFrameworkStores<ApplicationDbContext>().AddSignInManager();
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName));

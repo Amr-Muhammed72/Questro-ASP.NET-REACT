@@ -25,19 +25,64 @@ public class AuthController : ControllerBase
             var errorResponse = new
             {
                 code = result.Error.Code,
-                en = result.Error.en
+                en = result.Error.en,
+                Details = result.Details
             };
 
             return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
         }
+        SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
 
-        return Created($"api/auth/{result.Value.UserId}", result.Value);
+        return Created($"api/auth/{result.Value.UserId}", new
+        {
+            result.Value.UserId,
+            result.Value.UserName,
+            result.Value.FirstName,
+            result.Value.LastName,
+            result.Value.Email,
+            result.Value.AccessToken,
+            result.Value.AccessTokenExpiresOnUtc
+        });
+    }
+    [HttpPost("logIn")]
+    public async Task<IActionResult> LogIn([FromBody] LogInRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.LogInAsync(request, cancellationToken);
+        if (result.IsFailure)
+        {
+            var errorResponse = new
+            {
+                code = result.Error.Code,
+                en = result.Error.en
+            };
+            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+        }
+        SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
+        return Ok(new
+
+        {
+            result.Value.UserId,
+            result.Value.UserName,
+            result.Value.FirstName,
+            result.Value.LastName,
+            result.Value.Email,
+            result.Value.AccessToken,
+            result.Value.AccessTokenExpiresOnUtc
+
+        });
+
     }
 
     [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RefreshToken(CancellationToken cancellationToken)
     {
-        var result = await _authService.RefreshTokenAsync(request, cancellationToken);
+        var refreshToken = Request.Cookies["refreshToken"];
+
+        if (string.IsNullOrEmpty(refreshToken))
+            return Unauthorized();
+
+        var result = await _authService.RefreshTokenAsync
+            (new RefreshTokenRequestDto {RefreshToken = refreshToken}, cancellationToken);
 
         if (result.IsFailure)
         {
@@ -49,7 +94,40 @@ public class AuthController : ControllerBase
 
             return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
         }
+        SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
 
-        return Ok(result.Value);
+        return Ok(new
+        {
+            accessToken = result.Value.AccessToken,
+            accessTokenExpiresOnUtc = result.Value.AccessTokenExpiresOnUtc
+        });
+    }
+    [HttpPost("logOut")]
+    public async Task<IActionResult> LogOut(CancellationToken cancellationToken)
+    {
+        var refreshToken = Request.Cookies["refreshToken"];
+        var result = await _authService.LogOutAsync(refreshToken, cancellationToken);
+        if (result.IsFailure)
+        {
+            var errorResponse = new
+            {
+                code = result.Error.Code,
+                en = result.Error.en
+            };
+            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+        }
+        Response.Cookies.Delete("refreshToken");
+        return Ok(new { message = "Logged out successfully" });
+    }
+    private void SetRefreshTokenInCookie(string token, DateTime expiry)
+    {
+        Response.Cookies.Append("refreshToken", token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = expiry,
+            IsEssential = true
+        });
     }
 }
