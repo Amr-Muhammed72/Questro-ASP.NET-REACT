@@ -5,6 +5,9 @@ public class Movie
     public int MovieId { get; set; }
     public int? TMDB_Id { get; set; }
     public string? IMDB_Id { get; set; }
+    public string? IMDB_Rating { get; set; }
+    public double? TMDB_Rating { get; set; }
+    public int? TMDB_VoteCount { get; set; }
     public string Title { get; set; } = null!;
     public int? Runtime { get; set; }
     public string? Overview { get; set; }
@@ -22,6 +25,7 @@ public class Movie
     public virtual ICollection<UserMovieLike> UserLikes { get; set; } = new HashSet<UserMovieLike>();
     public virtual ICollection<UserMovieRate> UserRates { get; set; } = new HashSet<UserMovieRate>();
     public virtual ICollection<UserMovieReview> UserReviews { get; set; } = new HashSet<UserMovieReview>();
+    public virtual ICollection<UserMovieWatched> UserWatched { get; set; } = new HashSet<UserMovieWatched>();
     public virtual ICollection<UserMovieWatchlist> UserWatchlists { get; set; } = new HashSet<UserMovieWatchlist>();
     public virtual ICollection<UserMovieRecommended> UserRecommendations { get; set; } = new HashSet<UserMovieRecommended>();
 }

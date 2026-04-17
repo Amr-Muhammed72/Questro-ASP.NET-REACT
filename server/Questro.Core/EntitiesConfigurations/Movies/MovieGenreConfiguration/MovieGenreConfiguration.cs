@@ -10,5 +10,7 @@ public class MovieGenreConfiguration : IEntityTypeConfiguration<MovieGenre>
     {
         builder.HasKey(x => x.GenreId);
         builder.Property(x => x.Name).IsRequired();
+        builder.Property(x => x.TMDB_Id).IsRequired(false);
+        builder.HasIndex(x => x.TMDB_Id).IsUnique();
     }
 }

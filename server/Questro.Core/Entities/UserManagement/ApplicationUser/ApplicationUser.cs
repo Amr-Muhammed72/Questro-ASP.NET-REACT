@@ -21,6 +21,7 @@ public class ApplicationUser : IdentityUser<long>
 	public virtual ICollection<UserMovieLike> MovieLikes { get; set; } = new HashSet<UserMovieLike>();
 	public virtual ICollection<UserMovieRate> MovieRates { get; set; } = new HashSet<UserMovieRate>();
 	public virtual ICollection<UserMovieReview> MovieReviews { get; set; } = new HashSet<UserMovieReview>();
+	public virtual ICollection<UserMovieWatched> MovieWatched { get; set; } = new HashSet<UserMovieWatched>();
 	public virtual ICollection<UserMovieWatchlist> MovieWatchlists { get; set; } = new HashSet<UserMovieWatchlist>();
 	public virtual ICollection<UserMovieRecommended> MovieRecommendations { get; set; } = new HashSet<UserMovieRecommended>();
 
