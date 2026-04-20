@@ -10,6 +10,7 @@ public class UserMovieReviewConfiguration : IEntityTypeConfiguration<UserMovieRe
     {
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => new { x.UserId, x.MovieId }).IsUnique();
+        builder.Property(x => x.Sentiment).HasMaxLength(32).IsRequired(false);
 
         builder.HasOne(x => x.User)
             .WithMany(u => u.MovieReviews)

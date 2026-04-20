@@ -10,5 +10,7 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
     {
         builder.HasKey(x => x.Staff_Id);
         builder.Property(x => x.Name).IsRequired();
+        builder.Property(x => x.TMDB_Id).IsRequired(false);
+        builder.HasIndex(x => x.TMDB_Id).IsUnique();
     }
 }

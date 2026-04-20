@@ -6,8 +6,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Questro.Core.Entities.UserManagement;
+using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.Data;
+using Questro.Infrastructure.ExternalServices.Tmdb;
+using Questro.Infrastructure.Repositories;
 using Questro.Shared.Options.Jwt;
+using Questro.Shared.Options.Tmdb;
 using System.Text;
 
 namespace Questro.Infrastructure;
@@ -32,6 +36,9 @@ public static class DependencyInjectionInfrastructure
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName));
+
+        services.AddOptions<TmdbOptions>()
+            .Bind(configuration.GetSection(TmdbOptions.SectionName));
 
         services.AddAuthentication(options =>
         {
@@ -59,6 +66,18 @@ public static class DependencyInjectionInfrastructure
                     ClockSkew = TimeSpan.Zero
                 };
             });
+
+        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        services.AddHttpClient<ITmdbService, TmdbService>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<TmdbOptions>>().Value;
+            if (Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
+            {
+                client.BaseAddress = baseUri;
+            }
+        });
 
         return services;
     }

@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<UserMovieLike> UserMovieLikes => Set<UserMovieLike>();
     public DbSet<UserMovieRate> UserMovieRates => Set<UserMovieRate>();
     public DbSet<UserMovieReview> UserMovieReviews => Set<UserMovieReview>();
+    public DbSet<UserMovieWatched> UserMovieWatched => Set<UserMovieWatched>();
     public DbSet<UserMovieWatchlist> UserMovieWatchlists => Set<UserMovieWatchlist>();
     public DbSet<UserMovieRecommended> UserMovieRecommended => Set<UserMovieRecommended>();
 

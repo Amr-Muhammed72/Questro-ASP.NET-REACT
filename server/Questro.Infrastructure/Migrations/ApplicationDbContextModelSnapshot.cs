@@ -396,11 +396,17 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<string>("IMDB_Id")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("IMDB_Rating")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Language")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Mpa_Certification")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Overview")
                         .HasColumnType("nvarchar(max)");
@@ -420,6 +426,12 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<int?>("TMDB_Id")
                         .HasColumnType("int");
 
+                    b.Property<double?>("TMDB_Rating")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("TMDB_VoteCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -429,9 +441,17 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasKey("MovieId");
 
+                    b.HasIndex("Language");
+
+                    b.HasIndex("Popularity");
+
+                    b.HasIndex("Release_Date");
+
                     b.HasIndex("TMDB_Id")
                         .IsUnique()
                         .HasFilter("[TMDB_Id] IS NOT NULL");
+
+                    b.HasIndex("TMDB_Rating");
 
                     b.ToTable("Movies");
                 });
@@ -448,7 +468,14 @@ namespace Questro.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("TMDB_Id")
+                        .HasColumnType("int");
+
                     b.HasKey("GenreId");
+
+                    b.HasIndex("TMDB_Id")
+                        .IsUnique()
+                        .HasFilter("[TMDB_Id] IS NOT NULL");
 
                     b.ToTable("MovieGenres");
                 });
@@ -513,7 +540,14 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<string>("Profile_Path")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("TMDB_Id")
+                        .HasColumnType("int");
+
                     b.HasKey("Staff_Id");
+
+                    b.HasIndex("TMDB_Id")
+                        .IsUnique()
+                        .HasFilter("[TMDB_Id] IS NOT NULL");
 
                     b.ToTable("Staff");
                 });
@@ -623,6 +657,10 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<int>("MovieId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Sentiment")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
 
@@ -637,6 +675,33 @@ namespace Questro.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("UserMovieReviews");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieWatched", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("MovieId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MovieId");
+
+                    b.HasIndex("UserId", "MovieId")
+                        .IsUnique();
+
+                    b.ToTable("UserMovieWatched");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieWatchlist", b =>
@@ -1142,6 +1207,25 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieWatched", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.Movies.Movie", "Movie")
+                        .WithMany("UserWatched")
+                        .HasForeignKey("MovieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
+                        .WithMany("MovieWatched")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Movie");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieWatchlist", b =>
                 {
                     b.HasOne("Questro.Core.Entities.Movies.Movie", "Movie")
@@ -1232,6 +1316,8 @@ namespace Questro.Infrastructure.Migrations
 
                     b.Navigation("UserReviews");
 
+                    b.Navigation("UserWatched");
+
                     b.Navigation("UserWatchlists");
                 });
 
@@ -1268,6 +1354,8 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("MovieRecommendations");
 
                     b.Navigation("MovieReviews");
+
+                    b.Navigation("MovieWatched");
 
                     b.Navigation("MovieWatchlists");
 

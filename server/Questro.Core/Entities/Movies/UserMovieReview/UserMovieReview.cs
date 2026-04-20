@@ -8,6 +8,7 @@ public class UserMovieReview
     public long UserId { get; set; }
     public int MovieId { get; set; }
     public string Body { get; set; } = null!;
+    public string? Sentiment { get; set; }
     public DateTime Timestamp { get; set; }
 
     public virtual ApplicationUser User { get; set; } = null!;

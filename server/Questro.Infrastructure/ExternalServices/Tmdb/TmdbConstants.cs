@@ -1,0 +1,49 @@
+namespace Questro.Infrastructure.ExternalServices.Tmdb;
+
+internal static class TmdbConstants
+{
+    internal static class Endpoints
+    {
+        public const string TrendingMovieWeek = "trending/movie/week";
+        public const string NowPlayingMovie = "movie/now_playing";
+        public const string DiscoverMovie = "discover/movie";
+        public const string SearchMovie = "search/movie";
+        public const string GenreMovieList = "genre/movie/list";
+        public const string Movie = "movie";
+        public const string Person = "person";
+        public const string Credits = "credits";
+        public const string Videos = "videos";
+        public const string Similar = "similar";
+        public const string WatchProviders = "watch/providers";
+    }
+
+    internal static class QueryKeys
+    {
+        public const string ApiKey = "api_key";
+        public const string Page = "page";
+        public const string SortBy = "sort_by";
+        public const string WithGenres = "with_genres";
+        public const string WithOriginalLanguage = "with_original_language";
+        public const string PrimaryReleaseYear = "primary_release_year";
+        public const string VoteAverageGte = "vote_average.gte";
+        public const string VoteAverageLte = "vote_average.lte";
+        public const string IncludeAdult = "include_adult";
+        public const string Query = "query";
+        public const string Year = "year";
+    }
+
+    internal static class QueryValues
+    {
+        public const string False = "false";
+    }
+
+    internal static class SortValues
+    {
+        public const string PrimaryReleaseDateDesc = "primary_release_date.desc";
+        public const string PrimaryReleaseDateAsc = "primary_release_date.asc";
+        public const string PopularityDesc = "popularity.desc";
+        public const string PopularityAsc = "popularity.asc";
+        public const string VoteAverageDesc = "vote_average.desc";
+        public const string VoteAverageAsc = "vote_average.asc";
+    }
+}
