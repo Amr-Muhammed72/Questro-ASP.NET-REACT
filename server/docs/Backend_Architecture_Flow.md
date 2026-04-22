@@ -1,151 +1,104 @@
 # Backend Architecture Flow (Movies Domain)
 
-This document explains how data moves through the Movies domain and why the current architecture was chosen.
+This document describes the current service split and request flow for the Movies domain.
 
-## 1) Data Sync Lifecycle
+## 1) Service Decomposition
 
-## Goals
+The previous monolithic movie service is split into focused services:
 
-- Keep discovery endpoints fast.
-- Avoid N+1 local database queries in list scenarios.
-- Persist complete movie metadata only when needed.
+- `IMovieCatalogService`: discovery and recommendation reads
+- `IMovieDetailsService`: movie details and staff details reads
+- `IMovieInteractionService`: likes, rating, watchlist, watched, and reviews
+- `IMovieSyncService`: explicit TMDB hydration/persistence
 
-## Lifecycle Overview
+Controllers are aligned to those boundaries:
+
+- `MoviesController` -> `/api/movies`
+- `MovieInteractionsController` -> `/api/movie-interactions`
+- `MovieReviewsController` -> `/api/movie-reviews`
+- `MovieSyncController` -> `/api/movie-sync`
+- `StaffController` -> `/api/staff`
+
+---
+
+## 2) Data and Sync Lifecycle
+
+### Goals
+
+- Keep list endpoints fast and live-first.
+- Avoid N+1 database lookups in collection responses.
+- Persist full local graph only when needed.
+
+### Lifecycle Overview
 
 ```mermaid
 flowchart TD
-  A[Client: Discovery GET /api/movies] --> B[MovieService.GetMoviesAsync]
-  B --> C[TMDB Discover/Search API]
-  B --> D[BuildLocalMovieIdMapAsync]
-  D --> E[Single batched local query by tmdb ids]
-  B --> F[MapLiveMovie summary DTOs]
-  F --> G[Return paged list]
+  A[Client: GET /api/movies] --> B[MovieCatalogService.GetMoviesAsync]
+  B --> C[TMDB Discover/Search]
+  B --> D[MapLiveMovie]
+  D --> E[Return paged DTOs]
 
-  H[Client: Details GET /api/movies/{tmdbId}] --> I[MovieService.GetMovieDetailsAsync]
-  I --> J[EnsureLocalMovieAsync(syncCredits: true)]
-  J --> K{Local movie exists?}
-  K -- Yes --> L[Read local movie + local relations]
-  K -- No --> M[Fetch TMDB details]
-  M --> N[Persist movie + genres]
-  N --> O[Fetch credits and sync staff links]
-  O --> L
-  L --> P[Merge TMDB live details + local status]
-  P --> Q[Return details DTO]
+  F[Client: GET /api/movies/{tmdbId}] --> G[MovieDetailsService.GetMovieDetailsAsync]
+  G --> H{Local movie exists?}
+  H -- No --> I[MovieSyncService.FetchAndSaveMovieByTmdbIdAsync]
+  I --> J[Persist movie, genres, staff, links]
+  H -- Yes --> K[Use local graph]
+  J --> K
+  K --> L[Merge TMDB live details + local status]
+  L --> M[Return details DTO]
 
-  R[Client: Explicit sync POST /api/movies/fetch/{tmdbId}] --> S[FetchAndSaveMovieByTmdbIdAsync]
-  S --> T[Fetch TMDB details + credits]
-  T --> U[Persist/update movie + staff links]
-  U --> V[Return list-item DTO]
+  N[Client: POST /api/movie-sync/{tmdbId}] --> O[MovieSyncService.FetchAndSaveMovieByTmdbIdAsync]
+  O --> P[Fetch TMDB details and credits]
+  P --> Q[Upsert local entities and relations]
+  Q --> R[Return MovieListItemDto]
 ```
 
-## N+1 Avoidance Strategy
+### N+1 Avoidance
 
-List endpoints avoid per-item local lookups.
-
-- `GetMoviesAsync` fetches TMDB results once.
-- `BuildLocalMovieIdMapAsync` performs one batched local query for all TMDB ids in the page.
-- Mapping (`MapLiveMovie`) uses this map to enrich each item without extra database round-trips.
-
-Result: no local per-row query loop for list response construction.
-
-## When full details are fetched and persisted
-
-- Explicit sync command:
-  - `POST /api/movies/fetch/{tmdbId}`
-  - Forces details + credits fetch and local persistence/update.
-- Details flow:
-  - `GET /api/movies/{tmdbId}` calls `EnsureLocalMovieAsync(syncCredits: true)`.
-  - On cache miss, local movie/genre/staff persistence can happen.
+List reads in `MovieCatalogService` do not perform per-item local graph loading. Responses are constructed from TMDB summaries with local genre mapping only.
 
 ---
 
-## 2) CQRS and GET Endpoints
+## 3) CQRS Notes
 
-## Architectural rule (target)
+### Target rule
 
-`GET` endpoints are read-only and should never perform writes or call `_unitOfWork.CompleteAsync()`.
+`GET` endpoints should be read-only and side-effect free.
 
-This keeps query paths predictable, scalable, and side-effect free.
+### Current deviation
 
-## Known current deviation
+`GET /api/movies/{tmdbId}` can trigger local persistence on cache miss via `IMovieSyncService`.
 
-Current implementation includes one practical exception:
-
-- `GetMovieDetailsAsync` invokes `EnsureLocalMovieAsync(syncCredits: true)`.
-- If the movie is not yet in local storage, that path may persist movie/genre/staff and commit via `_unitOfWork.CompleteAsync()`.
-
-This is documented as an implementation deviation from strict CQRS-read semantics and should be treated as technical debt for future refactor if strict separation is required.
+This is an intentional practical deviation and should be treated as known technical debt if strict CQRS is enforced later.
 
 ---
 
-## 3) Core Patterns Used
+## 4) Core Patterns
 
-## Specification Pattern
+### Specification pattern
 
-The domain uses explicit specifications for query criteria, includes, sorting, and paging.
-
-- Core contracts:
-  - `ISpecification<T>`
-  - `BaseSpecification<T>`
-- Evaluator:
-  - `SpecificationEvaluator<T>` applies criteria/includes/order/paging to EF queries.
-- Example specs:
-  - `MovieDetailsByTmdbIdSpecification`
-  - `UserMovieReviewsByMovieIdSpecification` (newest-first + paging)
-  - `UserMovieReviewByUserAndMovieSpecification` (ownership filter)
-  - `UserMovieWatchedByUserAndMovieSpecification` (idempotency check)
-
-Benefits:
-
-- Reusable query definitions.
-- Consistent read behavior across service methods.
-- Centralized control of eager loading and paging.
-
-## Generic Repository
-
-All data access goes through `IGenericRepository<T>`:
-
-- `ListAsync(spec)`
-- `GetEntityWithSpecAsync(spec)`
-- `CountAsync(spec)`
-- `AddAsync`, `Update`, `Remove`
-
-This standardizes persistence boundaries and keeps services focused on domain logic.
-
-## Unit of Work
-
-All writes are committed through `IUnitOfWork.CompleteAsync()`.
-
-- Repositories stage changes.
-- Unit of Work flushes them in one save boundary.
-
-Benefits:
-
-- Predictable transaction points.
-- Reduced accidental partial writes.
-- Explicit mutation boundaries in service methods.
-
-## Manual Mapping (No third-party mapper)
-
-The service maps entities/TMDB contracts to DTOs manually.
+Query logic is encapsulated in specs (`ISpecification<T>`, `BaseSpecification<T>`) and applied through `SpecificationEvaluator`.
 
 Examples:
 
-- `MapLiveMovie` for live TMDB summary mapping.
-- `MapLocalMovieToListItem` for local entity mapping.
-- Inline DTO construction in reviews/details/interaction methods.
+- `MovieByTmdbIdSpecification`
+- `MovieDetailsByTmdbIdSpecification`
+- `UserMovieReviewByUserAndMovieSpecification`
+- `UserMovieReviewsByMovieIdSpecification`
 
-Rationale:
+### Generic repository + unit of work
 
-- Clear and explicit transformation logic.
-- Easier debugging and maintenance of API shapes.
-- No hidden mapping conventions.
+All writes are staged through repositories and committed via `IUnitOfWork.CompleteAsync()`.
+
+### Manual mapping
+
+Entity/TMDB contract to DTO mapping is explicit and in code (no AutoMapper/Mapster).
 
 ---
 
-## 4) Command vs Query Snapshot
+## 5) Command vs Query Snapshot
 
-## Query-oriented paths
+### Query endpoints
 
 - `GET /api/movies`
 - `GET /api/movies/trending`
@@ -153,25 +106,26 @@ Rationale:
 - `GET /api/movies/genres`
 - `GET /api/movies/recommended`
 - `GET /api/movies/recommended-for-me`
-- `GET /api/movies/{tmdbId}/reviews`
+- `GET /api/movies/{tmdbId}`
+- `GET /api/movie-reviews/{tmdbId}`
+- `GET /api/staff/{tmdbId}`
 
-## Command-oriented paths
+### Command endpoints
 
-- `POST /api/movies/fetch/{tmdbId}`
-- `POST /api/movies/{tmdbId}/like`
-- `POST /api/movies/{tmdbId}/rate`
-- `POST /api/movies/{tmdbId}/watchlist`
-- `POST /api/movies/{tmdbId}/watched`
-- `POST /api/movies/{tmdbId}/reviews`
-- `PUT /api/movies/{tmdbId}/reviews`
-- `DELETE /api/movies/{tmdbId}/reviews`
+- `POST /api/movie-sync/{tmdbId}`
+- `POST /api/movie-interactions/{tmdbId}/like`
+- `POST /api/movie-interactions/{tmdbId}/rate`
+- `POST /api/movie-interactions/{tmdbId}/watchlist`
+- `POST /api/movie-interactions/{tmdbId}/watched`
+- `POST /api/movie-reviews/{tmdbId}`
+- `PUT /api/movie-reviews/{tmdbId}`
+- `DELETE /api/movie-reviews/{tmdbId}`
 
 ---
 
-## 5) Practical Notes for Backend Contributors
+## 6) Contributor Notes
 
-1. Treat `{id}` on movie routes as TMDB id, not local `MovieId`.
-2. Keep list endpoints lightweight and avoid eager loading heavy graphs unnecessarily.
-3. For any new mutation path, ensure all commits happen through `IUnitOfWork`.
-4. For any new query path, prefer adding a dedicated specification over ad-hoc LINQ in services.
-5. If strict CQRS is enforced later, move details cache-warm persistence into explicit command paths.
+1. Treat route id as `tmdbId` across movie-facing APIs.
+2. Keep discovery endpoints live-first and lightweight.
+3. Keep writes explicit through interaction/sync paths and `IUnitOfWork` boundaries.
+4. Use new service boundaries when adding features; do not reintroduce a god-object service.
