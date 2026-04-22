@@ -2,33 +2,57 @@
 
 This guide is for integrating Discovery, Details, and Interactions in the frontend.
 
+- Discovery and details: `/api/movies`
+- Interactions: `/api/movie-interactions`
+- Reviews: `/api/movie-reviews`
+- Explicit sync: `/api/movie-sync`
+- Staff: `/api/staff`
+
 ## Base URL
 
 - Local: `http://localhost:5222`
-- Movies base path: `/api/movies`
+
+## Route Map (Quick Reference)
+
+### Movies routes
+
+- `GET /api/movies`
+- `GET /api/movies/trending?take=20`
+- `GET /api/movies/recently-added?take=20`
+- `GET /api/movies/genres`
+- `GET /api/movies/recommended?take=20`
+- `GET /api/movies/recommended-for-me?take=20` (auth)
+- `GET /api/movies/{tmdbId}`
+
+### Interaction routes (auth required)
+
+- `POST /api/movie-interactions/{tmdbId}/like`
+- `POST /api/movie-interactions/{tmdbId}/rate`
+- `POST /api/movie-interactions/{tmdbId}/watchlist`
+- `POST /api/movie-interactions/{tmdbId}/watched`
+
+### Review routes
+
+- `GET /api/movie-reviews/{tmdbId}?pageIndex=1&pageSize=20`
+- `POST /api/movie-reviews/{tmdbId}` (auth)
+- `PUT /api/movie-reviews/{tmdbId}` (auth)
+- `DELETE /api/movie-reviews/{tmdbId}` (auth)
+
+### Sync and staff routes
+
+- `POST /api/movie-sync/{tmdbId}`
+- `GET /api/staff/{tmdbId}`
+
 ---
 
 ## Critical Frontend Note: `movieId` vs `tmdbId`
 
-### Live Discovery behavior
-
 Discovery list endpoints are live/TMDB-driven. Some list items are not persisted locally yet.
 
 - `movieId` can be `0`
-- `tmdbId` is the stable identifier you should use to navigate
+- `tmdbId` is the stable route identifier for details, interactions, reviews, sync, and staff
 
-### Details and Interactions behavior
-
-For these routes, `{id}` means TMDB id.
-
-- `GET /api/movies/{id}`
-- `POST /api/movies/{id}/like`
-- `POST /api/movies/{id}/rate`
-- `POST /api/movies/{id}/watchlist`
-- `POST /api/movies/{id}/watched`
-- `GET|POST|PUT|DELETE /api/movies/{id}/reviews`
-
-Use `movie.tmdbId` from discovery cards when calling details or interaction routes.
+Always pass `movie.tmdbId` from cards/lists into route params.
 
 ---
 
@@ -44,13 +68,13 @@ On failure, APIs return:
 }
 ```
 
-`Details` can contain validation errors when applicable.
+`Details` may include validation details.
 
 ---
 
-## 1) Discovery Feature
+## 1) Discovery
 
-### 1.1 Discover/Search Movies
+### 1.1 Discover and Search Movies
 
 - Method: `GET`
 - URL: `/api/movies`
@@ -69,39 +93,7 @@ Query params (all optional unless noted):
 - `pageIndex` (default 1)
 - `pageSize` (default 20)
 
-Payload required:
-
-- None (query-string only)
-
-Example response:
-
-```json
-{
-  "data": [
-    {
-      "movieId": 0,
-      "tmdbId": 155,
-      "title": "The Dark Knight",
-      "posterUrl": "https://image.tmdb.org/t/p/w500/...",
-      "backdropUrl": "https://image.tmdb.org/t/p/w780/...",
-      "releaseDate": "2008-07-16T00:00:00",
-      "language": "en",
-      "mpaCertification": null,
-      "popularity": 99.32,
-      "tmdbRating": 8.5,
-      "tmdbVoteCount": 32000,
-      "genres": ["Action", "Crime", "Drama"],
-      "staffNames": []
-    }
-  ],
-  "pageNumber": 1,
-  "pageSize": 20,
-  "totalCount": 10000,
-  "totalPages": 500
-}
-```
-
-Fetch example:
+Example:
 
 ```javascript
 const params = new URLSearchParams({
@@ -113,8 +105,6 @@ const params = new URLSearchParams({
 
 const res = await fetch(`http://localhost:5222/api/movies?${params}`);
 const data = await res.json();
-
-// Always use tmdbId for details/interactions navigation
 const tmdbId = data.data[0].tmdbId;
 ```
 
@@ -124,33 +114,35 @@ const tmdbId = data.data[0].tmdbId;
 - URL: `/api/movies/trending?take=20`
 - Auth: No
 
-Payload required:
-
-- None
-
-Returns `MovieListItemDto[]`.
-
-cURL:
-
-```bash
-curl "http://localhost:5222/api/movies/trending?take=20"
-```
-
 ### 1.3 Recently Added
 
 - Method: `GET`
 - URL: `/api/movies/recently-added?take=20`
 - Auth: No
 
-Payload required:
+### 1.4 Genres
 
-- None
+- Method: `GET`
+- URL: `/api/movies/genres`
+- Auth: No
 
-Returns `MovieListItemDto[]`.
+### 1.5 Recommended
+
+- Method: `GET`
+- URL: `/api/movies/recommended?take=20`
+- Auth: No
+
+### 1.6 Recommended For Me
+
+- Method: `GET`
+- URL: `/api/movies/recommended-for-me?take=20`
+- Auth: Yes
+
+Current behavior is intentionally temporary: it returns the same generic recommendation strategy as `recommended` until the ML flow is finalized.
 
 ---
 
-## 2) Details Feature
+## 2) Details and Staff
 
 ### 2.1 Movie Details
 
@@ -158,120 +150,31 @@ Returns `MovieListItemDto[]`.
 - URL: `/api/movies/{tmdbId}`
 - Auth: Optional
 
-Payload required:
+If token is provided, `userStatus` is included when local user interaction rows exist.
 
-- None
+### 2.2 Staff Details
 
-If token is provided, `userStatus` is populated when local movie exists.
-
-Example response:
-
-```json
-{
-  "movieId": 1023,
-  "tmdbId": 155,
-  "title": "The Dark Knight",
-  "overview": "Batman raises the stakes in his war on crime...",
-  "runtime": 152,
-  "releaseDate": "2008-07-16T00:00:00",
-  "language": "en",
-  "posterUrl": "https://image.tmdb.org/t/p/w500/...",
-  "backdropUrl": "https://image.tmdb.org/t/p/w780/...",
-  "popularity": 99.32,
-  "tmdbRating": 8.5,
-  "tmdbVoteCount": 32000,
-  "imdbId": "tt0468569",
-  "trailerUrl": "https://www.youtube.com/watch?v=EXeTwQWrcwY",
-  "genres": ["Action", "Crime", "Drama"],
-  "cast": [
-    {
-      "staffId": 801,
-      "tmdbId": 3894,
-      "name": "Christian Bale",
-      "department": "Acting",
-      "role": "Bruce Wayne",
-      "profileUrl": "https://image.tmdb.org/t/p/w185/..."
-    }
-  ],
-  "crew": [
-    {
-      "staffId": 802,
-      "tmdbId": 525,
-      "name": "Christopher Nolan",
-      "department": "Directing",
-      "role": "Director",
-      "profileUrl": "https://image.tmdb.org/t/p/w185/..."
-    }
-  ],
-  "similarMovies": [.....],
-  "watchProviders": url,
-  "ratingSummary": {
-    "average": 4.33,
-    "count": 12
-  },
-  "userStatus": {
-    "isLiked": true,
-    "isInWatchlist": false,
-    "userRating": 4
-  }
-}
-```
-
-Fetch example (with auth):
-
-```javascript
-const tmdbId = 155;
-const token = localStorage.getItem("accessToken");
-
-const res = await fetch(`http://localhost:5222/api/movies/${tmdbId}`, {
-  headers: token ? { Authorization: `Bearer ${token}` } : {}
-});
-
-const details = await res.json();
-```
+- Method: `GET`
+- URL: `/api/staff/{tmdbId}`
+- Auth: No
 
 ---
 
-## 3) Interactions Feature
+## 3) Interactions
 
 All interaction endpoints require auth and use TMDB id in route.
 
 ### 3.1 Toggle Like
 
 - Method: `POST`
-- URL: `/api/movies/{tmdbId}/like`
-- Auth: Yes
-
-Payload required:
-
-- None
-
-Response example (`MovieInteractionStatusDto`):
-
-```json
-{
-  "movieId": 1023,
-  "tmdbId": 155,
-  "isLiked": true,
-  "isInWatchlist": false,
-  "userRating": 4
-}
-```
-
-cURL:
-
-```bash
-curl -X POST "http://localhost:5222/api/movies/155/like" \
-  -H "Authorization: Bearer <accessToken>"
-```
+- URL: `/api/movie-interactions/{tmdbId}/like`
 
 ### 3.2 Set Rating
 
 - Method: `POST`
-- URL: `/api/movies/{tmdbId}/rate`
-- Auth: Yes
+- URL: `/api/movie-interactions/{tmdbId}/rate`
 
-Payload required:
+Payload:
 
 ```json
 {
@@ -279,87 +182,35 @@ Payload required:
 }
 ```
 
-Response shape: `MovieInteractionStatusDto`.
-
-Fetch:
-
-```javascript
-await fetch("http://localhost:5222/api/movies/155/rate", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`
-  },
-  body: JSON.stringify({ stars: 4 })
-});
-```
-
 ### 3.3 Toggle Watchlist
 
 - Method: `POST`
-- URL: `/api/movies/{tmdbId}/watchlist`
-- Auth: Yes
-
-Payload required:
-
-- None
-
-Response shape: `MovieInteractionStatusDto`.
+- URL: `/api/movie-interactions/{tmdbId}/watchlist`
 
 ### 3.4 Mark Watched
 
 - Method: `POST`
-- URL: `/api/movies/{tmdbId}/watched`
-- Auth: Yes
+- URL: `/api/movie-interactions/{tmdbId}/watched`
 
-Payload required:
+Response shape for all four endpoints: `MovieInteractionStatusDto`.
 
-- None
+---
 
-Response shape: `MovieInteractionStatusDto`.
+## 4) Reviews
 
-### 3.5 Reviews (Current User Scoped)
-
-#### List Reviews
+### 4.1 List Reviews
 
 - Method: `GET`
-- URL: `/api/movies/{tmdbId}/reviews?pageIndex=1&pageSize=20`
+- URL: `/api/movie-reviews/{tmdbId}?pageIndex=1&pageSize=20`
 - Auth: No
 
-Payload required:
-
-- None
-
-Response example (`PagedResponse<MovieReviewDto>`):
-
-```json
-{
-  "data": [
-    {
-      "reviewId": 3,
-      "movieId": 1023,
-      "tmdbId": 155,
-      "userId": 42,
-      "userName": "amr_user",
-      "body": "Updated review body from frontend.",
-      "sentiment": null,
-      "timestamp": "2026-04-17T19:41:12.713Z"
-    }
-  ],
-  "pageNumber": 1,
-  "pageSize": 20,
-  "totalCount": 1,
-  "totalPages": 1
-}
-```
-
-#### Add Review
+### 4.2 Add Review
 
 - Method: `POST`
-- URL: `/api/movies/{tmdbId}/reviews`
+- URL: `/api/movie-reviews/{tmdbId}`
 - Auth: Yes
 
-Payload required:
+Payload:
 
 ```json
 {
@@ -367,35 +218,19 @@ Payload required:
 }
 ```
 
-Response shape: `MovieReviewDto`.
-
-#### Update Review
+### 4.3 Update Review
 
 - Method: `PUT`
-- URL: `/api/movies/{tmdbId}/reviews`
+- URL: `/api/movie-reviews/{tmdbId}`
 - Auth: Yes
 
-Payload required:
-
-```json
-{
-  "body": "Updated review after rewatch."
-}
-```
-
-Response shape: `MovieReviewDto`.
-
-#### Delete Review
+### 4.4 Delete Review
 
 - Method: `DELETE`
-- URL: `/api/movies/{tmdbId}/reviews`
+- URL: `/api/movie-reviews/{tmdbId}`
 - Auth: Yes
 
-Payload required:
-
-- None
-
-Response example:
+Delete response:
 
 ```json
 {
@@ -403,21 +238,20 @@ Response example:
 }
 ```
 
-Review fetch example:
+---
 
-```javascript
-const tmdbId = 155;
+## 5) Explicit Sync
 
-const createRes = await fetch(`http://localhost:5222/api/movies/${tmdbId}/reviews`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`
-  },
-  body: JSON.stringify({ body: "Great pacing and strong performances." })
-});
+Use this endpoint when you explicitly want to hydrate/persist a movie from TMDB.
 
-const created = await createRes.json();
+- Method: `POST`
+- URL: `/api/movie-sync/{tmdbId}`
+- Auth: No
+
+Example:
+
+```bash
+curl -X POST "http://localhost:5222/api/movie-sync/155"
 ```
 
 ---
