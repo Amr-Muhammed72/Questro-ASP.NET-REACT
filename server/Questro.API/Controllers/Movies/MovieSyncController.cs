@@ -4,20 +4,20 @@ using Questro.Service.Abstractions.Movies;
 namespace Questro.API.Controllers.Movies;
 
 [ApiController]
-[Route("api/staff")]
-public class StaffController : ControllerBase
+[Route("api/movie-sync")]
+public class MovieSyncController : ControllerBase
 {
-    private readonly IMovieDetailsService _movieDetailsService;
+    private readonly IMovieSyncService _movieSyncService;
 
-    public StaffController(IMovieDetailsService movieDetailsService)
+    public MovieSyncController(IMovieSyncService movieSyncService)
     {
-        _movieDetailsService = movieDetailsService;
+        _movieSyncService = movieSyncService;
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetStaffDetails([FromRoute] int id, CancellationToken cancellationToken = default)
+    [HttpPost("{tmdbId:int}")]
+    public async Task<IActionResult> FetchByTmdbId([FromRoute] int tmdbId, CancellationToken cancellationToken = default)
     {
-        var result = await _movieDetailsService.GetStaffDetailsAsync(id, cancellationToken);
+        var result = await _movieSyncService.FetchAndSaveMovieByTmdbIdAsync(tmdbId, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
