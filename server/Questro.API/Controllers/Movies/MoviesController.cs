@@ -7,20 +7,22 @@ using System.Security.Claims;
 namespace Questro.API.Controllers.Movies;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/movies")]
 public class MoviesController : ControllerBase
 {
-    private readonly IMovieService _movieService;
+    private readonly IMovieCatalogService _movieCatalogService;
+    private readonly IMovieDetailsService _movieDetailsService;
 
-    public MoviesController(IMovieService movieService)
+    public MoviesController(IMovieCatalogService movieCatalogService, IMovieDetailsService movieDetailsService)
     {
-        _movieService = movieService;
+        _movieCatalogService = movieCatalogService;
+        _movieDetailsService = movieDetailsService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetMovies([FromQuery] MovieSpecParams specParams, CancellationToken cancellationToken)
     {
-        var result = await _movieService.GetMoviesAsync(specParams, cancellationToken);
+        var result = await _movieCatalogService.GetMoviesAsync(specParams, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -39,7 +41,7 @@ public class MoviesController : ControllerBase
     [HttpGet("recently-added")]
     public async Task<IActionResult> GetRecentlyAdded([FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _movieService.GetRecentlyAddedAsync(take, cancellationToken);
+        var result = await _movieCatalogService.GetRecentlyAddedAsync(take, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -58,7 +60,7 @@ public class MoviesController : ControllerBase
     [HttpGet("trending")]
     public async Task<IActionResult> GetTrending([FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _movieService.GetTrendingAsync(take, cancellationToken);
+        var result = await _movieCatalogService.GetTrendingAsync(take, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -77,7 +79,7 @@ public class MoviesController : ControllerBase
     [HttpGet("genres")]
     public async Task<IActionResult> GetGenres(CancellationToken cancellationToken = default)
     {
-        var result = await _movieService.GetGenresAsync(cancellationToken);
+        var result = await _movieCatalogService.GetGenresAsync(cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -96,7 +98,7 @@ public class MoviesController : ControllerBase
     [HttpGet("recommended")]
     public async Task<IActionResult> GetRecommended([FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _movieService.GetRecommendedAsync(take, cancellationToken);
+        var result = await _movieCatalogService.GetRecommendedAsync(take, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -122,26 +124,7 @@ public class MoviesController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _movieService.GetRecommendedForMeAsync(userId.Value, take, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [HttpPost("fetch/{tmdbId:int}")]
-    public async Task<IActionResult> FetchByTmdbId([FromRoute] int tmdbId, CancellationToken cancellationToken = default)
-    {
-        var result = await _movieService.FetchAndSaveMovieByTmdbIdAsync(tmdbId, cancellationToken);
+        var result = await _movieCatalogService.GetRecommendedForMeAsync(userId.Value, take, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -161,221 +144,7 @@ public class MoviesController : ControllerBase
     public async Task<IActionResult> GetMovieDetails([FromRoute] int id, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var result = await _movieService.GetMovieDetailsAsync(id, userId, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [Authorize]
-    [HttpPost("{id:int}/like")]
-    public async Task<IActionResult> ToggleLike([FromRoute] int id, CancellationToken cancellationToken = default)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var result = await _movieService.ToggleLikeAsync(id, userId.Value, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [Authorize]
-    [HttpPost("{id:int}/rate")]
-    public async Task<IActionResult> SetRating(
-        [FromRoute] int id,
-        [FromBody] SetMovieRatingRequestDto request,
-        CancellationToken cancellationToken = default)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var result = await _movieService.SetRatingAsync(id, userId.Value, request.Stars, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [Authorize]
-    [HttpPost("{id:int}/watchlist")]
-    public async Task<IActionResult> ToggleWatchlist([FromRoute] int id, CancellationToken cancellationToken = default)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var result = await _movieService.ToggleWatchlistAsync(id, userId.Value, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [HttpGet("{id:int}/reviews")]
-    public async Task<IActionResult> GetReviews(
-        [FromRoute] int id,
-        [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await _movieService.GetMovieReviewsAsync(id, pageIndex, pageSize, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [Authorize]
-    [HttpPost("{id:int}/reviews")]
-    public async Task<IActionResult> AddReview(
-        [FromRoute] int id,
-        [FromBody] CreateMovieReviewRequestDto request,
-        CancellationToken cancellationToken = default)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var result = await _movieService.AddReviewAsync(id, userId.Value, request.Body, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [Authorize]
-    [HttpPut("{id:int}/reviews")]
-    public async Task<IActionResult> UpdateReview(
-        [FromRoute] int id,
-        [FromBody] UpdateMovieReviewRequestDto request,
-        CancellationToken cancellationToken = default)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var result = await _movieService.UpdateReviewAsync(id, userId.Value, request.Body, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [Authorize]
-    [HttpDelete("{id:int}/reviews")]
-    public async Task<IActionResult> DeleteReview([FromRoute] int id, CancellationToken cancellationToken = default)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var result = await _movieService.DeleteReviewAsync(id, userId.Value, cancellationToken);
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(new { deleted = result.Value });
-    }
-
-    [Authorize]
-    [HttpPost("{id:int}/watched")]
-    public async Task<IActionResult> MarkWatched([FromRoute] int id, CancellationToken cancellationToken = default)
-    {
-        var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var result = await _movieService.MarkWatchedAsync(id, userId.Value, cancellationToken);
+        var result = await _movieDetailsService.GetMovieDetailsAsync(id, userId, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new

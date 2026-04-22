@@ -13,7 +13,10 @@ public static class DependencyInjectionService
     {
         services.AddHttpClient();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IMovieService, MovieService>();
+        services.AddScoped<IMovieCatalogService, MovieCatalogService>();
+        services.AddScoped<IMovieSyncService, MovieSyncService>();
+        services.AddScoped<IMovieDetailsService, MovieDetailsService>();
+        services.AddScoped<IMovieInteractionService, MovieInteractionService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionService).Assembly);
 
         return services;
