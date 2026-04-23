@@ -149,68 +149,6 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Logged out successfully" });
     }
 
-    [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword([FromBody] InitiatePasswordResetRequestDto request, CancellationToken cancellationToken)
-    {
-        var result = await _authService.InitiatePasswordResetAsync(request, cancellationToken);
-
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en
-            };
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(new { message = "OTP sent to your email for password reset" });
-    }
-
-    [HttpPost("verify-password-reset-otp")]
-    public async Task<IActionResult> VerifyPasswordResetOtp([FromBody] VerifyPasswordResetOtpRequestDto request, CancellationToken cancellationToken)
-    {
-        var result = await _authService.VerifyPasswordResetOtpAsync(request, cancellationToken);
-
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en
-            };
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(new
-        {
-            message = result.Value.Message,
-            email = result.Value.Email
-        });
-    }
-
-    [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request, CancellationToken cancellationToken)
-    {
-        var result = await _authService.ResetPasswordAsync(request, cancellationToken);
-
-        if (result.IsFailure)
-        {
-            var errorResponse = new
-            {
-                code = result.Error.Code,
-                en = result.Error.en,
-                Details = result.Details
-            };
-            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
-        }
-
-        return Ok(new
-        {
-            message = result.Value.Message,
-            email = result.Value.Email
-        });
-    }
   
     private void SetRefreshTokenInCookie(string token, DateTime expiry)
     {
