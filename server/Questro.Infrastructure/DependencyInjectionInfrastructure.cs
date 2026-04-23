@@ -1,15 +1,17 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Questro.Core.Entities.UserManagement;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.Data;
 using Questro.Infrastructure.ExternalServices.Tmdb;
 using Questro.Infrastructure.Repositories;
+using Questro.Shared.Contracts.Email;
 using Questro.Shared.Options.Jwt;
 using Questro.Shared.Options.Tmdb;
 using System.Text;
@@ -24,7 +26,7 @@ public static class DependencyInjectionInfrastructure
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services
-            .AddIdentityCore<ApplicationUser>(options=>
+            .AddIdentityCore<ApplicationUser>(options =>
             {
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
                 options.Lockout.MaxFailedAccessAttempts = 5;
@@ -32,7 +34,7 @@ public static class DependencyInjectionInfrastructure
             }
             )
             .AddRoles<ApplicationRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>().AddSignInManager();
+            .AddEntityFrameworkStores<ApplicationDbContext>().AddSignInManager().AddDefaultTokenProviders();
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName));
@@ -78,7 +80,7 @@ public static class DependencyInjectionInfrastructure
                 client.BaseAddress = baseUri;
             }
         });
-
+        
         return services;
     }
 }

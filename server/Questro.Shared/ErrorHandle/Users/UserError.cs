@@ -40,4 +40,17 @@ public static class UserError
     public static readonly Errors LogoutFailed =
     new("User.LogoutFailed", "Failed to logout user.", 500);
 
+    // Password Reset Errors
+    public static readonly Errors UserNotFound =
+        new("User.NotFound", "User not found.", 404);
+
+    public static readonly Errors InvalidPasswordResetRequest =
+        new("User.InvalidPasswordResetRequest", "Invalid password reset request.", 400);
+
+    public static readonly Errors PasswordResetFailed =
+        new("User.PasswordResetFailed", "Failed to reset password.", 500);
+
+    public static readonly Errors PasswordResetExpired =
+        new("User.PasswordResetExpired", "Password reset token has expired.", 401);
+
 }

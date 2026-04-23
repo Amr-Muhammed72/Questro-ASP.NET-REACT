@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Questro.Core.Entities.UserManagement;
@@ -7,15 +8,16 @@ using Questro.Core.Entities.Users;
 using Questro.Infrastructure.Data;
 using Questro.Service.Abstractions.Auth;
 using Questro.Shared.Contracts.Auth;
+using Questro.Shared.Contracts.OTP;
+
 using Questro.Shared.ErrorHandle.Users;
 using Questro.Shared.Options.Jwt;
 using Questro.Shared.Result;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 
 namespace Questro.Service.Services.Auth;
 
@@ -27,6 +29,8 @@ public class AuthService : IAuthService
     private readonly ApplicationDbContext _dbContext;
     private readonly JwtOptions _jwtOptions;
     private readonly IValidator<RegisterRequestDto> _validator;
+    private readonly IOTPService _otpService;
+
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -34,7 +38,8 @@ public class AuthService : IAuthService
         RoleManager<ApplicationRole> roleManager,
         ApplicationDbContext dbContext,
         IOptions<JwtOptions> jwtOptions,
-        IValidator<RegisterRequestDto> validator
+        IValidator<RegisterRequestDto> validator,
+        IOTPService OTPService
         )
     {
         _userManager = userManager;
@@ -43,6 +48,7 @@ public class AuthService : IAuthService
         _jwtOptions = jwtOptions.Value;
         _validator = validator;
         _SignInManager = signInManager;
+        _otpService = OTPService;
     }
 
     public async Task<Result<RegisterResponseDto>> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
@@ -76,7 +82,8 @@ public class AuthService : IAuthService
             BirthDate = request.BirthDate,
             Age = CalculateAge(request.BirthDate),
             JoinDate = DateTime.UtcNow,
-            PrimaryInterest = UserInterest.Mixed
+            PrimaryInterest = UserInterest.Mixed,
+            EmailConfirmed = false
         };
 
         var identityCreateResult = await _userManager.CreateAsync(identityUser, request.Password);
@@ -100,22 +107,11 @@ public class AuthService : IAuthService
             return Result.Failure<RegisterResponseDto>(
                 UserError.RegistrationFailed, addToRoleResult.Errors.Select(e => e.Description).ToList());
 
-        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(identityUser);
-        var refreshTokenValue = GenerateRefreshToken();
-        var refreshTokenExpiresOnUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0 ? _jwtOptions.RefreshTokenExpirationDays : 7);
+        await _otpService.SendOTPAsync(
+                        new SendOtpRequestDto(identityUser.Email),
+                         cancellationToken);
 
-        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
-        {
-            UserId = identityUser.Id,
-            Token = refreshTokenValue,
-            CreatedOnUtc = DateTime.UtcNow,
-            ExpiresOnUtc = refreshTokenExpiresOnUtc
-        }, cancellationToken);
-
-        var affectedRows = await _dbContext.SaveChangesAsync(cancellationToken);
-
-        if (affectedRows == 0)
-            return Result.Failure<RegisterResponseDto>(UserError.RegistrationFailed);
+        
 
         return Result.Success(new RegisterResponseDto(
             identityUser.Id,
@@ -123,10 +119,10 @@ public class AuthService : IAuthService
             identityUser.FirstName ?? string.Empty,
             identityUser.LastName ?? string.Empty,
             identityUser.Email ?? string.Empty,
-            accessToken,
-            refreshTokenValue,
-            accessTokenExpiresOnUtc,
-            refreshTokenExpiresOnUtc));
+            null,
+            null,
+            default,
+            default));
     }
     public async Task<Result<LogInResponseDto>> LogInAsync(LogInRequestDto request, CancellationToken cancellationToken = default)
     {
@@ -149,44 +145,19 @@ public class AuthService : IAuthService
             return Result.Failure<LogInResponseDto>(UserError.LoginNotAllowed);
         if (!isValid.Succeeded)
             return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
-        // Create Accesss Tokens
-        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
-        // revoke old tokens 
-        var oldTokens = await _dbContext.RefreshTokens
-                          .Where(x => x.UserId == user.Id && x.RevokedOnUtc == null)
-                          .ToListAsync();
-
-        foreach (var token in oldTokens)
-        {
-            token.RevokedOnUtc = DateTime.UtcNow;
-        }
-        var refreshTokenValue = GenerateRefreshToken();
-        var refreshTokenExpiresOnUtc =
-            DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
-            ? _jwtOptions.RefreshTokenExpirationDays : 7);
-
-        // Save Refresh Token in DB
-        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
-        {
-            UserId = user.Id,
-            Token = refreshTokenValue,
-            CreatedOnUtc = DateTime.UtcNow,
-            ExpiresOnUtc = refreshTokenExpiresOnUtc
-        }, cancellationToken);
-
-        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
-        if (saved == 0)
-            return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
+        await _otpService.SendOTPAsync(
+                new SendOtpRequestDto(user.Email),
+                 cancellationToken);
         return Result.Success(new LogInResponseDto(
              user.Id,
              user.UserName ?? string.Empty,
              user.FirstName ?? string.Empty,
              user.LastName ?? string.Empty,
              user.Email ?? string.Empty,
-             accessToken,
-             refreshTokenValue,
-             accessTokenExpiresOnUtc,
-             refreshTokenExpiresOnUtc));
+             null,
+             null,
+             default,
+             default ));
     }
 
     public async Task<Result> LogOutAsync(string? refreshToken, CancellationToken cancellationToken)
@@ -243,7 +214,56 @@ public class AuthService : IAuthService
             accessTokenExpiresOnUtc,
             newRefreshTokenExpiresOnUtc));
     }
+    public async Task<Result<LogInResponseDto>> VerifyOtpAndLoginAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var verifyResult = await _otpService.VerifyOTPAsync(request, cancellationToken);
 
+        if (verifyResult.IsFailure)
+            return Result.Failure<LogInResponseDto>(verifyResult.Error);
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        // Create Accesss Tokens
+        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
+        // revoke old tokens 
+        var oldTokens = await _dbContext.RefreshTokens
+                          .Where(x => x.UserId == user.Id && x.RevokedOnUtc == null)
+                          .ToListAsync();
+
+        foreach (var token in oldTokens)
+        {
+            token.RevokedOnUtc = DateTime.UtcNow;
+        }
+        var refreshTokenValue = GenerateRefreshToken();
+        var refreshTokenExpiresOnUtc =
+            DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
+            ? _jwtOptions.RefreshTokenExpirationDays : 7);
+
+        // Save Refresh Token in DB
+        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshTokenValue,
+            CreatedOnUtc = DateTime.UtcNow,
+            ExpiresOnUtc = refreshTokenExpiresOnUtc
+        }, cancellationToken);
+
+        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        if (saved == 0)
+            return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
+        return Result.Success(new LogInResponseDto(
+             user.Id,
+             user.UserName ?? string.Empty,
+             user.FirstName ?? string.Empty,
+             user.LastName ?? string.Empty,
+             user.Email ?? string.Empty,
+             accessToken,
+             refreshTokenValue,
+             accessTokenExpiresOnUtc,
+             refreshTokenExpiresOnUtc));
+    }
+
+    
     private async Task<(string Token, DateTime ExpiresOnUtc)> GenerateAccessTokenAsync(ApplicationUser user)
     {
         var key = _jwtOptions.Key;
