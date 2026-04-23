@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Questro.Service.Abstractions.Auth;
+using Questro.Service.Abstractions;
 using Questro.Shared.Contracts.Auth;
+using Questro.Shared.Contracts.OTP;
+
+using Questro.Shared.Result;
 
 namespace Questro.API.Controllers.Auth;
 
@@ -9,11 +13,14 @@ namespace Questro.API.Controllers.Auth;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+   
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService )
     {
         _authService = authService;
+        
     }
+  
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequestDto request, CancellationToken cancellationToken)
@@ -31,9 +38,32 @@ public class AuthController : ControllerBase
 
             return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
         }
+       
+        return Created($"api/auth/{result.Value.UserId}", new
+        {
+            message = "OTP sent to your email",
+            result.Value.UserId,
+            result.Value.UserName,
+            result.Value.FirstName,
+            result.Value.LastName,
+            result.Value.Email
+        });
+    }
+    [HttpPost("Verify")]
+    public async Task<IActionResult> VerifyOtp(VerifyOtpRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.VerifyOtpAndLoginAsync(request, cancellationToken);
+
+        if (result.IsFailure)
+            return StatusCode(result.Error.StatusCode ?? 500, new
+            {
+                result.Error.Code,
+                result.Error.en
+            });
+
         SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
 
-        return Created($"api/auth/{result.Value.UserId}", new
+        return Ok(new
         {
             result.Value.UserId,
             result.Value.UserName,
@@ -57,17 +87,16 @@ public class AuthController : ControllerBase
             };
             return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
         }
-        SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
+      
         return Ok(new
 
         {
+            message = "OTP sent to your email",
             result.Value.UserId,
             result.Value.UserName,
             result.Value.FirstName,
             result.Value.LastName,
-            result.Value.Email,
-            result.Value.AccessToken,
-            result.Value.AccessTokenExpiresOnUtc
+            result.Value.Email
 
         });
 
@@ -119,6 +148,70 @@ public class AuthController : ControllerBase
         Response.Cookies.Delete("refreshToken");
         return Ok(new { message = "Logged out successfully" });
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] InitiatePasswordResetRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.InitiatePasswordResetAsync(request, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            var errorResponse = new
+            {
+                code = result.Error.Code,
+                en = result.Error.en
+            };
+            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+        }
+
+        return Ok(new { message = "OTP sent to your email for password reset" });
+    }
+
+    [HttpPost("verify-password-reset-otp")]
+    public async Task<IActionResult> VerifyPasswordResetOtp([FromBody] VerifyPasswordResetOtpRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.VerifyPasswordResetOtpAsync(request, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            var errorResponse = new
+            {
+                code = result.Error.Code,
+                en = result.Error.en
+            };
+            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+        }
+
+        return Ok(new
+        {
+            message = result.Value.Message,
+            email = result.Value.Email
+        });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.ResetPasswordAsync(request, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            var errorResponse = new
+            {
+                code = result.Error.Code,
+                en = result.Error.en,
+                Details = result.Details
+            };
+            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+        }
+
+        return Ok(new
+        {
+            message = result.Value.Message,
+            email = result.Value.Email
+        });
+    }
+  
     private void SetRefreshTokenInCookie(string token, DateTime expiry)
     {
         Response.Cookies.Append("refreshToken", token, new CookieOptions
@@ -130,4 +223,5 @@ public class AuthController : ControllerBase
             IsEssential = true
         });
     }
+ 
 }

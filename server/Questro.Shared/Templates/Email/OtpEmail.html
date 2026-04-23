@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 30px;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 480px;
+            margin: auto;
+        }
+
+        .otp {
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 10px;
+            color: #4F46E5;
+            text-align: center;
+            margin: 24px 0;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #999;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Email Verification</h2>
+        <p>Your OTP code is:</p>
+        <div class="otp">{{OTP}}</div>
+        <p>This code is valid for <strong>{{EXPIRY_MINUTES}} minutes</strong>.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+        <div class="footer">© 2025 Questro. All rights reserved.</div>
+    </div>
+</body>
+</html>
