@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Movie_Staff> MovieStaff => Set<Movie_Staff>();
 
     public DbSet<Game> Games => Set<Game>();
+    public DbSet<GamePhoto> GamePhotos => Set<GamePhoto>();
     public DbSet<GameGenre> GameGenres => Set<GameGenre>();
     public DbSet<Game_GameGenre> GameGameGenres => Set<Game_GameGenre>();
     public DbSet<GamePlatform> GamePlatforms => Set<GamePlatform>();

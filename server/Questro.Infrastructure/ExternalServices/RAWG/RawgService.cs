@@ -1,0 +1,192 @@
+using Microsoft.Extensions.Options;
+using Questro.Infrastructure.Abstractions;
+using Questro.Infrastructure.ExternalServices.RAWG.Contracts;
+using Questro.Shared.Contracts.Games;
+using Questro.Shared.Options.Rawg;
+using System.Globalization;
+using System.Net.Http.Json;
+using System.Text;
+
+namespace Questro.Infrastructure.ExternalServices.RAWG;
+
+public sealed class RawgService : IRawgService
+{
+    private readonly HttpClient _httpClient;
+    private readonly RawgOptions _rawgOptions;
+
+    public RawgService(HttpClient httpClient, IOptions<RawgOptions> rawgOptions)
+    {
+        _httpClient = httpClient;
+        _rawgOptions = rawgOptions.Value;
+    }
+
+    public Task<RawgPagedGameResponse?> GetTrendingGamesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(new Dictionary<string, string?>
+        {
+            [RawgConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = pageSize.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Ordering] = RawgConstants.SortValues.TrendingDesc
+        });
+
+        return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
+    }
+
+    public Task<RawgPagedGameResponse?> DiscoverGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(new Dictionary<string, string?>
+        {
+            [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = (specParams.PageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : specParams.PageSize).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Ordering] = MapSort(specParams.Sort),
+            [RawgConstants.QueryKeys.Genres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Platforms] = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.MetacriticGte] = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.MetacriticLte] = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture)
+        });
+
+        return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
+    }
+
+    public Task<RawgPagedGameResponse?> SearchGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(new Dictionary<string, string?>
+        {
+            [RawgConstants.QueryKeys.Search] = specParams.Search,
+            [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = (specParams.PageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : specParams.PageSize).ToString(CultureInfo.InvariantCulture)
+        });
+
+        return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
+    }
+
+    public Task<RawgGenreListResponse?> GetGameGenresAsync(CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(null);
+        return GetAsync<RawgGenreListResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Genres)}{query}", cancellationToken);
+    }
+
+    public Task<RawgGameDetailsResponse?> GetGameDetailsAsync(int rawgId, CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(null);
+        return GetAsync<RawgGameDetailsResponse>($"{BuildEndpoint($"{RawgConstants.Endpoints.Games}/{rawgId}")}{query}", cancellationToken);
+    }
+    
+    public Task<RawgPagedGameResponse?> GetSimilarGamesAsync(
+        int rawgId,
+        int page = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(new Dictionary<string, string?>
+        {
+            [RawgConstants.QueryKeys.Page] = (page < 1 ? 1 : page).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = (pageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : pageSize).ToString(CultureInfo.InvariantCulture)
+        });
+
+        return GetAsync<RawgPagedGameResponse>(
+            $"{BuildEndpoint($"{RawgConstants.Endpoints.Games}/{rawgId}/{RawgConstants.Endpoints.Suggested}")}{query}",
+            cancellationToken);
+    }
+
+    public Task<RawgGameTrailersResponse?> GetGameTrailersAsync(int rawgId, CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(null);
+        return GetAsync<RawgGameTrailersResponse>(
+            $"{BuildEndpoint($"{RawgConstants.Endpoints.Games}/{rawgId}/{RawgConstants.Endpoints.Movies}")}{query}",
+            cancellationToken);
+    }
+    public Task<RawgGameScreenshotsResponse?> GetGameScreenshotsAsync(int rawgId, CancellationToken cancellationToken = default)
+    {
+        var query = BuildQuery(null);
+        return GetAsync<RawgGameScreenshotsResponse>(
+            $"{BuildEndpoint($"{RawgConstants.Endpoints.Games}/{rawgId}/{RawgConstants.Endpoints.Screenshots}")}{query}",
+            cancellationToken);
+    }
+    private async Task<T?> GetAsync<T>(string pathAndQuery, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_rawgOptions.ApiKey))
+        {
+            return default;
+        }
+
+        try
+        {
+            var response = await _httpClient.GetAsync(pathAndQuery, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return default;
+            }
+
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
+        }
+        catch
+        {
+            return default;
+        }
+    }
+
+    private string BuildQuery(Dictionary<string, string?>? additionalQuery)
+    {
+        var query = new Dictionary<string, string?>
+        {
+            [RawgConstants.QueryKeys.Key] = _rawgOptions.ApiKey
+        };
+
+        if (additionalQuery is not null)
+        {
+            foreach (var pair in additionalQuery)
+            {
+                if (!string.IsNullOrWhiteSpace(pair.Value))
+                {
+                    query[pair.Key] = pair.Value;
+                }
+            }
+        }
+
+        var builder = new StringBuilder("?");
+        var isFirst = true;
+
+        foreach (var pair in query)
+        {
+            if (string.IsNullOrWhiteSpace(pair.Value))
+            {
+                continue;
+            }
+
+            if (!isFirst)
+            {
+                builder.Append('&');
+            }
+
+            builder.Append(Uri.EscapeDataString(pair.Key));
+            builder.Append('=');
+            builder.Append(Uri.EscapeDataString(pair.Value));
+            isFirst = false;
+        }
+
+        return builder.ToString();
+    }
+
+    private static string MapSort(string? input)
+    {
+        return input?.Trim().ToLowerInvariant() switch
+        {
+            "latest" => RawgConstants.SortValues.ReleaseDateDesc,
+            "oldest" => RawgConstants.SortValues.ReleaseDateAsc,
+            "popularity" => RawgConstants.SortValues.PopularityDesc,
+            "popularityasc" => RawgConstants.SortValues.PopularityAsc,
+            "trending" => RawgConstants.SortValues.TrendingDesc,
+            "trendingasc" => RawgConstants.SortValues.TrendingAsc,
+            _ => RawgConstants.SortValues.PopularityDesc
+        };
+    }
+
+    private string BuildEndpoint(string endpoint)
+    {
+        var baseUrl = _rawgOptions.BaseUrl.TrimEnd('/');
+        return $"{baseUrl}/{endpoint.TrimStart('/')}";
+    }
+
+    
+}

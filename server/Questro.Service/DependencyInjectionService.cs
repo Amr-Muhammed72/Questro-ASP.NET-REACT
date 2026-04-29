@@ -7,10 +7,13 @@ using Microsoft.Extensions.Hosting;
 using Questro.Service.Abstractions.Auth;
 using Questro.Service.Abstractions.Email;
 using Questro.Service.Abstractions.Movies;
+using Questro.Service.Abstractions.Games;
 using Questro.Service.Services.Auth;
 using Questro.Service.Services.Email;
 using Questro.Service.Services.Movies;
+
 using Questro.Shared.Contracts.Email;
+using Questro.Service.Services.Games;
 
 namespace Questro.Service;
 
@@ -32,6 +35,12 @@ public static class DependencyInjectionService
         services.AddScoped<IMovieSyncService, MovieSyncService>();
         services.AddScoped<IMovieDetailsService, MovieDetailsService>();
         services.AddScoped<IMovieInteractionService, MovieInteractionService>();
+
+        services.AddScoped<IGameCatalogServices, GameCatalogServices>();
+        services.AddScoped<IGameSyncService, GameSyncService>();
+        services.AddScoped<IGameDetailsService, GameDetailsService>();
+        services.AddScoped<IGameInteractionService, GameInteractionService>();
+
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionService).Assembly);
         services.AddHangfireServer();
         services.AddHangfire(config =>
