@@ -14,7 +14,7 @@ INDEX_FILE = "./data_cache/faiss_index.bin"
 META_FILE = "./data_cache/metadata.json"
 
 
-def get_unified_records():
+def get_unified_records(datasets):
    
 
     steam_args = zip(datasets['steam'], itertools.repeat("steam"))
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         
         print("\nFormatting records for unified semantic space...")
         
-        unified_records = get_unified_records()
+        unified_records = get_unified_records(datasets)
         print(f"Successfully formatted {len(unified_records)} records.")
 
         print("Freeing RAM: Deleting raw datasets...")
@@ -67,10 +67,19 @@ if __name__ == "__main__":
         del unified_records
         gc.collect()
 
-    query = "I want a dark, gritty story about a vigilante fighting crime."
+    active_user_profile = {
+        "technical_background": "Software developer and competitive programmer with a strong interest in high-performance computing, advanced algorithms, and graph theory.",
+        "operating_system": "Arch Linux",
+        "core_interests": ["Data structures", "Backend architecture", "Complex logic", "Algorithm optimization"],
+        "gaming_vibe": "Enjoys working on projects involving complex logic and has a preference for systems that require mechanical depth and optimization."
+    }
+
+    query = "I want a game or movie about complex interconnected systems or optimization."
+    print(f"\nQuerying: '{query}'")
+
     results = rag_system.retrieve(query, top_k=5)
     
-    llm_prompt = generate_recommendation_prompt(query, results)
+    llm_prompt = generate_recommendation_prompt(query, results, user_profile=active_user_profile)
     
     print("\n--- GENERATED LLM PROMPT ---")
     print(llm_prompt)

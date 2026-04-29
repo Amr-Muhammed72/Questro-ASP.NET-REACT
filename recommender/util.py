@@ -16,8 +16,8 @@ def normalize_text(text: str) -> str:
     tokens = [token.lemma_ for token in doc if token.is_alpha and not token.is_stop]
     return " ".join(tokens)
 
-def generate_recommendation_prompt(user_query: str, retrieved_items: list) -> str:
-    """Constructs the prompt for the Generation Phase."""
+def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_profile: dict = None) -> str:
+    """Constructs the prompt for the Generation Phase, incorporating user context."""
     
     context = ""
     for i, item in enumerate(retrieved_items, 1):
@@ -26,16 +26,28 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list) -> st
         context += f"Themes: {data['themes']}\n"
         context += f"Description: {data['narrative']}\n"
 
+    # Format the user profile if one is provided
+    profile_context = ""
+    if user_profile:
+        profile_context = "User Background & Preferences:\n"
+        for key, value in user_profile.items():
+            if isinstance(value, list):
+                value = ", ".join(value)
+            profile_context += f"- {key.replace('_', ' ').title()}: {value}\n"
+
     prompt = f"""You are an expert cross-domain entertainment recommendation engine. 
-The user is looking for recommendations across both video games and movies.
+    The user is looking for recommendations across both video games and movies.
 
-User Query: "{user_query}"
+    {profile_context}
 
-Here are the most semantically relevant items retrieved from our database:
-{context}
+    Current Request: "{user_query}"
 
-Based ONlY on the context provided above, recommend 2-3 items that best match the user's query. 
-Explain exactly why these specific games and movies share thematic overlap and why the user would enjoy them based on their prompt.
-"""
+    Here are the most semantically relevant items retrieved from our database:
+    {context}
+
+    INSTRUCTIONS:
+    1. Recommend 2-3 items from the provided database context that best match the current request.
+    2. Personalize your pitch based on the User Background provided above. Explain why these specific items will appeal to their specific tastes, technical background, or interests.
+    3. Only recommend items from the provided context list.
+    """
     return prompt
-
