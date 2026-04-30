@@ -10,10 +10,12 @@ using Questro.Core.Entities.UserManagement;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.Data;
 using Questro.Infrastructure.ExternalServices.Tmdb;
+using Questro.Infrastructure.ExternalServices.RAWG;
 using Questro.Infrastructure.Repositories;
 using Questro.Shared.Contracts.Email;
 using Questro.Shared.Options.Jwt;
 using Questro.Shared.Options.Tmdb;
+using Questro.Shared.Options.Rawg;
 using System.Text;
 
 namespace Questro.Infrastructure;
@@ -41,6 +43,9 @@ public static class DependencyInjectionInfrastructure
 
         services.AddOptions<TmdbOptions>()
             .Bind(configuration.GetSection(TmdbOptions.SectionName));
+
+        services.AddOptions<RawgOptions>()
+            .Bind(configuration.GetSection(RawgOptions.SectionName));
 
         services.AddAuthentication(options =>
         {
@@ -75,6 +80,15 @@ public static class DependencyInjectionInfrastructure
         services.AddHttpClient<ITmdbService, TmdbService>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<TmdbOptions>>().Value;
+            if (Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
+            {
+                client.BaseAddress = baseUri;
+            }
+        });
+
+        services.AddHttpClient<IRawgService, RawgService>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<RawgOptions>>().Value;
             if (Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
             {
                 client.BaseAddress = baseUri;

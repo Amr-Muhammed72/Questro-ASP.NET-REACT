@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Questro.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Questro.Infrastructure.Data;
 namespace Questro.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260426141544_test")]
+    partial class test
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -161,9 +164,6 @@ namespace Questro.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Trailer_Url")
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("GameId");
 
                     b.HasIndex("RAWG_Id")
@@ -191,42 +191,6 @@ namespace Questro.Infrastructure.Migrations
                     b.HasKey("GenreId");
 
                     b.ToTable("GameGenres");
-                });
-
-            modelBuilder.Entity("Questro.Core.Entities.Games.GamePhoto", b =>
-                {
-                    b.Property<int>("GamePhotoId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GamePhotoId"));
-
-                    b.Property<int>("GameId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Height")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Image_Url")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<int?>("RAWG_Id")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Width")
-                        .HasColumnType("int");
-
-                    b.HasKey("GamePhotoId");
-
-                    b.HasIndex("GameId");
-
-                    b.HasIndex("GameId", "RAWG_Id")
-                        .IsUnique()
-                        .HasFilter("[RAWG_Id] IS NOT NULL");
-
-                    b.ToTable("GamePhotos");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.GamePlatform", b =>
@@ -1002,17 +966,6 @@ namespace Questro.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Questro.Core.Entities.Games.GamePhoto", b =>
-                {
-                    b.HasOne("Questro.Core.Entities.Games.Game", "Game")
-                        .WithMany("Photos")
-                        .HasForeignKey("GameId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Game");
-                });
-
             modelBuilder.Entity("Questro.Core.Entities.Games.Game_GameGenre", b =>
                 {
                     b.HasOne("Questro.Core.Entities.Games.Game", "Game")
@@ -1333,8 +1286,6 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("GameGenres");
 
                     b.Navigation("GamePlatforms");
-
-                    b.Navigation("Photos");
 
                     b.Navigation("UserLikes");
 
