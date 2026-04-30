@@ -31,21 +31,10 @@
 *.assets.cache
 *.AssemblyInfo.cs
 *.AssemblyInfoInputs.cache
-*.csproj.nuget.dgspec.json
-*.csproj.nuget.g.props
-*.csproj.nuget.g.targets
 *.GeneratedMSBuildEditorConfig.editorconfig
 *.GlobalUsings.g.cs
 *.rpswa.dswa.cache.json
 staticwebassets.removed.txt
-
-# Rider / JetBrains
-.idea/
-
-# NuGet
-packages/
-*.nupkg
-project.lock.json
 
 # OS
 *.DS_Store
