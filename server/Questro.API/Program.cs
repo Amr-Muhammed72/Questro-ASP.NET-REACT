@@ -14,7 +14,7 @@ builder.Services.AddServiceLayer(builder.Configuration);
 
 
 var frontendOrigins = builder.Configuration.GetSection("DevCors:AllowedOrigins").Get<string[]>()
-                      ?? new[] { "http://localhost:3000", "http://localhost:5173", "http://localhost:4200" , "http://localhost:5222/" };
+                      ?? new[] { "http://localhost:3000", "http://localhost:5173", "http://localhost:4200" , "http://localhost:5222" };
 
 builder.Services.AddCors(options =>
 {
