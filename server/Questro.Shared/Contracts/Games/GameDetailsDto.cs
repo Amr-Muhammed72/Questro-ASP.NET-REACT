@@ -16,7 +16,7 @@ public class GameDetailsDto
     public IEnumerable<GameScreenshotDto> Screenshots { get; set; } = new List<GameScreenshotDto>();
     public IEnumerable<GameGenreDto> Genres { get; set; } = new List<GameGenreDto>();
     public IEnumerable<GamePlatformDto> Platforms { get; set; } = new List<GamePlatformDto>();
-    public IEnumerable<GameSystemRequirementDto> Requirements { get; set; } = new List<GameSystemRequirementDto>();
+   
     public IEnumerable<GameDeveloperDto> Developers { get; set; } = new List<GameDeveloperDto>();
     public IEnumerable<GamePublisherDto> Publishers { get; set; } = new List<GamePublisherDto>();
     public IEnumerable<GameListItemDto> SimilarGames { get; set; } = new List<GameListItemDto>();
