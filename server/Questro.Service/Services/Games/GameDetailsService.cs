@@ -56,7 +56,7 @@ public sealed class GameDetailsService : IGameDetailsService
         var screenshots = await _rawgService.GetGameScreenshotsAsync(rawgId, cancellationToken);
 
         var similarGames = await MapSimilarGamesAsync(rawgId, localGame, rawgDetails, cancellationToken);
-        var details = MapGameDetails(localGame, rawgDetails, trailerUrl, similarGames, screenshots);
+        GameDetailsDto? details = MapGameDetails(localGame, rawgDetails, trailerUrl, similarGames, screenshots);
         
         return Result.Success(details);
     }

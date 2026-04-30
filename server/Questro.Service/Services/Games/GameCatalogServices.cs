@@ -27,7 +27,7 @@ namespace Questro.Service.Services.Games
             var safePageSize = parameters.PageSize < 1 ? 20 : parameters.PageSize;
 
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
-            var rawgResponse = string.IsNullOrWhiteSpace(parameters.Search)
+            RawgPagedGameResponse? rawgResponse = string.IsNullOrWhiteSpace(parameters.Search)
                 ? await _rawgservices.DiscoverGamesAsync(parameters, cancellationToken)
                 : await _rawgservices.SearchGamesAsync(parameters, cancellationToken);
             
@@ -46,11 +46,11 @@ namespace Questro.Service.Services.Games
             }
 
             var filteredResults = ApplySearch(rawgResponse.Results, parameters);
-            var mappedGames = filteredResults
+            var mappedGames = filteredResults.Take(safePageSize)
                 .Select(x => MapToGameListItemDto(x, genreMap))
                 .ToList();
 
-            var totalCount = mappedGames.Count;
+            var totalCount = rawgResponse.Count;
             var totalPages = (int)Math.Ceiling((double)totalCount / safePageSize);
 
             return Result.Success(
@@ -196,21 +196,21 @@ namespace Questro.Service.Services.Games
                 .Select(g => new GameGenreDto (  g.Id,  g.Name ?? string.Empty ))
                 .ToList();
 
-            var platforms = result.Platforms
+            var platforms = result.Platforms?
                 .Where(p => p.Platform is not null)
                 .Select(p => new GamePlatformDto ( p.Platform!.Id,p.Platform!.Name ?? string.Empty ))
                 .ToList();
 
             return new GameListItemDto
             {
-                GameId = result.Id,
+                GameId = 0,
                 RawgId = result.Id,
                 Title = result.Name ?? string.Empty,
                 ReleaseDate = DateTime.TryParse(result.Released, out var releaseDate) ? releaseDate : null,
                 Rating = result.Rating,
                 PosterUrl = result.BackgroundImage,
                 Genres = genres,
-                Platforms = platforms
+                Platforms = platforms ?? Enumerable.Empty<GamePlatformDto>()
             };
         }
 
