@@ -20,6 +20,7 @@ const LoginPage = () => {
       navigate('/movies');
     } catch (exception) {
       console.error('Wrong credentials');
+      
     } finally {
       setIsLoading(false);
     }
