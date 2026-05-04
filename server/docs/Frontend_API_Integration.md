@@ -56,6 +56,28 @@ Always pass `movie.tmdbId` from cards/lists into route params.
 
 ---
 
+### ⚠️ CRITICAL: Search vs. Discover Modes (UI/UX Guidelines)
+
+Because movie and game data is sourced from TMDB and RAWG, there is a strict separation between text search and filter-based discovery. This applies to both `GET /api/movies` and `GET /api/games`.
+
+1) The limitation
+
+- TMDB and RAWG text search endpoints do not honor filters like rating, year, or genre.
+- TMDB and RAWG discover endpoints support filters (rating, year, genre, language), but they do not support free-text search.
+
+2) Frontend rule (must follow)
+
+- Do NOT send `search` together with `minRating`, `maxRating`, `genreId`, or `year`.
+
+3) UI/UX recommendation
+
+- Search Mode: a simple text bar only. When the user types, disable all filters.
+- Explore/Discover Mode: advanced filter UI (ratings, genres, years) with no free-text search bar.
+
+This separation prevents broken pagination and unexpected empty pages.
+
+---
+
 ## Error Envelope (All Features)
 
 On failure, APIs return:

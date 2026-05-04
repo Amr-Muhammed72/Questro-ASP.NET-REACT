@@ -48,7 +48,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
             });
         }
 
-        var filtered = ApplyPostSearchFilters(tmdbResponse.Results, parameters)
+        var filtered = tmdbResponse.Results
             .Take(safePageSize)
             .Select(x => MapLiveMovie(x, genreMap))
             .ToList();
@@ -68,7 +68,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
         var safeTake = take < 1 ? DefaultTake : take;
         var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
-        var tmdbMovies = await CollectMoviesAsync(_tmdbService.GetNowPlayingMoviesAsync, safeTake, cancellationToken);
+        var poolSize = Math.Max(100, safeTake);
+        var tmdbMovies = await CollectMoviesAsync(_tmdbService.GetNowPlayingMoviesAsync, poolSize, cancellationToken);
         if (tmdbMovies.Count == 0)
         {
             return Result.Failure<IEnumerable<MovieListItemDto>>(MovieError.RecentlyAddedUnavailable);
@@ -79,12 +80,9 @@ public sealed class MovieCatalogService : IMovieCatalogService
             .Where(x => ParseDate(x.ReleaseDate) is DateTime releaseDate && releaseDate.Date >= thirtyDaysAgo)
             .ToList();
 
-        if (recentOnly.Count == 0)
-        {
-            recentOnly = tmdbMovies;
-        }
+        var filtered = recentOnly.Count == 0 ? tmdbMovies : recentOnly;
 
-        var mapped = recentOnly
+        var mapped = filtered
             .Take(safeTake)
             .Select(x => MapLiveMovie(x, genreMap))
             .ToList();
@@ -179,67 +177,37 @@ public sealed class MovieCatalogService : IMovieCatalogService
         int take,
         CancellationToken cancellationToken)
     {
-        var results = new List<TmdbMovieSummaryDto>();
-        var currentPage = 1;
-
-        while (results.Count < take)
+        if (take <= 0)
         {
-            var response = await pageFetcher(currentPage, cancellationToken);
+            return new List<TmdbMovieSummaryDto>();
+        }
+
+        var pagesNeeded = (int)Math.Ceiling(take / 20.0);
+        var tasks = new List<Task<TmdbPagedMovieResponse?>>(pagesNeeded);
+
+        for (var page = 1; page <= pagesNeeded; page++)
+        {
+            tasks.Add(pageFetcher(page, cancellationToken));
+        }
+
+        var responses = await Task.WhenAll(tasks);
+        var results = new List<TmdbMovieSummaryDto>();
+
+        foreach (var response in responses)
+        {
             if (response?.Results is null || response.Results.Count == 0)
             {
-                break;
+                continue;
             }
 
             results.AddRange(response.Results);
-
-            if (currentPage >= response.TotalPages)
+            if (results.Count >= take)
             {
                 break;
             }
-
-            currentPage++;
         }
 
         return results.Take(take).ToList();
-    }
-
-    private static IEnumerable<TmdbMovieSummaryDto> ApplyPostSearchFilters(IEnumerable<TmdbMovieSummaryDto> source, MovieSpecParams parameters)
-    {
-        var query = source;
-
-        if (!string.IsNullOrWhiteSpace(parameters.Search))
-        {
-            var search = parameters.Search.Trim();
-            query = query.Where(x => x.Title?.Contains(search, StringComparison.OrdinalIgnoreCase) == true);
-        }
-
-        if (!string.IsNullOrWhiteSpace(parameters.Language))
-        {
-            var language = parameters.Language.Trim();
-            query = query.Where(x => string.Equals(x.OriginalLanguage, language, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (parameters.MinRating.HasValue)
-        {
-            query = query.Where(x => (x.VoteAverage ?? 0) >= parameters.MinRating.Value);
-        }
-
-        if (parameters.MaxRating.HasValue)
-        {
-            query = query.Where(x => (x.VoteAverage ?? 0) <= parameters.MaxRating.Value);
-        }
-
-        if (parameters.Year.HasValue)
-        {
-            query = query.Where(x => ParseDate(x.ReleaseDate)?.Year == parameters.Year.Value);
-        }
-
-        if (parameters.GenreId.HasValue)
-        {
-            query = query.Where(x => x.GenreIds.Contains(parameters.GenreId.Value));
-        }
-
-        return query;
     }
 
     private static MovieListItemDto MapLiveMovie(TmdbMovieSummaryDto movie, IReadOnlyDictionary<int, string> genreMap)
