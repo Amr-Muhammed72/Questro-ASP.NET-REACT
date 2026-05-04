@@ -27,7 +27,6 @@ const NavBar = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
-
   return (
     <nav 
       className={`w-full py-4 px-4 sm:px-8 lg:px-12 flex justify-between items-center fixed top-0 z-50 transition-all duration-300 ease-in-out ${

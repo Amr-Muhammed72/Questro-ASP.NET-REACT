@@ -3,9 +3,11 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import MovieHomepage from './pages/MovieHomepage';
+// import MovieHomepage from './pages/MovieHomepage';
+import MoviesPage from './pages/MoviesPage';
 import './App.css';
 function App() {
+
   return (
     <BrowserRouter>
       <Routes>
@@ -13,7 +15,7 @@ function App() {
         <Route path='/login' element={<LoginPage />} />
         <Route path='/register' element={<RegisterPage />} />
         <Route path='/forgot-password' element={<ForgotPasswordPage />} />
-        <Route path='/movies' element={<MovieHomepage />} />
+        <Route path='/movies' element={<MoviesPage />} />
       </Routes>
     </BrowserRouter>
   );

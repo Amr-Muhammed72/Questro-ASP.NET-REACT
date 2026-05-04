@@ -4,12 +4,14 @@ import { Play, Info } from 'lucide-react';
 export default function HeroBanner({ movie }) {
   if (!movie) return <div className="w-full h-[85vh] min-h-[600px] bg-zinc-900 animate-pulse mb-12" />;
 
+  const displayImage = movie.backdropUrl || movie.imageUrl || movie.posterUrl;
+
   return (
     <section className="relative w-full h-[85vh] min-h-[600px] mb-12 overflow-hidden">
       <div 
         className="absolute inset-0"
         style={{
-          backgroundImage: `url(${movie.imageUrl})`,
+          backgroundImage: `url(${displayImage})`,
           backgroundSize: 'cover',
           backgroundPosition: 'top center',
         }}
