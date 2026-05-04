@@ -64,6 +64,10 @@ public sealed class TmdbService : ITmdbService
             [TmdbConstants.QueryKeys.Query] = specParams.Search,
             [TmdbConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
             [TmdbConstants.QueryKeys.Year] = specParams.Year?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.WithGenres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language,
+            [TmdbConstants.QueryKeys.VoteAverageGte] = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.VoteAverageLte] = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture),
             [TmdbConstants.QueryKeys.IncludeAdult] = TmdbConstants.QueryValues.False
         });
 

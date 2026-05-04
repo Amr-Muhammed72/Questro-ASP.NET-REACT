@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Questro.Core.Entities.Movies;
 using Questro.Core.Specifications.Movies;
 using Questro.Infrastructure.Abstractions;
@@ -172,7 +173,14 @@ public sealed class MovieSyncService : IMovieSyncService
 
         if (hasUpdates)
         {
-            await _unitOfWork.CompleteAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.CompleteAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                _unitOfWork.ClearTracking();
+            }
 
             localGenres = await _movieGenreRepository.ListAllAsync(cancellationToken);
             byTmdbId = localGenres
@@ -253,7 +261,14 @@ public sealed class MovieSyncService : IMovieSyncService
 
         if (hasUpdates)
         {
-            await _unitOfWork.CompleteAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.CompleteAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                _unitOfWork.ClearTracking();
+            }
 
             localStaff = await _staffRepository.ListAllAsync(cancellationToken);
             byTmdbId = localStaff
