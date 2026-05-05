@@ -1,25 +1,27 @@
 import React, { useState } from 'react';
 import { Gamepad2, Film, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import registerService from '../services/register';
+import { Link, useNavigate } from 'react-router-dom';
+import { useRegister } from '../hooks/useRegister';
 import RegisterForm from '../components/RegisterForm';
+import OtpForm from '../components/OtpForm';
 import RealmCard from '../components/RealmCard';
 import bgImage from '../assets/main-background.png';
 import logoImg from '../assets/logo.png';
 
 const RegisterPage = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { register, isLoading, error } = useRegister();
+  const [showOtp, setShowOtp] = useState(false);
+  const [email, setEmail] = useState('');
 
   const handleRegister = async (userData) => {
-    setIsLoading(true);
     try {
-      const response = await registerService.register(userData);
-      console.log('Successfully registered!', response);
-      // Here you would usually redirect the user to the login page or log them in directly
+      await register(userData);
+      // On success, backend queues an OTP email
+      setEmail(userData.email);
+      setShowOtp(true);
     } catch (exception) {
-      console.error('Registration failed');
-    } finally {
-      setIsLoading(false);
+      // Error handled by hook
     }
   };
 
@@ -52,16 +54,39 @@ const RegisterPage = () => {
           <div className="flex items-center justify-center lg:justify-end">
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl w-full max-w-md p-8 shadow-2xl">
               <div className="mb-6">
-                <h2 className="text-3xl font-bold text-white mb-2">Begin Your Journey</h2>
-                <p className="text-zinc-300">Create an account to access your realm.</p>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  {showOtp ? 'Verify OTP' : 'Begin Your Journey'}
+                </h2>
+                <p className="text-zinc-300">
+                  {showOtp ? `We sent a code to ${email}` : 'Create an account to access your realm.'}
+                </p>
               </div>
 
-              <RegisterForm handleRegister={handleRegister} isLoading={isLoading} />
+              {error && !showOtp && (
+                <div className="mb-4 bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg">
+                  {error.message}
+                  {error.details && error.details.length > 0 && (
+                    <ul className="list-disc ml-5 mt-1">
+                      {error.details.map((detail, idx) => (
+                        <li key={idx}>{detail}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {!showOtp ? (
+                <RegisterForm handleRegister={handleRegister} isLoading={isLoading} />
+              ) : (
+                <OtpForm email={email} onSuccess={() => navigate('/login')} />
+              )}
               
-              <p className="mt-6 text-center text-sm text-zinc-400">
-                Already have an account?{' '}
-                <Link to="/login" className="text-cyan-400 hover:text-cyan-300 font-medium transition cursor-pointer">Sign in here</Link>
-              </p>
+              {!showOtp && (
+                <p className="mt-6 text-center text-sm text-zinc-400">
+                  Already have an account?{' '}
+                  <Link to="/login" className="text-cyan-400 hover:text-cyan-300 font-medium transition cursor-pointer">Sign in here</Link>
+                </p>
+              )}
             </div>
           </div>
 

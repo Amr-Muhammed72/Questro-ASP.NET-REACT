@@ -1,31 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Gamepad2, Film, Star } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import loginService from '../services/login';
+import { Link } from 'react-router-dom';
 import LoginForm from '../components/LoginForm';
 import RealmCard from '../components/RealmCard';
 import bgImage from '../assets/main-background.png';
 import logoImg from '../assets/logo.png';
 
 const LoginPage = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleLogin = async (credentials) => {
-    setIsLoading(true);
-    try {
-      //  await loginService.login(credentials);
-      // localStorage.setItem('loggedInUser', JSON.stringify(user));
-      console.log('Successfully logged in!');
-      navigate('/movies');
-    } catch (exception) {
-      console.error('Wrong credentials');
-      
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const backgroundStyle = {
     backgroundImage: `url(${bgImage})`,
     backgroundSize: 'cover',
@@ -59,7 +40,7 @@ const LoginPage = () => {
                 <p className="text-zinc-300">Enter your credentials to access your realm.</p>
               </div>
 
-              <LoginForm handleLogin={handleLogin} isLoading={isLoading} />
+              <LoginForm />
               
               <p className="mt-6 text-center text-sm text-zinc-400">
                 Don't have an account?{' '}

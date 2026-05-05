@@ -1,30 +1,67 @@
 import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const LoginForm = ({ handleLogin, isLoading }) => {
+const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const onSubmit = (event) => {
+  const onSubmit = async (event) => {
     event.preventDefault();
-    handleLogin({ email, password });
-    setEmail('');
-    setPassword('');
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch('http://localhost:5222/api/Auth/logIn', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid credentials. Please check your email and password.');
+        } else {
+          throw new Error('An error occurred during login. Please try again.');
+        }
+      }
+
+      const data = await response.json();
+      login(data.accessToken);
+      navigate('/');
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
+      {errorMessage && (
+        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg">
+          {errorMessage}
+        </div>
+      )}
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">Email Address</label>
+        <label className="block text-sm font-medium text-zinc-300 mb-2">Email or Username</label>
         <div className="relative">
           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-5 h-5 pointer-events-none" />
           <input
-            type="email"
+            type="text"
             value={email}
             onChange={({ target }) => setEmail(target.value)}
             className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3.5 pl-12 text-white focus:outline-none focus:border-purple-500/80 transition-all"
-            placeholder="you@example.com"
+            placeholder="Email or Username"
             required
           />
         </div>
