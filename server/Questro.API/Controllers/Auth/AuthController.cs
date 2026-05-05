@@ -50,7 +50,7 @@ public class AuthController : ControllerBase
         });
     }
     [HttpPost("Verify")]
-    public async Task<IActionResult> VerifyOtp(VerifyOtpRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _authService.VerifyOtpAndLoginAsync(request, cancellationToken);
 

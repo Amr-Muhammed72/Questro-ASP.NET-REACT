@@ -71,58 +71,32 @@ public class AuthService : IAuthService
         var existingByUserName = await _userManager.FindByNameAsync(userName);
         if (existingByUserName is not null)
             return Result.Failure<RegisterResponseDto>(UserError.UserNameAlreadyExists);
-
-        var identityUser = new ApplicationUser
+        await _otpService.SendOTPAsync(
+                        new SendOtpRequestDto(request.Email),
+                         cancellationToken);
+        // Create temporary user data for response (without creating account in DB)
+        var tempUser = new
         {
+            UserId = 0L, // Will be set after user is created on OTP verification
             UserName = userName,
-            Email = email,
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
-            Gender = request.Gender?.Trim(),
-            BirthDate = request.BirthDate,
-            Age = CalculateAge(request.BirthDate),
-            JoinDate = DateTime.UtcNow,
-            PrimaryInterest = UserInterest.Mixed,
-            EmailConfirmed = false
+            Email = email
         };
-
-        var identityCreateResult = await _userManager.CreateAsync(identityUser, request.Password);
-        if (!identityCreateResult.Succeeded)
-            return Result.Failure<RegisterResponseDto>(
-             UserError.RegistrationFailed,
-                    identityCreateResult.Errors.Select(e => e.Description).ToList()
-                            );
-
-        const string defaultRole = "User";
-        if (!await _roleManager.RoleExistsAsync(defaultRole))
-        {
-            var roleResult = await _roleManager.CreateAsync(new ApplicationRole { Name = defaultRole });
-            if (!roleResult.Succeeded)
-                return Result.Failure<RegisterResponseDto>
-                    (UserError.RegistrationFailed, roleResult.Errors.Select(e => e.Description).ToList());
-        }
-
-        var addToRoleResult = await _userManager.AddToRoleAsync(identityUser, defaultRole);
-        if (!addToRoleResult.Succeeded)
-            return Result.Failure<RegisterResponseDto>(
-                UserError.RegistrationFailed, addToRoleResult.Errors.Select(e => e.Description).ToList());
-
-        await _otpService.SendOTPAsync(
-                        new SendOtpRequestDto(identityUser.Email),
-                         cancellationToken);
 
         
 
+        // Return empty tokens since user hasn't completed registration yet
         return Result.Success(new RegisterResponseDto(
-            identityUser.Id,
-            identityUser.UserName ?? string.Empty,
-            identityUser.FirstName ?? string.Empty,
-            identityUser.LastName ?? string.Empty,
-            identityUser.Email ?? string.Empty,
-            null,
-            null,
-            default,
-            default));
+            tempUser.UserId,
+            tempUser.UserName,
+            tempUser.FirstName,
+            tempUser.LastName,
+            tempUser.Email,
+            string.Empty, // AccessToken will be provided after OTP verification
+            string.Empty, // RefreshToken will be provided after OTP verification
+            DateTime.UtcNow,
+            DateTime.UtcNow));   
     }
     public async Task<Result<LogInResponseDto>> LogInAsync(LogInRequestDto request, CancellationToken cancellationToken = default)
     {
@@ -246,13 +220,46 @@ public class AuthService : IAuthService
         if (verifyResult.IsFailure)
             return Result.Failure<LogInResponseDto>(verifyResult.Error);
 
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var identityUser = new ApplicationUser
+        {
+            UserName = request.UserName,
+            Email = request.Email,
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
+            Gender = request.Gender?.Trim(),
+            BirthDate = request.BirthDate,
+            Age = CalculateAge(request.BirthDate),
+            JoinDate = DateTime.UtcNow,
+            PrimaryInterest = UserInterest.Mixed,
+            EmailConfirmed = false
+        };
+
+        var identityCreateResult = await _userManager.CreateAsync(identityUser, request.Password);
+        if (!identityCreateResult.Succeeded)
+            return Result.Failure<LogInResponseDto>(
+             UserError.RegistrationFailed,
+                    identityCreateResult.Errors.Select(e => e.Description).ToList()
+                            );
+
+        const string defaultRole = "User";
+        if (!await _roleManager.RoleExistsAsync(defaultRole))
+        {
+            var roleResult = await _roleManager.CreateAsync(new ApplicationRole { Name = defaultRole });
+            if (!roleResult.Succeeded)
+                return Result.Failure<LogInResponseDto>
+                    (UserError.RegistrationFailed, roleResult.Errors.Select(e => e.Description).ToList());
+        }
+
+        var addToRoleResult = await _userManager.AddToRoleAsync(identityUser, defaultRole);
+        if (!addToRoleResult.Succeeded)
+            return Result.Failure<LogInResponseDto>(
+                UserError.RegistrationFailed, addToRoleResult.Errors.Select(e => e.Description).ToList());
 
         // Create Accesss Tokens
-        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
+        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(identityUser);
         // revoke old tokens 
         var oldTokens = await _dbContext.RefreshTokens
-                          .Where(x => x.UserId == user.Id && x.RevokedOnUtc == null)
+                          .Where(x => x.UserId == identityUser.Id && x.RevokedOnUtc == null)
                           .ToListAsync();
 
         foreach (var token in oldTokens)
@@ -267,7 +274,7 @@ public class AuthService : IAuthService
         // Save Refresh Token in DB
         await _dbContext.RefreshTokens.AddAsync(new RefreshToken
         {
-            UserId = user.Id,
+            UserId = identityUser.Id,
             Token = refreshTokenValue,
             CreatedOnUtc = DateTime.UtcNow,
             ExpiresOnUtc = refreshTokenExpiresOnUtc
@@ -277,11 +284,11 @@ public class AuthService : IAuthService
         if (saved == 0)
             return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
         return Result.Success(new LogInResponseDto(
-             user.Id,
-             user.UserName ?? string.Empty,
-             user.FirstName ?? string.Empty,
-             user.LastName ?? string.Empty,
-             user.Email ?? string.Empty,
+             identityUser.Id,
+             identityUser.UserName ?? string.Empty,
+             identityUser.FirstName ?? string.Empty,
+             identityUser.LastName ?? string.Empty,
+             identityUser.Email ?? string.Empty,
              accessToken,
              refreshTokenValue,
              accessTokenExpiresOnUtc,
