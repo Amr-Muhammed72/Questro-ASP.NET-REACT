@@ -145,19 +145,44 @@ public class AuthService : IAuthService
             return Result.Failure<LogInResponseDto>(UserError.LoginNotAllowed);
         if (!isValid.Succeeded)
             return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
-        await _otpService.SendOTPAsync(
-                new SendOtpRequestDto(user.Email),
-                 cancellationToken);
+        // Create Accesss Tokens
+        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
+        // revoke old tokens 
+        var oldTokens = await _dbContext.RefreshTokens
+                          .Where(x => x.UserId == user.Id && x.RevokedOnUtc == null)
+                          .ToListAsync();
+
+        foreach (var token in oldTokens)
+        {
+            token.RevokedOnUtc = DateTime.UtcNow;
+        }
+        var refreshTokenValue = GenerateRefreshToken();
+        var refreshTokenExpiresOnUtc =
+            DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
+            ? _jwtOptions.RefreshTokenExpirationDays : 7);
+
+        // Save Refresh Token in DB
+        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshTokenValue,
+            CreatedOnUtc = DateTime.UtcNow,
+            ExpiresOnUtc = refreshTokenExpiresOnUtc
+        }, cancellationToken);
+
+        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        if (saved == 0)
+            return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
         return Result.Success(new LogInResponseDto(
              user.Id,
              user.UserName ?? string.Empty,
              user.FirstName ?? string.Empty,
              user.LastName ?? string.Empty,
              user.Email ?? string.Empty,
-             null,
-             null,
-             default,
-             default ));
+             accessToken,
+             refreshTokenValue,
+             accessTokenExpiresOnUtc,
+             refreshTokenExpiresOnUtc));
     }
 
     public async Task<Result> LogOutAsync(string? refreshToken, CancellationToken cancellationToken)
