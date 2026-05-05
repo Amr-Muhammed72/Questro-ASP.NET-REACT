@@ -37,7 +37,7 @@ const LoginForm = () => {
 
       const data = await response.json();
       login(data.accessToken);
-      navigate('/');
+      navigate('/movies');
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
