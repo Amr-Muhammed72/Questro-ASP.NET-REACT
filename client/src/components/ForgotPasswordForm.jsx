@@ -1,44 +1,66 @@
 import React, { useState } from 'react';
 import { Mail, Lock, KeyRound } from 'lucide-react';
+import { useForgotPassword } from '../hooks/useForgotPassword';
+import { useNavigate } from 'react-router-dom';
 
-const ForgotPasswordForm = ({ handleRequestOtp, handleVerifyOtp, handleResetPassword, isLoading }) => {
+const ForgotPasswordForm = () => {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [resetToken, setResetToken] = useState(''); // New state for the token!
+  const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  // Step 1: Send the OTP
+  const [matchError, setMatchError] = useState(null);
+
+  const { requestOtp, verifyOtp, resetPassword, isLoading, error, setError } = useForgotPassword();
+  const navigate = useNavigate();
+
   const onEmailSubmit = async (event) => {
     event.preventDefault();
-    
-    const success = true; //await handleRequestOtp(email);
-    if (success) setStep(2);
-  };
-
-  // Step 2: Verify OTP and get the token
-  const onOtpSubmit = async (event) => {
-    event.preventDefault();
-    const token = true; // await handleVerifyOtp(email, otp);
-    if (token) {
-      setResetToken(token); // Save the token securely in state
-      setStep(3); // Move to final step
+    try {
+      await requestOtp(email);
+      setStep(2);
+    } catch (err) {
+      // Handled by hook error state
     }
   };
 
-  // Step 3: Set New Password using the token
+  const onOtpSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const data = await verifyOtp(email, otp);
+      if (data.resetToken) {
+        setResetToken(data.resetToken);
+        setStep(3);
+      }
+    } catch (err) {
+      // Handled by hook error state
+    }
+  };
+
   const onPasswordSubmit = async (event) => {
     event.preventDefault();
+    setMatchError(null);
     if (newPassword !== confirmNewPassword) {
-      alert('Passwords do not match!');
+      setMatchError("Passwords do not match!");
       return;
     }      
-    await handleResetPassword(email, resetToken, newPassword);
-    // navigate('/login'); // Redirect to login after successful reset
+    try {
+      await resetPassword(resetToken, newPassword, confirmNewPassword);
+      navigate('/login');
+    } catch (err) {
+      // Handled by hook error state
+    }
   };
 
   return (
     <div className="space-y-4">
+      {(error || matchError) && (
+        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg">
+          {matchError || error?.message}
+        </div>
+      )}
+      
       {/* STEP 1: EMAIL */}
       {step === 1 && (
         <form onSubmit={onEmailSubmit} className="space-y-4">

@@ -1,3 +1,4 @@
+
 .custom-scrollbar::-webkit-scrollbar {
     height: 6px;
 }
@@ -10,4 +11,12 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #3f3f46; /* zinc-700 */
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  transition: background-color 5000s ease-in-out 0s;
+  -webkit-text-fill-color: white !important;
+  caret-color: white !important; 
 }

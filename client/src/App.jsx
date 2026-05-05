@@ -5,19 +5,28 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 // import MovieHomepage from './pages/MovieHomepage';
 import MoviesPage from './pages/MoviesPage';
+import { AuthProvider } from './context/AuthContext';
+import GuestRoute from './components/guards/GuestRoute';
+import ProtectedRoute from './components/guards/ProtectedRoute';
 import './App.css';
-function App() {
 
+function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<LandingPage />} />
-        <Route path='/login' element={<LoginPage />} />
-        <Route path='/register' element={<RegisterPage />} />
-        <Route path='/forgot-password' element={<ForgotPasswordPage />} />
-        <Route path='/movies' element={<MoviesPage />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path='/' element={<LandingPage />} />
+          
+          {/* Guest routes: Only accessible if NOT logged in */}
+          <Route path='/login' element={<GuestRoute><LoginPage /></GuestRoute>} />
+          <Route path='/register' element={<GuestRoute><RegisterPage /></GuestRoute>} />
+          <Route path='/forgot-password' element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
+          
+          {/* Protected routes: Only accessible if logged in */}
+          <Route path='/movies' element={<ProtectedRoute><MoviesPage /></ProtectedRoute>} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
