@@ -33,13 +33,16 @@ This guide documents the current authentication flow implemented in:
 
 1. Frontend calls `POST /api/Auth/register` with email and password.
 2. Backend sends a 6-digit OTP to the user email.
-3. Frontend calls `POST /api/Auth/Verify` with `email` and `otp`.
-4. Backend returns an access token in the response body and sets the refresh token in an `HttpOnly` cookie.
+3. **User is NOT stored in the database yet** – only OTP is generated and sent.
+4. Frontend calls `POST /api/Auth/Verify` with `email`, `otp`, and additional registration details (`UserName`, `FirstName`, `LastName`, `Gender`, `BirthDate`, `Password`).
+5. Backend verifies the OTP, then creates and stores the user in the database.
+6. Backend returns an access token in the response body and sets the refresh token in an `HttpOnly` cookie.
 
 Important behavior:
 
-- Register does not return tokens.
-- Only `Verify` returns the access token and creates the refresh token cookie.
+- `Register` does NOT store the user in the database or return tokens.
+- `Register` only sends the OTP to the email address.
+- `Verify` creates the user account, returns the access token, and creates the refresh token cookie.
 - OTP expires after `3 minutes`.
 - Resend OTP replaces any previous OTP immediately.
 
@@ -147,6 +150,7 @@ Request body:
 
 Validation rules:
 
+- `email`: required, valid email, max `256`
 - `userName`: required, max `50`
 - `firstName`: required, max `50`
 - `lastName`: required, max `50`
@@ -207,15 +211,36 @@ Request body:
 
 ```json
 {
+  "otp": "123456",
+  "userName": "mohamed123",
+  "firstName": "Mohamed",
+  "lastName": "Ali",
   "email": "mohamed@example.com",
-  "otp": "123456"
+  "password": "Password123!",
+  "gender": "Male",
+  "birthDate": "2000-05-10T00:00:00"
 }
 ```
+
+Validation rules:
+
+- `otp`: required, 6 digits, must not be expired (3 minute window)
+- `userName`: required, max `50`, must not already exist
+- `firstName`: required, max `50`
+- `lastName`: required, max `50`
+- `email`: required, must match the email used in register request
+- `userName`: required, max `50`, must not already exist
+- `firstName`: required, max `50`
+- `lastName`: required, max `50`
+- `password`: required, min `8`, max `128`, must match the password used in register request
+- `gender`: optional, max `20`
+- `birthDate`: required, must be a valid date
 
 Success response:
 
 - Status: `200 OK`
 - Also sets `refreshToken` cookie
+- **User is created in the database on successful OTP verification**
 
 ```json
 {
@@ -225,7 +250,8 @@ Success response:
   "lastName": "Ali",
   "email": "mohamed@example.com",
   "accessToken": "jwt-access-token",
-  "accessTokenExpiresOnUtc": "2026-04-27T15:30:00Z"
+  "accessTokenExpiresOnUtc": "2026-04-27T15:30:00Z",
+
 }
 ```
 
@@ -240,15 +266,19 @@ Failure response shape:
 
 Common errors:
 
-- `400` invalid or expired OTP
+- `400` `User.InvalidOtp` – invalid or expired OTP
+- `400` `User.InvalidOtpAttempts` – too many failed OTP attempts
 - `404` user not found
-- `500` registration failed while saving refresh token
+- `409` `User.UserNameAlreadyExists`
+- `500` `User.RegistrationFailed` – error while creating user or saving refresh token
 
 Frontend notes:
 
-- This is the only step that finishes registration after OTP verification.
+- **This is the final step that creates the user account and completes registration after OTP verification.**
+- **Frontend must send all registration details (not just OTP) to complete the registration.**
 - Save `accessToken` from response body.
 - Make sure the request allows cookies so the refresh token can be stored by the browser.
+- The password must match what was sent in the initial register request.
 
 ### 3) Log In
 
@@ -334,9 +364,11 @@ Failure response:
 
 Frontend notes:
 
-- This endpoint removes the old OTP and creates a new one.
+- This endpoint generates and sends a new OTP to the email.
+- Used during registration when user requests a new OTP before completing verification.
 - Unlike other auth endpoints, the controller currently returns `400 Bad Request` for every failure, even when the embedded error says `404` or `429`.
 - Frontend should read the error body `code`, not only the HTTP status code.
+- New OTP replaces any previously generated OTP immediately.
 
 ### 5) Refresh Access Token
 
