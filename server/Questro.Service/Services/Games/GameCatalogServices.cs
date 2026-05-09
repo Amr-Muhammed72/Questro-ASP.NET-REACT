@@ -64,45 +64,47 @@ namespace Questro.Service.Services.Games
                 }
             );
         }
-        public async Task<Result<PagedResponse<GameListItemDto>>> GetRecentlyAddedAsync(int take = 20, CancellationToken cancellationToken = default)
+        public async Task<Result<PagedResponse<GameListItemDto>>> GetRecentlyAddedAsync(
+     int take = 20,
+     CancellationToken cancellationToken = default)
         {
             var safeTake = take < 1 ? 20 : take;
+
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
-            var specParams = new GameSpecParams
-            {
-                PageIndex = 1,
-                PageSize = safeTake * 2,
-                Sort = "latest"
-            };
+            var oneMonthAgo = DateTime.UtcNow.Date.AddMonths(-1);
 
-            var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, cancellationToken);
+            var collectedGames = new List<RawgGameSummaryDto>();
 
-            if (rawgResponse is null || !rawgResponse.Results.Any())
+            var page = 1;
+
+            while (collectedGames.Count < safeTake)
             {
-                return Result.Success(
-                    new PagedResponse<GameListItemDto>
-                    {
-                        Data = Enumerable.Empty<GameListItemDto>(),
-                        PageNumber = 1,
-                        PageSize = safeTake,
-                        TotalCount = 0,
-                        TotalPages = 0
-                    }
-                );
+                var specParams = new GameSpecParams
+                {
+                    PageIndex = page,
+                    PageSize = 40,
+                    Sort = "latest"
+                };
+
+                var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, cancellationToken);
+
+                if (rawgResponse is null || !rawgResponse.Results.Any())
+                    break;
+
+                var filtered = rawgResponse.Results
+                    .Where(x =>
+                        ParseDate(x.Released) is DateTime releaseDate &&
+                        releaseDate.Date >= oneMonthAgo &&
+                        !string.IsNullOrWhiteSpace(x.BackgroundImage))
+                    .ToList();
+
+                collectedGames.AddRange(filtered);
+
+                page++;
             }
 
-            var thirtyDaysAgo = DateTime.UtcNow.Date.AddDays(-30);
-            var recentOnly = rawgResponse.Results
-                .Where(x => ParseDate(x.Released) is DateTime releaseDate && releaseDate.Date >= thirtyDaysAgo)
-                .ToList();
-
-            if (recentOnly.Count == 0)
-            {
-                recentOnly = rawgResponse.Results.Take(safeTake).ToList();
-            }
-
-            var mappedGames = recentOnly
+            var mappedGames = collectedGames
                 .Take(safeTake)
                 .Select(x => MapToGameListItemDto(x, genreMap))
                 .ToList();
@@ -115,8 +117,7 @@ namespace Questro.Service.Services.Games
                     PageSize = safeTake,
                     TotalCount = mappedGames.Count,
                     TotalPages = 1
-                }
-            );
+                });
         }
 
         public async Task<Result<PagedResponse<GameListItemDto>>> GetTrendingAsync(int take = 30, CancellationToken cancellationToken = default)
