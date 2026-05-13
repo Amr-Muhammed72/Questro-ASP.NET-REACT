@@ -181,6 +181,23 @@ namespace Questro.Service.Services.Games
             return Result.Success<IEnumerable<GameGenreDto>>(ans);
         }
 
+        public async Task<Result<IEnumerable<GamePlatformDto>>> GetGamePlatformsAsync(CancellationToken cancellationToken = default)
+        {
+            var rawgPlatforms = await _rawgservices.GetGamePlatformsAsync(cancellationToken);
+            if (rawgPlatforms?.Results is null)
+            {
+                return Result.Failure<IEnumerable<GamePlatformDto>>(GameError.PlatformsNotFound);
+            }
+
+            var ans = rawgPlatforms.Results
+                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                .OrderBy(x => x.Name)
+                .Select(x => new GamePlatformDto(x.Id, x.Name ?? string.Empty))
+                .ToList();
+
+            return Result.Success<IEnumerable<GamePlatformDto>>(ans);
+        }
+
       
 
         private async Task<Dictionary<int, string>> GetLocalGenreMapAsync(CancellationToken cancellationToken)

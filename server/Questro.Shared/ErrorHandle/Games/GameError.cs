@@ -13,6 +13,9 @@ public static class GameError
     public static readonly Errors GenresNotFound =
         new("Game.GenresNotFound", "No game genres found.", 404);
 
+    public static readonly Errors PlatformsNotFound =
+        new("Game.PlatformsNotFound", "No game platforms found.", 404);
+
     public static readonly Errors TrendingUnavailable =
         new("Game.TrendingUnavailable", "Trending games are currently unavailable.", 503);
 
