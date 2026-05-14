@@ -26,6 +26,20 @@ namespace Questro.Service.Services.Games
             var safePageIndex = parameters.PageIndex < 1 ? 1 : parameters.PageIndex;
             var safePageSize = parameters.PageSize < 1 ? 20 : parameters.PageSize;
 
+            if (GameGenreResponseFilter.IsHiddenGenreId(parameters.GenreId))
+            {
+                return Result.Success(
+                    new PagedResponse<GameListItemDto>
+                    {
+                        Data = Enumerable.Empty<GameListItemDto>(),
+                        PageNumber = safePageIndex,
+                        PageSize = safePageSize,
+                        TotalCount = 0,
+                        TotalPages = 0
+                    }
+                );
+            }
+
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
             RawgPagedGameResponse? rawgResponse = string.IsNullOrWhiteSpace(parameters.Search)
                 ? await _rawgservices.DiscoverGamesAsync(parameters, cancellationToken)
@@ -45,7 +59,8 @@ namespace Questro.Service.Services.Games
                 );
             }
 
-            var filteredResults = ApplySearch(rawgResponse.Results, parameters);
+            var filteredResults = ApplySearch(rawgResponse.Results, parameters)
+                .Where(GameGenreResponseFilter.IsGameVisible);
             var mappedGames = filteredResults.Take(safePageSize)
                 .Select(x => MapToGameListItemDto(x, genreMap))
                 .ToList();
@@ -94,6 +109,7 @@ namespace Questro.Service.Services.Games
 
                 var filtered = rawgResponse.Results
                     .Where(x =>
+                        GameGenreResponseFilter.IsGameVisible(x) &&
                         ParseDate(x.Released) is DateTime releaseDate &&
                         releaseDate.Date >= oneMonthAgo &&
                         !string.IsNullOrWhiteSpace(x.BackgroundImage))
@@ -142,6 +158,7 @@ namespace Questro.Service.Services.Games
             }
 
             var mappedGames = rawgResponse.Results
+                .Where(GameGenreResponseFilter.IsGameVisible)
                 .OrderByDescending(x => x.Rating ?? 0)
                 .ThenByDescending(x => x.RatingsCount ?? 0)
                 .Take(safeTake)
@@ -173,7 +190,7 @@ namespace Questro.Service.Services.Games
             }
 
             var ans = rawgGenres.Results
-                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                .Where(x => !string.IsNullOrWhiteSpace(x.Name) && GameGenreResponseFilter.IsVisible(x))
                 .OrderBy(x => x.Name)
                 .Select(x => new GameGenreDto(x.Id, x.Name ?? string.Empty))
                 .ToList();
@@ -212,6 +229,7 @@ namespace Questro.Service.Services.Games
         {
             var genres = result.Genres
                 .Select(g => new GameGenreDto (  g.Id,  g.Name ?? string.Empty ))
+                .Where(GameGenreResponseFilter.IsVisible)
                 .ToList();
 
             var platforms = result.Platforms?

@@ -38,6 +38,12 @@ public sealed class GameDetailsService : IGameDetailsService
             new GameDetailsByRawgIdSpecification(rawgId),
             cancellationToken);
 
+        var rawgDetails = await _rawgService.GetGameDetailsAsync(rawgId, cancellationToken);
+        if (GameGenreResponseFilter.ContainsHidden(rawgDetails) || GameGenreResponseFilter.ContainsHidden(localGame))
+        {
+            return Result.Failure<GameDetailsDto>(GameError.NotFound);
+        }
+
         if (localGame is null)
         {
             await _gameSyncService.FetchAndSaveGameByRawgIdAsync(rawgId, cancellationToken);
@@ -46,8 +52,12 @@ public sealed class GameDetailsService : IGameDetailsService
                 cancellationToken);
         }
 
-        var rawgDetails = await _rawgService.GetGameDetailsAsync(rawgId, cancellationToken);
         if (rawgDetails is null && localGame is null)
+        {
+            return Result.Failure<GameDetailsDto>(GameError.NotFound);
+        }
+
+        if (GameGenreResponseFilter.ContainsHidden(localGame))
         {
             return Result.Failure<GameDetailsDto>(GameError.NotFound);
         }
@@ -79,6 +89,7 @@ public sealed class GameDetailsService : IGameDetailsService
 
         var rawgGames = rawgSimilar?.Results
             .Where(x => x.Id > 0 && x.Id != rawgId)
+            .Where(GameGenreResponseFilter.IsGameVisible)
             .DistinctBy(x => x.Id)
             .Take(DefaultTake)
             .ToList() ?? new List<RawgGameSummaryDto>();
@@ -254,11 +265,13 @@ public sealed class GameDetailsService : IGameDetailsService
         {
             return rawgDetails.Genres
                 .Select(x => new GameGenreDto(x.Id, x.Name ?? string.Empty))
+                .Where(GameGenreResponseFilter.IsVisible)
                 .ToList();
         }
 
         return localGame?.GameGenres
             .Select(x => new GameGenreDto(x.Genre.RAWG_Id ?? x.GenreId, x.Genre.Name))
+            .Where(GameGenreResponseFilter.IsVisible)
             .ToList() ?? Enumerable.Empty<GameGenreDto>();
     }
 
@@ -316,6 +329,7 @@ public sealed class GameDetailsService : IGameDetailsService
             TrailerUrl = null,
             Genres = game.Genres
                 .Select(x => new GameGenreDto(x.Id, x.Name ?? string.Empty))
+                .Where(GameGenreResponseFilter.IsVisible)
                 .ToList(),
             Platforms = game.Platforms
                 .Where(x => x.Platform is not null)

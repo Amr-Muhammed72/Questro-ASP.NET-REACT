@@ -54,9 +54,14 @@ public sealed class GameSyncService : IGameSyncService
         var rawgDetails = await _rawgService.GetGameDetailsAsync(rawgId, cancellationToken);
         if (rawgDetails is null || string.IsNullOrWhiteSpace(rawgDetails.Name))
         {
-            return existingGame is null
+            return existingGame is null || GameGenreResponseFilter.ContainsHidden(existingGame)
                 ? Result.Failure<GameListItemDto>(GameError.NotFound)
                 : Result.Success(MapLocalGameToListItem(existingGame));
+        }
+
+        if (GameGenreResponseFilter.ContainsHidden(rawgDetails))
+        {
+            return Result.Failure<GameListItemDto>(GameError.NotFound);
         }
 
         var screenshots = await _rawgService.GetGameScreenshotsAsync(rawgId, cancellationToken);
@@ -474,8 +479,12 @@ public sealed class GameSyncService : IGameSyncService
             PosterUrl = rawgDetails?.BackgroundImage ?? game.Poster_Url,
             TrailerUrl = null,
             Genres = rawgDetails?.Genres.Count > 0
-                ? rawgDetails.Genres.Select(x => new GameGenreDto(x.Id, x.Name ?? string.Empty)).ToList()
-                : game.GameGenres.Select(x => new GameGenreDto(x.Genre.RAWG_Id ?? x.GenreId, x.Genre.Name)).ToList(),
+                ? GameGenreResponseFilter.ExcludeHidden(rawgDetails.Genres
+                    .Select(x => new GameGenreDto(x.Id, x.Name ?? string.Empty)))
+                    .ToList()
+                : GameGenreResponseFilter.ExcludeHidden(game.GameGenres
+                    .Select(x => new GameGenreDto(x.Genre.RAWG_Id ?? x.GenreId, x.Genre.Name)))
+                    .ToList(),
             Platforms = rawgDetails?.Platforms.Count > 0
                 ? ExtractPlatforms(rawgDetails.Platforms).Select(x => new GamePlatformDto(x.Id, x.Name ?? string.Empty)).ToList()
                 : game.GamePlatforms.Select(x => new GamePlatformDto(x.Platform_Id, x.Platform.Name)).ToList()
