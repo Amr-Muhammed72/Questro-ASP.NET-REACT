@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Questro.Core;
 using Questro.Core.Entities.Games;
 using Questro.Core.Entities.Movies;
+using Questro.Core.Entities.Notifications;
 using Questro.Core.Entities.Social;
 using Questro.Core.Entities.UserManagement;
 
@@ -40,9 +41,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<UserGameReview> UserGameReviews => Set<UserGameReview>();
     public DbSet<UserGameWishlist> UserGameWishlists => Set<UserGameWishlist>();
     public DbSet<UserGameRecommended> UserGameRecommended => Set<UserGameRecommended>();
+    public DbSet<UserGamePlayed> UserGamePlayed => Set<UserGamePlayed>();
 
     public DbSet<UserFollow> UserFollows => Set<UserFollow>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
