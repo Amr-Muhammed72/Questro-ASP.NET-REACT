@@ -66,6 +66,42 @@ public sealed class RawgService : IRawgService
         return GetAsync<RawgGenreListResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Genres)}{query}", cancellationToken);
     }
 
+    public async Task<RawgPlatformListResponse?> GetGamePlatformsAsync(CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 40;
+        var page = 1;
+        var platforms = new RawgPlatformListResponse();
+
+        while (true)
+        {
+            var query = BuildQuery(new Dictionary<string, string?>
+            {
+                [RawgConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture),
+                [RawgConstants.QueryKeys.PageSize] = pageSize.ToString(CultureInfo.InvariantCulture)
+            });
+
+            var response = await GetAsync<RawgPlatformListResponse>(
+                $"{BuildEndpoint(RawgConstants.Endpoints.Platforms)}{query}",
+                cancellationToken);
+
+            if (response is null)
+            {
+                return page == 1 ? null : platforms;
+            }
+
+            platforms.Count = response.Count;
+            platforms.Next = response.Next;
+            platforms.Results.AddRange(response.Results);
+
+            if (string.IsNullOrWhiteSpace(response.Next) || response.Results.Count == 0)
+            {
+                return platforms;
+            }
+
+            page++;
+        }
+    }
+
     public Task<RawgGameDetailsResponse?> GetGameDetailsAsync(int rawgId, CancellationToken cancellationToken = default)
     {
         var query = BuildQuery(null);

@@ -16,5 +16,6 @@ namespace Questro.Service.Abstractions.Games
         Task<Result<PagedResponse<GameListItemDto>>> GetTrendingAsync(int take = 30, CancellationToken cancellationToken = default);
         Task<Result<PagedResponse<GameListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 30, CancellationToken cancellationToken = default);
         Task<Result<IEnumerable<GameGenreDto>>> GetGameGenresAsync(CancellationToken cancellationToken = default);
+        Task<Result<IEnumerable<GamePlatformDto>>> GetGamePlatformsAsync(CancellationToken cancellationToken = default);
     }
 }

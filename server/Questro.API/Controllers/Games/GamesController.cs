@@ -93,6 +93,24 @@ namespace Questro.API.Controllers.Games
             return Ok(result.Value);
         }
 
+        [HttpGet("platforms")]
+        public async Task<IActionResult> GetPlatforms(CancellationToken cancellationToken = default)
+        {
+            var result = await _gamesServices.GetGamePlatformsAsync(cancellationToken);
+            if (result.IsFailure)
+            {
+                var errorResponse = new
+                {
+                    code = result.Error.Code,
+                    message = result.Error.en,
+                    details = result.Details
+                };
+                return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+            }
+
+            return Ok(result.Value);
+        }
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetGameDetails([FromRoute] int id, CancellationToken cancellationToken = default)
         {
