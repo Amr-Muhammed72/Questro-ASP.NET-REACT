@@ -1,4 +1,6 @@
 using Hangfire;
+using Microsoft.Extensions.Http;
+using Polly;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -91,7 +93,10 @@ public static class DependencyInjectionInfrastructure
             {
                 client.BaseAddress = baseUri;
             }
-        });
+            client.Timeout = TimeSpan.FromSeconds(15);
+        })
+        .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
+        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
         services.AddHttpClient<IRawgService, RawgService>((serviceProvider, client) =>
         {
@@ -100,7 +105,10 @@ public static class DependencyInjectionInfrastructure
             {
                 client.BaseAddress = baseUri;
             }
-        });
+            client.Timeout = TimeSpan.FromSeconds(15);
+        })
+        .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
+        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
         
         return services;
     }

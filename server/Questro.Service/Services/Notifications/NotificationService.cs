@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Questro.Core.Entities.Notifications;
 using Questro.Core.Entities.UserManagement;
-using Questro.Core.Specifications.Auth;
 using Questro.Core.Specifications.Notifications;
 using Questro.Infrastructure.Abstractions;
 using Questro.Service.Abstractions.Notifications;
@@ -112,28 +111,40 @@ public class NotificationService : INotificationService
     public async Task CreateNotificationForAllUsersAsync(
         string title, string body, NotificationType type, int? referenceId, CancellationToken cancellationToken = default)
     {
-        var notification = new Notification
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+        try
         {
-            Title = title,
-            Body = body,
-            Type = type,
-            ReferenceId = referenceId,
-            CreatedAt = DateTime.UtcNow
-        };
+            var notification = new Notification
+            {
+                Title = title,
+                Body = body,
+                Type = type,
+                ReferenceId = referenceId,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _notificationRepo.AddAsync(notification, cancellationToken);
-        await _unitOfWork.CompleteAsync(cancellationToken);
+            await _notificationRepo.AddAsync(notification, cancellationToken);
+            await _unitOfWork.CompleteAsync(cancellationToken);
 
-        var allUsers = await _userRepo.ListAsync(new AllUsersSpecification(), cancellationToken);
+            var allUsers = await _userRepo.ListAllAsync(cancellationToken);
 
-        var userNotifications = allUsers.Select(u => new UserNotification
+            var userNotifications = allUsers.Select(u => new UserNotification
+            {
+                UserId = u.Id,
+                NotificationId = notification.Id,
+                IsRead = false
+            });
+
+            await _userNotificationRepo.AddRangeAsync(userNotifications, cancellationToken);
+            await _unitOfWork.CompleteAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
         {
-            UserId = u.Id,
-            NotificationId = notification.Id,
-            IsRead = false
-        });
-
-        await _userNotificationRepo.AddRangeAsync(userNotifications, cancellationToken);
-        await _unitOfWork.CompleteAsync(cancellationToken);
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }
