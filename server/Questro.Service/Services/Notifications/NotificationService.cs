@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Questro.Core.Entities.Notifications;
 using Questro.Core.Entities.UserManagement;
+using Questro.Core.Specifications.Auth;
+using Questro.Core.Specifications.Notifications;
 using Questro.Infrastructure.Abstractions;
-using Questro.Infrastructure.Data;
 using Questro.Service.Abstractions.Notifications;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Notifications;
@@ -14,12 +14,20 @@ namespace Questro.Service.Services.Notifications;
 
 public class NotificationService : INotificationService
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IGenericRepository<UserNotification> _userNotificationRepo;
+    private readonly IGenericRepository<Notification> _notificationRepo;
+    private readonly IGenericRepository<ApplicationUser> _userRepo;
     private readonly IUnitOfWork _unitOfWork;
 
-    public NotificationService(ApplicationDbContext dbContext, IUnitOfWork unitOfWork)
+    public NotificationService(
+        IGenericRepository<UserNotification> userNotificationRepo,
+        IGenericRepository<Notification> notificationRepo,
+        IGenericRepository<ApplicationUser> userRepo,
+        IUnitOfWork unitOfWork)
     {
-        _dbContext = dbContext;
+        _userNotificationRepo = userNotificationRepo;
+        _notificationRepo = notificationRepo;
+        _userRepo = userRepo;
         _unitOfWork = unitOfWork;
     }
 
@@ -28,20 +36,12 @@ public class NotificationService : INotificationService
     {
         var safePageIndex = pageIndex < 1 ? 1 : pageIndex;
         var safePageSize = pageSize < 1 ? 20 : pageSize;
-        var skip = (safePageIndex - 1) * safePageSize;
 
-        var query = _dbContext.Set<UserNotification>()
-            .Where(un => un.UserId == userId)
-            .Include(un => un.Notification)
-            .OrderByDescending(un => un.Notification.CreatedAt);
+        var spec = new UserNotificationsByUserSpecification(userId, safePageIndex, safePageSize);
+        var countSpec = new UserNotificationsCountByUserSpecification(userId);
 
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var items = await query
-            .Skip(skip)
-            .Take(safePageSize)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
+        var items = await _userNotificationRepo.ListAsync(spec, cancellationToken);
+        var totalCount = await _userNotificationRepo.CountAsync(countSpec, cancellationToken);
 
         var dtos = items.Select(un => new NotificationDto
         {
@@ -69,8 +69,8 @@ public class NotificationService : INotificationService
 
     public async Task<Result<bool>> MarkAsReadAsync(long userId, int notificationId, CancellationToken cancellationToken = default)
     {
-        var userNotification = await _dbContext.Set<UserNotification>()
-            .FirstOrDefaultAsync(un => un.Id == notificationId && un.UserId == userId, cancellationToken);
+        var spec = new UserNotificationByIdAndUserSpecification(notificationId, userId);
+        var userNotification = await _userNotificationRepo.GetEntityWithSpecAsync(spec, cancellationToken);
 
         if (userNotification is null)
             return Result.Failure<bool>(NotificationError.NotificationNotFound);
@@ -79,7 +79,8 @@ public class NotificationService : INotificationService
         {
             userNotification.IsRead = true;
             userNotification.ReadAt = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _userNotificationRepo.Update(userNotification);
+            await _unitOfWork.CompleteAsync(cancellationToken);
         }
 
         return Result.Success(true);
@@ -87,25 +88,24 @@ public class NotificationService : INotificationService
 
     public async Task<Result<bool>> MarkAllAsReadAsync(long userId, CancellationToken cancellationToken = default)
     {
-        var unread = await _dbContext.Set<UserNotification>()
-            .Where(un => un.UserId == userId && !un.IsRead)
-            .ToListAsync(cancellationToken);
+        var spec = new UnreadUserNotificationsSpecification(userId);
+        var unread = await _userNotificationRepo.ListAsync(spec, cancellationToken);
 
         foreach (var un in unread)
         {
             un.IsRead = true;
             un.ReadAt = DateTime.UtcNow;
+            _userNotificationRepo.Update(un);
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.CompleteAsync(cancellationToken);
         return Result.Success(true);
     }
 
     public async Task<Result<int>> GetUnreadCountAsync(long userId, CancellationToken cancellationToken = default)
     {
-        var count = await _dbContext.Set<UserNotification>()
-            .CountAsync(un => un.UserId == userId && !un.IsRead, cancellationToken);
-
+        var spec = new UnreadUserNotificationsSpecification(userId);
+        var count = await _userNotificationRepo.CountAsync(spec, cancellationToken);
         return Result.Success(count);
     }
 
@@ -121,21 +121,19 @@ public class NotificationService : INotificationService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _dbContext.Set<Notification>().AddAsync(notification, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _notificationRepo.AddAsync(notification, cancellationToken);
+        await _unitOfWork.CompleteAsync(cancellationToken);
 
-        var userIds = await _dbContext.Users
-            .Select(u => u.Id)
-            .ToListAsync(cancellationToken);
+        var allUsers = await _userRepo.ListAsync(new AllUsersSpecification(), cancellationToken);
 
-        var userNotifications = userIds.Select(uid => new UserNotification
+        var userNotifications = allUsers.Select(u => new UserNotification
         {
-            UserId = uid,
+            UserId = u.Id,
             NotificationId = notification.Id,
             IsRead = false
-        }).ToList();
+        });
 
-        await _dbContext.Set<UserNotification>().AddRangeAsync(userNotifications, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _userNotificationRepo.AddRangeAsync(userNotifications, cancellationToken);
+        await _unitOfWork.CompleteAsync(cancellationToken);
     }
 }
