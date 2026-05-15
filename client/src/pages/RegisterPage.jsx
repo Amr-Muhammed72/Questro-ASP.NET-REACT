@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Gamepad2, Film, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useRegister } from '../hooks/useRegister';
-import RegisterForm from '../components/RegisterForm';
-import OtpForm from '../components/OtpForm';
-import RealmCard from '../components/RealmCard';
+import { useRegister } from '../features/auth/hooks/useRegister';
+import RegisterForm from '../features/auth/components/RegisterForm';
+import OtpForm from '../features/auth/components/OtpForm';
+import RealmCard from '../components/ui/RealmCard';
 import bgImage from '../assets/main-background.png';
 import logoImg from '../assets/logo.png';
 
@@ -17,11 +17,9 @@ const RegisterPage = () => {
   const handleRegister = async (userData) => {
     try {
       await register(userData);
-      // On success, backend queues an OTP email
       setEmail(userData.email);
       setShowOtp(true);
     } catch (exception) {
-      // Error handled by hook
     }
   };
 
@@ -39,11 +37,10 @@ const RegisterPage = () => {
         <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-8 items-center">
           
           <div className="hidden lg:flex flex-col justify-center space-y-8">
-            <h1 className="text-4xl font-bold text-white flex items-center gap-3">
+            <Link to="/" className="text-4xl font-bold text-white flex items-center gap-3">
                <img src={logoImg} alt="Questro Logo" className="w-12 h-12 object-contain drop-shadow-md" /> Questro
-            </h1>
+            </Link>
             <p className="text-zinc-300 text-lg">Join us to unlock your hybrid gateway to cinematic experiences and gaming worlds.</p>
-            
             <div className="space-y-4">
               <RealmCard title="Discover Movies" description="Get personalized recommendations based on your taste." icon={Film} colorTheme="cyan" />
               <RealmCard title="Find Games" description="Connect with gamers and find your next adventure." icon={Gamepad2} colorTheme="purple" />
