@@ -1,8 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Gamepad2, Film, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import LoginForm from '../components/LoginForm';
-import RealmCard from '../components/RealmCard';
+import LoginForm from '../features/auth/components/LoginForm';
+import RealmCard from '../components/ui/RealmCard';
 import bgImage from '../assets/main-background.png';
 import logoImg from '../assets/logo.png';
 
@@ -13,16 +14,15 @@ const LoginPage = () => {
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed',
   };
-
   return (
     <div style={backgroundStyle} className="relative w-full min-h-screen overflow-hidden font-sans">
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12 bg-black/40">
         <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-8 items-center">
           
           <div className="hidden lg:flex flex-col justify-center space-y-8">
-            <h1 className="text-4xl font-bold text-white flex items-center gap-3">
+            <Link to="/" className="text-4xl font-bold text-white flex items-center gap-3">
                <img src={logoImg} alt="Questro Logo" className="w-12 h-12 object-contain drop-shadow-md" /> Questro
-            </h1>
+            </Link>
             <p className="text-zinc-300 text-lg">Your gateway to cinematic experiences and gaming worlds.</p>
             
             <div className="space-y-4">
@@ -32,7 +32,6 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN --- */}
           <div className="flex items-center justify-center lg:justify-end">
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl w-full max-w-md p-8 shadow-2xl">
               <div className="mb-8">

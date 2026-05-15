@@ -1,34 +1,52 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useMoviesDiscovery } from '../hooks/useMoviesDiscovery';
-import { useBrowseData } from '../hooks/useBrowseData';
-import NavBar from '../components/NavBar';
-import bgImage from '../assets/main-background.png';
-import MoviesHeader from '../components/Movies/MoviesHeader';
-import GenrePills from '../components/Movies/GenrePills';
-import BrowseView from '../components/Movies/BrowseView';
-import SearchView from '../components/Movies/SearchView';
+import { AnimatePresence, motion } from 'framer-motion';
+import { SlidersHorizontal, Search } from 'lucide-react';
+import { useMoviesDiscovery } from '../features/movies/hooks/useMoviesDiscovery';
+import { useBrowseData } from '../features/movies/hooks/useBrowseData';
+import { useDebounce } from '../hooks/useDebounce';
+import NavBar from '../components/layout/NavBar';
+
+import { AdvancedFiltersDrawer } from '../components/common/AdvancedFiltersDrawer';
+import BrowseView from '../features/movies/components/BrowseView';
+import SearchView from '../features/movies/components/SearchView';
 
 const MoviesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
-  const initialSearch = searchParams.get('q') || '';
-  const initialGenre = searchParams.get('genre') || null;
+  const initialSearch = searchParams.get('search') || '';
+  const initialGenre = searchParams.get('genreId') || null;
   const initialList = searchParams.get('list') || null;
+
+  const [localSearch, setLocalSearch] = useState(initialSearch);
+  const debouncedSearch = useDebounce(localSearch, 500);
+
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (debouncedSearch.trim()) {
+        next.set('search', debouncedSearch.trim());
+      } else {
+        next.delete('search');
+      }
+      return next;
+    }, { replace: true });
+  }, [debouncedSearch, setSearchParams]);
+
+  useEffect(() => {
+    setLocalSearch(initialSearch);
+  }, [initialSearch]);
 
   const {
     movies,
     loading: discoveryLoading,
     hasMore,
     error,
-    filters,
     loadMore,
     updateFilters,
   } = useMoviesDiscovery();
-
-  const [searchInput, setSearchInput] = useState(initialSearch);
-  const [activeGenreId, setActiveGenreId] = useState(initialGenre);
-  const [activeList, setActiveList] = useState(initialList);
 
   const {
     trending,
@@ -37,126 +55,159 @@ const MoviesPage = () => {
     genresWithMovies
   } = useBrowseData();
 
-  useEffect(() => {
-    if (initialSearch || initialGenre || initialList) {
-      updateFilters({ search: initialSearch, genreId: initialGenre, list: initialList });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
-
-  // Also watch for URL changes if someone clicks a category
-  useEffect(() => {
-    const listParam = searchParams.get('list');
-    if (listParam !== activeList) {
-      setActiveList(listParam);
-      updateFilters({ list: listParam, search: searchInput, genreId: activeGenreId });
-    }
-  }, [searchParams, activeList, updateFilters, searchInput, activeGenreId]);
+  const filtersFromParams = useMemo(() => ({
+    search: initialSearch || null,
+    genreId: initialGenre || null,
+    language: searchParams.get('language') || null,
+    year: searchParams.get('year') || null,
+    minRating: searchParams.get('minRating') || null,
+    maxRating: searchParams.get('maxRating') || null,
+    quality: searchParams.get('quality') || null,
+    sort: searchParams.get('sort') || null,
+    list: initialList || null,
+  }), [initialSearch, initialGenre, initialList, searchParams]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      updateFilters({ search: searchInput, genreId: activeGenreId, list: activeList });
-      setSearchParams(prev => {
-        if (searchInput) prev.set('q', searchInput);
-        else prev.delete('q');
-        
-        if (activeGenreId) prev.set('genre', activeGenreId);
-        else prev.delete('genre');
-
-        if (activeList) prev.set('list', activeList);
-        else prev.delete('list');
-        
-        return prev;
-      }, { replace: true });
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchInput, activeGenreId, activeList, setSearchParams, updateFilters]);
-
-  const handleSearchChange = useCallback((e) => {
-    setSearchInput(e.target.value);
-    setActiveList(null); // Clear list when manually searching
-  }, []);
-
-  const handleGenreSearch = useCallback((newFilters) => {
-    setActiveGenreId(newFilters.genreId);
-    setActiveList(null); // Clear list when picking genre
-    updateFilters({ ...newFilters, list: null, search: searchInput });
-    setSearchParams(prev => {
-      if (newFilters.genreId) prev.set('genre', newFilters.genreId);
-      else prev.delete('genre');
-      prev.delete('list');
-      return prev;
-    });
-  }, [searchInput, updateFilters, setSearchParams]);
-  
-  const handleSearchSubmit = useCallback(() => {
-    setActiveList(null);
-    updateFilters({ search: searchInput, genreId: activeGenreId, list: null });
-    setSearchParams(prev => {
-      if (searchInput) prev.set('q', searchInput);
-      else prev.delete('q');
-      
-      if (activeGenreId) prev.set('genre', activeGenreId);
-      else prev.delete('genre');
-      
-      return prev;
-    }, { replace: true });
-  }, [searchInput, activeGenreId, updateFilters, setSearchParams]);
+    updateFilters(filtersFromParams);
+  }, [filtersFromParams, updateFilters]);
 
   const isBrowsing = useMemo(() => {
-    return !searchInput && !activeGenreId && !activeList;
-  }, [searchInput, activeGenreId, activeList]);
+    return !filtersFromParams.search &&
+      !filtersFromParams.genreId &&
+      !filtersFromParams.list &&
+      !filtersFromParams.language &&
+      !filtersFromParams.year &&
+      !filtersFromParams.minRating &&
+      !filtersFromParams.maxRating &&
+      !filtersFromParams.quality &&
+      !filtersFromParams.sort;
+  }, [filtersFromParams]);
 
-  const backgroundStyle = useMemo(() => ({
-    backgroundImage: `url(${bgImage})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundAttachment: 'fixed',
-  }), []);
+  const handleBrowseGenre = useCallback((genreId) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (genreId) next.set('genreId', String(genreId));
+      else next.delete('genreId');
+      next.delete('search');
+      next.delete('list');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   return (
-    <div className="relative min-h-screen font-sans pb-20" style={backgroundStyle}>
-      <div className="absolute inset-0 bg-black/50 z-0"></div>
-      <NavBar />
-      <div className="relative z-10 w-full pt-16">
-        <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 space-y-8">
-          <MoviesHeader 
-            searchInput={searchInput || ''} 
-            handleSearchChange={handleSearchChange} 
-            onSearchSubmit={handleSearchSubmit} 
-          />
+    <div className="relative min-h-screen font-sans pb-20">
+      <div className="absolute inset-0 bg-black/20 z-0"></div>
+      <NavBar onVisibilityChange={setIsNavVisible} forceHidden={areFiltersOpen} />
+      <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible && !areFiltersOpen ? 'pt-20' : 'pt-4'}`}>
+        
+        <div className="w-full relative flex flex-col items-center justify-center min-h-[50vh] md:min-h-[60vh] py-12 px-4 overflow-hidden mb-8">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] "></div>
+          </div>
+          
+          <div className="relative z-10 w-full max-w-4xl flex flex-col items-center mt-[-4rem]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-2 drop-shadow-2xl text-center leading-tight">
+              Discover The Perfect Film <br className="hidden sm:block" /> With An Effortless Search And Selection
+            </h1>
+            
+            <div className="relative w-full max-w-3xl flex flex-col sm:flex-row items-center gap-4 mt-6">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="What are you looking for?"
+                  value={localSearch}
+                  onChange={(e) => setLocalSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearchParams(prev => {
+                        const next = new URLSearchParams(prev);
+                        if (localSearch.trim()) next.set('search', localSearch.trim());
+                        else next.delete('search');
+                        return next;
+                      }, { replace: true });
+                    }
+                  }}
+                  className="w-full bg-zinc-900/60 border border-zinc-700 rounded-full py-3 sm:py-4 pl-12 pr-12 text-sm sm:text-base md:text-lg text-white placeholder-zinc-500 focus:ring-1 focus:ring-white focus:border-zinc-500 focus:outline-none transition-all backdrop-blur-md"
+                />
+                <div className="absolute left-4 sm:left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-500 pointer-events-none">
+                  <Search className="w-5 h-5" />
+                </div>
+                {localSearch && (
+                  <button
+                    onClick={() => setLocalSearch('')}
+                    className="absolute right-4 sm:right-5 top-1/2 transform -translate-y-1/2 rounded-full p-1 hover:bg-zinc-800 transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
 
-          <GenrePills 
-            activeGenreId={activeGenreId} 
-            updateFilters={handleGenreSearch} 
-          />
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-center backdrop-blur-sm mt-8 mx-auto max-w-4xl">
-              Oops! Something went wrong: {error}
+              <button
+                onClick={() => setAreFiltersOpen(true)}
+                className="flex-shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/80 px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold text-zinc-100 hover:bg-zinc-700 hover:border-zinc-500 transition-all"
+              >
+                <SlidersHorizontal className="h-5 w-5" />
+                Filter
+              </button>
             </div>
-          )}
+          </div>
         </div>
 
-        <div className="mt-12 w-full">
-          {isBrowsing ? (
-            <BrowseView
-              recentlyAdded={recentlyAdded}
-              trending={trending}
-              recommended={recommended}
-              genresWithMovies={genresWithMovies}
-              onGenreSearch={handleGenreSearch}
+        <div className="w-full px-4 md:px-8 lg:px-12">
+          <div className="flex flex-col w-full">
+            <AdvancedFiltersDrawer
+              isOpen={areFiltersOpen}
+              onClose={() => setAreFiltersOpen(false)}
+              mode="movies"
             />
-          ) : (
-            <SearchView
-              movies={movies}
-              loading={discoveryLoading}
-              hasMore={hasMore}
-              error={error}
-              loadMore={loadMore}
-            />
-          )}
+
+            <div className="w-full min-w-0">
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-center mb-8">
+                  Oops! Something went wrong: {error}
+                </div>
+              )}
+
+              <AnimatePresence mode="wait">
+                {isBrowsing ? (
+                  <motion.div 
+                    key="browsing"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <BrowseView
+                      recentlyAdded={recentlyAdded}
+                      trending={trending}
+                      recommended={recommended}
+                      genresWithMovies={genresWithMovies}
+                      onGenreSearch={({ genreId }) => handleBrowseGenre(genreId)}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="searching"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <SearchView
+                      movies={movies}
+                      loading={discoveryLoading}
+                      hasMore={hasMore}
+                      error={error}
+                      loadMore={loadMore}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </div>
     </div>

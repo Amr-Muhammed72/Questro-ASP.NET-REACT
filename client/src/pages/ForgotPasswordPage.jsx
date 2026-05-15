@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import ForgotPasswordForm from '../components/ForgotPasswordForm';
+import ForgotPasswordForm from '../features/auth/components/ForgotPasswordForm';
 import bgImage from '../assets/main-background.png'; 
 
 const ForgotPasswordPage = () => {
