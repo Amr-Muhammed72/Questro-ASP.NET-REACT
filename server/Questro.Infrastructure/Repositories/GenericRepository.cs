@@ -23,10 +23,22 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public async Task<IReadOnlyList<T>> ListAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
     {
         var query = ApplySpecification(specification);
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<T>> ListReadOnlyAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+    {
+        var query = ApplySpecification(specification);
         return await query.AsNoTracking().ToListAsync(cancellationToken);
     }
 
     public async Task<T?> GetEntityWithSpecAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+    {
+        var query = ApplySpecification(specification);
+        return await query.FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<T?> GetReadOnlyAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
     {
         var query = ApplySpecification(specification);
         return await query.AsNoTracking().FirstOrDefaultAsync(cancellationToken);

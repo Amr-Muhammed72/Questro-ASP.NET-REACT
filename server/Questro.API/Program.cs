@@ -5,6 +5,7 @@ using Questro.Infrastructure;
 using Questro.Service;
 using Questro.Service.Abstractions.Email;
 using Questro.Service.Services.Email;
+using Questro.Service.Services.Notifications;
 using Questro.Shared.Contracts.Email;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +35,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseStaticFiles();
 app.UseCors("DevCors");
 
 app.UseHttpsRedirection();
@@ -41,5 +43,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.UseHangfireDashboard("/hangfire");
+
+// Register Hangfire recurring job: check for new content daily at midnight UTC
+RecurringJob.AddOrUpdate<NewContentNotificationJob>(
+    "new-content-notification",
+    job => job.ExecuteAsync(),
+    Cron.Daily);
+
 app.Run();
 
