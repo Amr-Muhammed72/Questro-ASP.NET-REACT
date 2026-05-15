@@ -31,7 +31,7 @@ def get_all_datasets() -> dict:
     )
 
     df_tmdb = load_or_download_dataset(
-        hf_repo="Pablinho/movies-tmdb-10000", 
+        hf_repo="Pablinho/movies-dataset", 
         split="train", 
         filename="tmdb_movies_cached.parquet"
     )
@@ -44,10 +44,9 @@ def get_all_datasets() -> dict:
 
     print("\nAll datasets loaded and ready!")
     
-    # Convert DataFrames to lists of dictionaries
     return {
-        "steam": df_steam.to_dict(orient='records'),
-        "tmdb": df_tmdb.to_dict(orient='records'),
-        "rawg": df_rawg.to_dict(orient='records')
+        "steam": df_steam,
+        "tmdb": df_tmdb,
+        "rawg": df_rawg
     }
 

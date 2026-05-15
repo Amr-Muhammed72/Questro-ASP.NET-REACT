@@ -1,20 +1,35 @@
 import re
+from tqdm.auto import tqdm
 import spacy
 
 
-nlp = spacy.load("en_core_web_sm")
-
-def normalize_text(text: str) -> str:
-    """Cleans, tokenizes, and lemmatizes text."""
-    if not isinstance(text, str):
-        return ""
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9\s]", "", text)
-    text = " ".join(text.split())
+# Load spaCy once
+nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"]) # Disable what you don't need!
+def batch_normalize_text(texts_list, column_name="Text"):
+    cleaned_texts = []
     
-    doc = nlp(text)
-    tokens = [token.lemma_ for token in doc if token.is_alpha and not token.is_stop]
-    return " ".join(tokens)
+    # Wrap the nlp.pipe inside tqdm()
+    # We pass total=len() so the bar knows exactly where 100% is
+    pipe = nlp.pipe(texts_list, batch_size=2048, n_process=2)
+    
+    for doc in tqdm(pipe, total=len(texts_list), desc=f"Processing {column_name}"): 
+        clean_string = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
+        cleaned_texts.append(clean_string)
+        
+    return cleaned_texts
+        
+    return cleaned_texts
+def normalize_text(text_list):
+    """Processes a large list of texts using spaCy's optimized pipe."""
+    cleaned_texts = []
+    
+    # nlp.pipe processes text in massive chunks automatically
+    for doc in nlp.pipe(text_list, batch_size=1000, n_process=2): 
+        # Example: Lemmatize and make lowercase
+        clean_text = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
+        cleaned_texts.append(clean_text)
+        
+    return cleaned_texts
 
 def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_profile: dict = None) -> str:
     """Constructs the prompt for the Generation Phase, incorporating user context."""

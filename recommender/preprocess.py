@@ -1,62 +1,51 @@
-from util import normalize_text
+import pandas as pd
 
-def unify_and_format_record(record: dict, domain: str) -> dict:
-    """Maps domain-specific schemas to a unified structure and formats for embedding."""
-    
-    unified = {}
+def unify_and_format_domain(df: pd.DataFrame, domain: str) -> pd.DataFrame:
+    """
+    Vectorized mapping of domain-specific schemas to a unified structure.
+    Processes entire DataFrames at once for maximum speed.
+    """
+    df = df.copy()
+    df['domain'] = domain
     
     if domain == "steam":
-        unified['id'] = f"steam_{record.get('appid')}"
-        unified['type'] = "game"
-        unified['title'] = record.get('name', '')
-        unified['creators'] = record.get('developer', '')
+        # FIXED: 'appid' -> 'appID'
+        df['id'] = 'steam_' + df['appID'].astype(str)
+        df['type'] = 'game'
+        df['title'] = df['name'].fillna('')
         
-        tags = record.get('tags')
-        genres = record.get('genres')
+        # FIXED: 'developer' -> 'developers' and cleaned up the list formatting
+        df['creators'] = df['developers'].astype(str).str.replace(r'[\[\]\']', '', regex=True).fillna('')
         
-        tags_list = tags.tolist() if hasattr(tags, 'tolist') else list(tags) if isinstance(tags, (list, tuple)) else []
-        genres_list = genres.tolist() if hasattr(genres, 'tolist') else list(genres) if isinstance(genres, (list, tuple)) else []
+        # Clean up tags and genres lists so they look like "Action, RPG" instead of "['Action'], ['RPG']"
+        clean_tags = df['tags'].astype(str).str.replace(r'[\[\]\']', '', regex=True).fillna('')
+        clean_genres = df['genres'].astype(str).str.replace(r'[\[\]\']', '', regex=True).fillna('')
+        df['themes'] = clean_tags + ", " + clean_genres
         
-        themes = tags_list + genres_list
-        unified['themes'] = ", ".join([str(t) for t in themes])
-        
-        unified['narrative'] = str(record.get('short_description', ''))
+        df['narrative'] = df['short_description'].fillna('')
         
     elif domain == "tmdb":
-        safe_title = str(record.get('Title', '')).replace(' ', '_').lower()
-        unified['id'] = f"tmdb_{safe_title}"
-        unified['type'] = "movie"
-        unified['title'] = str(record.get('Title', ''))
-        unified['creators'] = "" 
-        unified['themes'] = str(record.get('Genre', ''))
-        unified['narrative'] = str(record.get('Overview', ''))
+        safe_titles = df['Title'].astype(str).str.replace(' ', '_').str.lower()
+        df['id'] = 'tmdb_' + safe_titles
+        df['type'] = 'movie'
+        df['title'] = df['Title'].fillna('')
+        df['creators'] = "" 
+        df['themes'] = df['Genre'].fillna('')
+        df['narrative'] = df['Overview'].fillna('')
         
     elif domain == "rawg":
-        unified['id'] = f"rawg_{record.get('id')}"
-        unified['type'] = "game"
-        unified['title'] = str(record.get('name', ''))
+        df['id'] = 'rawg_' + df['id'].astype(str)
+        df['type'] = 'game'
+        df['title'] = df['name'].fillna('')
         
-        devs = record.get('developers', '')
-        unified['creators'] = ", ".join(devs) if isinstance(devs, list) else str(devs)
+        # Clean up developer lists formatted as strings
+        df['creators'] = df['developers'].astype(str).str.replace(r'[\[\]\']', '', regex=True).fillna('')
+        df['themes'] = df['genres'].astype(str).fillna('') + ", " + df['tags'].astype(str).fillna('')
         
-        genres = str(record.get('genres', ''))
-        tags = str(record.get('tags', ''))
-        unified['themes'] = f"{genres}, {tags}".strip(", ")
-        
-        unified['narrative'] = str(record.get('description_raw', '')) or str(record.get('description', ''))
-
-    normalized_title = normalize_text(unified['title'])
-    normalized_creators = normalize_text(unified['creators'])
-    normalized_themes = normalize_text(unified['themes'])
-    normalized_narrative = normalize_text(unified['narrative'])
-
-    embedding_string = (
-        f"Type: {unified['type']}. "
-        f"Title: {normalized_title}. "
-        f"Creators: {normalized_creators}. "
-        f"Themes: {normalized_themes}. "
-        f"Narrative: {normalized_narrative}."
-    )
-    
-    unified['embedding_text'] = embedding_string
-    return unified
+        if 'description_raw' in df.columns:
+             df['narrative'] = df['description_raw'].fillna(df.get('description', ''))
+        else:
+             df['narrative'] = df['description'].fillna('')
+             
+    # Return only the clean, unified columns
+    return df[['id', 'type', 'title', 'creators', 'themes', 'narrative', 'domain']]

@@ -1,13 +1,17 @@
 import faiss
 import json
 import os
+import torch 
 from util import normalize_text
 from sentence_transformers import SentenceTransformer
 
 class CrossDomainRAGIndex:
-    def __init__(self, model_name: str = "all-mpnet-base-v2"):
-       
-        self.model = SentenceTransformer(model_name)
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Initializing embedding model on: {device.upper()}")
+        
+        self.model = SentenceTransformer(model_name, device=device)
         self.dimension = self.model.get_sentence_embedding_dimension()
         
         self.index = faiss.IndexHNSWFlat(self.dimension, 32)
@@ -19,7 +23,13 @@ class CrossDomainRAGIndex:
         texts = [rec['embedding_text'] for rec in unified_records]
         
         print(f"Generating embeddings for {len(texts)} items...")
-        embeddings = self.model.encode(texts, convert_to_numpy=True, show_progress_bar=True)
+        
+        embeddings = self.model.encode(
+            texts, 
+            convert_to_numpy=True, 
+            show_progress_bar=True,
+            batch_size=512 
+        )
         
         self.index.add(embeddings)
         self.metadata_store.extend(unified_records)

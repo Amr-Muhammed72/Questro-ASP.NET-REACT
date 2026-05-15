@@ -1,38 +1,54 @@
 import os
 import gc
 import itertools
+import pandas as pd
 
 from dataset_downloader import get_all_datasets
-from concurrent.futures import ProcessPoolExecutor
 
 from rag import CrossDomainRAGIndex
-from preprocess import unify_and_format_record
-from util import generate_recommendation_prompt
-
+from util import generate_recommendation_prompt,batch_normalize_text
+from preprocess import unify_and_format_domain
 
 INDEX_FILE = "./data_cache/faiss_index.bin"
 META_FILE = "./data_cache/metadata.json"
 
+def get_unified_records(datasets: dict) -> list:
+    print("Formatting records for unified semantic space...")
+    
+    # 1. Call the function in preprocess.py for each dataset
+    steam_clean = unify_and_format_domain(datasets['steam'], "steam")
+    tmdb_clean  = unify_and_format_domain(datasets['tmdb'], "tmdb")
+    rawg_clean  = unify_and_format_domain(datasets['rawg'], "rawg")
+    
+    # 2. Combine them into one master DataFrame
+    unified_df = pd.concat([steam_clean, tmdb_clean, rawg_clean], ignore_index=True)
+    
+    print(f"Applying text normalization to {len(unified_df)} records...")
+    
+    # 3. Apply normalization
+    unified_df['norm_title'] = batch_normalize_text(unified_df['title'].astype(str))
+    unified_df['norm_creators'] = batch_normalize_text(unified_df['creators'].astype(str))
+    unified_df['norm_themes'] = batch_normalize_text(unified_df['themes'].astype(str))
+    unified_df['norm_narrative'] = batch_normalize_text(unified_df['narrative'].astype(str))
 
-def get_unified_records(datasets):
-   
-
-    steam_args = zip(datasets['steam'], itertools.repeat("steam"))
-    tmdb_args = zip(datasets['tmdb'], itertools.repeat("tmdb"))
-    rawg_args = zip(datasets['rawg'], itertools.repeat("rawg"))
-
-    all_args = itertools.chain(steam_args, tmdb_args, rawg_args)
-
-    def process_wrapper(args):
-        record, domain = args
-        return unify_and_format_record(record, domain)
-
-    unified_records = []
-
-    with ProcessPoolExecutor() as executor:
-        results = executor.map(process_wrapper, all_args, chunksize=1000)
-        unified_records.extend(results)
-    return unified_records
+    print("Building final embedding strings...")
+    
+    # 4. Construct the embedding text
+    unified_df['embedding_text'] = (
+        "Type: " + unified_df['type'] + ". " +
+        "Title: " + unified_df['norm_title'] + ". " +
+        "Creators: " + unified_df['norm_creators'] + ". " +
+        "Themes: " + unified_df['norm_themes'] + ". " +
+        "Narrative: " + unified_df['norm_narrative'] + "."
+    )
+    
+    # Drop the temporary 'norm_' columns before converting to dictionary
+    columns_to_keep = ['id', 'type', 'title', 'creators', 'themes', 'narrative', 'domain', 'embedding_text']
+    final_df = unified_df[columns_to_keep]
+    
+    print(f"Successfully unified {len(final_df)} records.")
+    
+    return final_df.to_dict(orient='records')
 
 # ==========================================
 # prototype
