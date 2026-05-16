@@ -60,10 +60,16 @@ class CrossDomainRAGIndex:
             self.metadata_store = json.load(f)
         
         print(f"Loaded index with {self.index.ntotal} items.")
+
     def retrieve(self, query: str, top_k: int = 5) -> list:
         """Retrieves the top_k most similar items to the user's query."""
         
         clean_query = normalize_text(query)
+        
+        if isinstance(clean_query, list):
+            clean_query = " ".join([str(item) for item in clean_query])
+        else:
+            clean_query = str(clean_query)
         
         query_embedding = self.model.encode([clean_query], convert_to_numpy=True)
         

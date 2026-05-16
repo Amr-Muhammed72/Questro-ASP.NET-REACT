@@ -1,3 +1,4 @@
 .vscode/settings.json
 *.pyc
-recommender/__pycache__
+*/data_cache
+*/test.py

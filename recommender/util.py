@@ -16,17 +16,16 @@ def batch_normalize_text(texts_list, column_name="Text"):
         
     return cleaned_texts
         
-def normalize_text(text_list):
-    """Processes a large list of texts using spaCy's optimized pipe."""
-    cleaned_texts = []
-    
-    # nlp.pipe processes text in massive chunks automatically
-    for doc in nlp.pipe(text_list, batch_size=1000, n_process=2): 
-        # Example: Lemmatize and make lowercase
-        clean_text = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
-        cleaned_texts.append(clean_text)
+
+def normalize_text(text: str) -> str:
+    """Processes a single query string using spaCy safely."""
+    # Guard check: if an array accidentally slips in from the API, flatten it
+    if isinstance(text, list):
+        text = " ".join([str(t) for t in text])
         
-    return cleaned_texts
+    doc = nlp(str(text)) 
+    clean_text = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
+    return clean_text
 
 def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_profile: dict = None) -> str:
     """Constructs the prompt for the Generation Phase, incorporating user context."""
