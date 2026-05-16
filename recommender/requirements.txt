@@ -1,4 +1,5 @@
 gunicorn
+waitress
 flask
 flask_cors
 sentence-transformers

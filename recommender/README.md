@@ -15,7 +15,7 @@ To ensure production-grade stability and fast server boot times, the system arch
 ## ⚙️ Prerequisites
 
 * Python 3.8 or higher
-* Minimum 4GB RAM (required to hold the embedding model and FAISS index in memory)
+* Minimum 6GB RAM (required to hold the embedding model and FAISS index in memory)
 * Internet connection (first-time setup only, to download models and datasets)
 
 ## 🚀 Installation & Setup
@@ -58,10 +58,18 @@ python app.py
 ```
 
 #### Production (Recommended)
-Use Gunicorn for better performance and reliability in production:
+Use a production WSGI server for better performance and reliability:
+
+**On Linux (Gunicorn):**
 ```bash
 gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app
 ```
+
+**On Windows (Waitress):**
+```bash
+waitress-serve --listen=0.0.0.0:5000 app:app
+```
+
 The server will initialize the `CrossDomainRAGIndex`, load the artifacts into memory, and listen for requests.
 
 ## 🔌 API Reference
