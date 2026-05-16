@@ -13,7 +13,6 @@ INDEX_FILE = "./data_cache/faiss_index.bin"
 META_FILE = "./data_cache/metadata.json"
 
 def get_unified_records(datasets: dict) -> list:
-    print("Formatting records for unified semantic space...")
     
     # 1. Call the function in preprocess.py for each dataset
     steam_clean = unify_and_format_domain(datasets['steam'], "steam")
@@ -42,7 +41,6 @@ def get_unified_records(datasets: dict) -> list:
         "Narrative: " + unified_df['norm_narrative'] + "."
     )
     
-    # Drop the temporary 'norm_' columns before converting to dictionary
     columns_to_keep = ['id', 'type', 'title', 'creators', 'themes', 'narrative', 'domain', 'embedding_text']
     final_df = unified_df[columns_to_keep]
     
@@ -84,13 +82,13 @@ if __name__ == "__main__":
         gc.collect()
 
     active_user_profile = {
-        "technical_background": "Software developer and competitive programmer with a strong interest in high-performance computing, advanced algorithms, and graph theory.",
-        "operating_system": "Arch Linux",
-        "core_interests": ["Data structures", "Backend architecture", "Complex logic", "Algorithm optimization"],
-        "gaming_vibe": "Enjoys working on projects involving complex logic and has a preference for systems that require mechanical depth and optimization."
+        "technical_background": "Full-time student who balances academics with a massive passion for comic books, superhero mythology, and video games.",
+        "operating_system": "Windows 11",
+        "core_interests": ["Action-adventure games", "Superhero lore (Marvel/DC)", "Comic book collecting", "Multiplayer gaming"],
+        "gaming_vibe": "Lives for epic, story-driven games that make you feel like a hero (like Marvel's Spider-Man or the Batman: Arkham series) and enjoys jumping into co-op or competitive multiplayer matches with friends."
     }
 
-    query = "I want a game or movie about complex interconnected systems or optimization."
+    query = "I want a game or movie about batman"
     print(f"\nQuerying: '{query}'")
 
     results = rag_system.retrieve(query, top_k=5)

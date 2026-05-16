@@ -14,7 +14,7 @@ def load_or_download_dataset(hf_repo: str, split: str, filename: str) -> pd.Data
         return pd.read_parquet(file_path)
     else:
         print(f"Downloading {hf_repo} from Hugging Face...")
-        df = load_dataset(hf_repo, split=split).to_pandas()
+        df = load_dataset(hf_repo, cache_dir="./hf_cache", split=split).to_pandas()
         
         print(f"Saving {filename} to local cache for future use...")
         df.to_parquet(file_path, index=False)

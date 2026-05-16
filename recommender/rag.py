@@ -1,6 +1,7 @@
 import faiss
 import json
 import os
+import numpy as np
 import torch 
 from util import normalize_text
 from sentence_transformers import SentenceTransformer
@@ -59,20 +60,27 @@ class CrossDomainRAGIndex:
             self.metadata_store = json.load(f)
         
         print(f"Loaded index with {self.index.ntotal} items.")
-
     def retrieve(self, query: str, top_k: int = 5) -> list:
         """Retrieves the top_k most similar items to the user's query."""
         
         clean_query = normalize_text(query)
+        
         query_embedding = self.model.encode([clean_query], convert_to_numpy=True)
+        
+        import numpy as np
+        query_embedding = np.atleast_2d(query_embedding).astype(np.float32)
         
         distances, indices = self.index.search(query_embedding, top_k)
         
         results = []
         for dist, idx in zip(distances[0], indices[0]):
             if idx != -1: 
-                results.append({
-                    "score": float(dist),
-                    "data": self.metadata_store[idx]
-                })
+                try:
+                    results.append({
+                        "score": float(dist),
+                        "data": self.metadata_store[idx]
+                    })
+                except IndexError:
+                    continue
+                    
         return results
