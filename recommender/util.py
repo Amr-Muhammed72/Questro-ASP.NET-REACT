@@ -1,7 +1,9 @@
 import re
 from tqdm.auto import tqdm
 import spacy
-
+import shutil
+import glob
+import os
 
 # Load spaCy once
 nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"]) # Disable what you don't need!
@@ -62,3 +64,20 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_
     3. Only recommend items from the provided context list.
     """
     return prompt
+
+def clean_disk():
+    parquet_files = glob.glob("./data_cache/*.parquet")
+    for file_path in parquet_files:
+        try:
+            os.remove(file_path)
+            print(f"Deleted local cache: {file_path}")
+        except Exception as e:
+            print(f"Failed to delete {file_path}: {e}")
+
+    hf_cache_dir = "./hf_cache"
+    if os.path.exists(hf_cache_dir):
+        try:
+            shutil.rmtree(hf_cache_dir)
+            print("Deleted Hugging Face cache directory.")
+        except Exception as e:
+            print(f"Failed to delete {hf_cache_dir}: {e}")

@@ -20,9 +20,12 @@ rag_system = None
 def initialize_rag():
     """Initializes and loads the RAG system into memory once at startup."""
     global rag_system
+
     if not os.path.exists(INDEX_FILE) or not os.path.exists(META_FILE):
-        raise FileNotFoundError(
-            "FAISS index or metadata file missing! Run main.py first to build the index."
+        raise RuntimeError(
+            "CRITICAL ERROR: Index files missing! "
+            "Please build faiss_index.bin and metadata.json locally and "
+            "upload them to the server before starting the app."
         )
     
     print("\n--- Loading CrossDomainRAGIndex into Server Memory ---")
