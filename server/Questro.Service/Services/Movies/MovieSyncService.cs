@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Questro.Core.Entities.Movies;
 using Questro.Core.Specifications.Movies;
 using Questro.Infrastructure.Abstractions;
@@ -17,6 +19,7 @@ public sealed class MovieSyncService : IMovieSyncService
     private readonly IGenericRepository<Movie_Staff> _movieStaffRepository;
     private readonly ITmdbService _tmdbService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<MovieSyncService> _logger;
 
     public MovieSyncService(
         IGenericRepository<Movie> movieRepository,
@@ -24,7 +27,8 @@ public sealed class MovieSyncService : IMovieSyncService
         IGenericRepository<Staff> staffRepository,
         IGenericRepository<Movie_Staff> movieStaffRepository,
         ITmdbService tmdbService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<MovieSyncService> logger)
     {
         _movieRepository = movieRepository;
         _movieGenreRepository = movieGenreRepository;
@@ -32,6 +36,7 @@ public sealed class MovieSyncService : IMovieSyncService
         _movieStaffRepository = movieStaffRepository;
         _tmdbService = tmdbService;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<Result<MovieListItemDto>> FetchAndSaveMovieByTmdbIdAsync(int tmdbId, CancellationToken cancellationToken = default)
@@ -172,7 +177,15 @@ public sealed class MovieSyncService : IMovieSyncService
 
         if (hasUpdates)
         {
-            await _unitOfWork.CompleteAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.CompleteAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "Concurrent genre upsert conflict detected — clearing tracker and re-fetching.");
+                _unitOfWork.ClearTracking();
+            }
 
             localGenres = await _movieGenreRepository.ListAllAsync(cancellationToken);
             byTmdbId = localGenres
@@ -253,7 +266,15 @@ public sealed class MovieSyncService : IMovieSyncService
 
         if (hasUpdates)
         {
-            await _unitOfWork.CompleteAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.CompleteAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "Concurrent staff upsert conflict detected — clearing tracker and re-fetching.");
+                _unitOfWork.ClearTracking();
+            }
 
             localStaff = await _staffRepository.ListAllAsync(cancellationToken);
             byTmdbId = localStaff

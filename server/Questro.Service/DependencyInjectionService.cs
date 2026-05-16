@@ -7,10 +7,19 @@ using Microsoft.Extensions.Hosting;
 using Questro.Service.Abstractions.Auth;
 using Questro.Service.Abstractions.Email;
 using Questro.Service.Abstractions.Movies;
+using Questro.Service.Abstractions.Games;
+using Questro.Service.Abstractions.Notifications;
+using Questro.Service.Abstractions.Social;
+using Questro.Service.Abstractions.Users;
 using Questro.Service.Services.Auth;
 using Questro.Service.Services.Email;
 using Questro.Service.Services.Movies;
+using Questro.Service.Services.Notifications;
+using Questro.Service.Services.Social;
+using Questro.Service.Services.Users;
+
 using Questro.Shared.Contracts.Email;
+using Questro.Service.Services.Games;
 
 namespace Questro.Service;
 
@@ -32,6 +41,20 @@ public static class DependencyInjectionService
         services.AddScoped<IMovieSyncService, MovieSyncService>();
         services.AddScoped<IMovieDetailsService, MovieDetailsService>();
         services.AddScoped<IMovieInteractionService, MovieInteractionService>();
+
+        services.AddScoped<IGameCatalogServices, GameCatalogServices>();
+        services.AddScoped<IGameSyncService, GameSyncService>();
+        services.AddScoped<IGameDetailsService, GameDetailsService>();
+        services.AddScoped<IGameInteractionService, GameInteractionService>();
+
+        // Phase 2: Profile, Library, Social, Notifications
+        services.AddScoped<IUserProfileService, UserProfileService>();
+        services.AddScoped<IUserMovieLibraryService, UserMovieLibraryService>();
+        services.AddScoped<IUserGameLibraryService, UserGameLibraryService>();
+        services.AddScoped<IUserNetworkService, UserNetworkService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<NewContentNotificationJob>();
+
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionService).Assembly);
         services.AddHangfireServer();
         services.AddHangfire(config =>
@@ -42,3 +65,4 @@ public static class DependencyInjectionService
         return services;
     }
 }
+

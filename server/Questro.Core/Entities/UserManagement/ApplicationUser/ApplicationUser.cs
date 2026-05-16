@@ -17,6 +17,7 @@ public class ApplicationUser : IdentityUser<long>
 	public DateTime? JoinDate { get; set; }
 	public string? ProfilePic { get; set; }
 	public UserInterest PrimaryInterest { get; set; } = UserInterest.Mixed;
+	public bool IsHistoryPublic { get; set; } = true;
 
 	public virtual ICollection<UserMovieLike> MovieLikes { get; set; } = new HashSet<UserMovieLike>();
 	public virtual ICollection<UserMovieRate> MovieRates { get; set; } = new HashSet<UserMovieRate>();
@@ -30,6 +31,7 @@ public class ApplicationUser : IdentityUser<long>
 	public virtual ICollection<UserGameReview> GameReviews { get; set; } = new HashSet<UserGameReview>();
 	public virtual ICollection<UserGameWishlist> GameWishlists { get; set; } = new HashSet<UserGameWishlist>();
 	public virtual ICollection<UserGameRecommended> GameRecommendations { get; set; } = new HashSet<UserGameRecommended>();
+	public virtual ICollection<UserGamePlayed> GamePlayed { get; set; } = new HashSet<UserGamePlayed>();
 
 	public virtual ICollection<UserFollow> Following { get; set; } = new HashSet<UserFollow>();
 	public virtual ICollection<UserFollow> Followers { get; set; } = new HashSet<UserFollow>();

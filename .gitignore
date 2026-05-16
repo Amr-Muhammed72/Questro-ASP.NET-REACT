@@ -2,3 +2,4 @@
 *.pyc
 */data_cache
 */test.py
+*.lscache

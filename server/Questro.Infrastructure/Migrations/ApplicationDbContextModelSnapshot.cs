@@ -161,6 +161,9 @@ namespace Questro.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Trailer_Url")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("GameId");
 
                     b.HasIndex("RAWG_Id")
@@ -182,9 +185,48 @@ namespace Questro.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("RAWG_Id")
+                        .HasColumnType("int");
+
                     b.HasKey("GenreId");
 
                     b.ToTable("GameGenres");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Games.GamePhoto", b =>
+                {
+                    b.Property<int>("GamePhotoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GamePhotoId"));
+
+                    b.Property<int>("GameId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Height")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Image_Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<int?>("RAWG_Id")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Width")
+                        .HasColumnType("int");
+
+                    b.HasKey("GamePhotoId");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("GameId", "RAWG_Id")
+                        .IsUnique()
+                        .HasFilter("[RAWG_Id] IS NOT NULL");
+
+                    b.ToTable("GamePhotos");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.GamePlatform", b =>
@@ -259,6 +301,33 @@ namespace Questro.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("UserGameLikes");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Games.UserGamePlayed", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("GameId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("UserId", "GameId")
+                        .IsUnique();
+
+                    b.ToTable("UserGamePlayed");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.UserGameRate", b =>
@@ -731,6 +800,72 @@ namespace Questro.Infrastructure.Migrations
                     b.ToTable("UserMovieWatchlists");
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.UserNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NotificationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "NotificationId")
+                        .IsUnique();
+
+                    b.ToTable("UserNotifications");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.Social.UserFollow", b =>
                 {
                     b.Property<long>("FollowerId")
@@ -815,6 +950,9 @@ namespace Questro.Infrastructure.Migrations
 
                     b.Property<string>("Gender")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsHistoryPublic")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("JoinDate")
                         .HasColumnType("datetime2");
@@ -960,6 +1098,17 @@ namespace Questro.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.Games.GamePhoto", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.Games.Game", "Game")
+                        .WithMany("Photos")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.Games.Game_GameGenre", b =>
                 {
                     b.HasOne("Questro.Core.Entities.Games.Game", "Game")
@@ -1008,6 +1157,25 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
                         .WithMany("GameLikes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Games.UserGamePlayed", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.Games.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
+                        .WithMany("GamePlayed")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1245,6 +1413,25 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.UserNotification", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.Notifications.Notification", "Notification")
+                        .WithMany("UserNotifications")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.Social.UserFollow", b =>
                 {
                     b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "Followee")
@@ -1280,6 +1467,8 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("GameGenres");
 
                     b.Navigation("GamePlatforms");
+
+                    b.Navigation("Photos");
 
                     b.Navigation("UserLikes");
 
@@ -1331,6 +1520,11 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("MovieStaffs");
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.Notification", b =>
+                {
+                    b.Navigation("UserNotifications");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.UserManagement.ApplicationUser", b =>
                 {
                     b.Navigation("Followers");
@@ -1338,6 +1532,8 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("Following");
 
                     b.Navigation("GameLikes");
+
+                    b.Navigation("GamePlayed");
 
                     b.Navigation("GameRates");
 

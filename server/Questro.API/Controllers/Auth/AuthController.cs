@@ -50,7 +50,7 @@ public class AuthController : ControllerBase
         });
     }
     [HttpPost("Verify")]
-    public async Task<IActionResult> VerifyOtp(VerifyOtpRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _authService.VerifyOtpAndLoginAsync(request, cancellationToken);
 
@@ -87,17 +87,17 @@ public class AuthController : ControllerBase
             };
             return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
         }
-      
-        return Ok(new
+        SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
 
+        return Ok(new
         {
-            message = "OTP sent to your email",
             result.Value.UserId,
             result.Value.UserName,
             result.Value.FirstName,
             result.Value.LastName,
-            result.Value.Email
-
+            result.Value.Email,
+            result.Value.AccessToken,
+            result.Value.AccessTokenExpiresOnUtc
         });
 
     }

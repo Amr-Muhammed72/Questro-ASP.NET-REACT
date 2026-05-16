@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Storage;
 using Questro.Infrastructure.Abstractions;
 
 namespace Questro.Infrastructure.Data;
@@ -14,5 +15,15 @@ public sealed class UnitOfWork : IUnitOfWork
     public Task<int> CompleteAsync(CancellationToken cancellationToken = default)
     {
         return _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public void ClearTracking()
+    {
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Database.BeginTransactionAsync(cancellationToken);
     }
 }
