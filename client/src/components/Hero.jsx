@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Hero = () => {
   return (
@@ -12,9 +13,11 @@ const Hero = () => {
       </p>
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mt-4">
-        <button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm md:text-base py-3 px-8 rounded-full transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] hover:-translate-y-0.5">
-          Discover Movies
-        </button>
+        <Link to="/Movies">
+          <button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm md:text-base py-3 px-8 rounded-full transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] hover:-translate-y-0.5">
+            Discover Movies
+          </button>
+        </Link>
         <button className="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-semibold text-sm md:text-base py-3 px-8 rounded-full transition-all shadow-lg hover:-translate-y-0.5">
           Discover Games
         </button>
