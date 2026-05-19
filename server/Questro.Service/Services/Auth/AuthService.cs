@@ -1,11 +1,11 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Questro.Core.Entities.UserManagement;
 using Questro.Core.Entities.Users;
-using Questro.Infrastructure.Data;
+using Questro.Core.Specifications.Auth;
+using Questro.Infrastructure.Abstractions;
 using Questro.Service.Abstractions.Auth;
 using Questro.Shared.Contracts.Auth;
 using Questro.Shared.Contracts.OTP;
@@ -26,7 +26,8 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _SignInManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IGenericRepository<RefreshToken> _refreshTokenRepo;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly JwtOptions _jwtOptions;
     private readonly IValidator<RegisterRequestDto> _validator;
     private readonly IOTPService _otpService;
@@ -36,7 +37,8 @@ public class AuthService : IAuthService
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<ApplicationRole> roleManager,
-        ApplicationDbContext dbContext,
+        IGenericRepository<RefreshToken> refreshTokenRepo,
+        IUnitOfWork unitOfWork,
         IOptions<JwtOptions> jwtOptions,
         IValidator<RegisterRequestDto> validator,
         IOTPService OTPService
@@ -44,7 +46,8 @@ public class AuthService : IAuthService
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        _dbContext = dbContext;
+        _refreshTokenRepo = refreshTokenRepo;
+        _unitOfWork = unitOfWork;
         _jwtOptions = jwtOptions.Value;
         _validator = validator;
         _SignInManager = signInManager;
@@ -84,7 +87,7 @@ public class AuthService : IAuthService
             Email = email
         };
 
-        
+
 
         // Return empty tokens since user hasn't completed registration yet
         return Result.Success(new RegisterResponseDto(
@@ -96,7 +99,7 @@ public class AuthService : IAuthService
             string.Empty, // AccessToken will be provided after OTP verification
             string.Empty, // RefreshToken will be provided after OTP verification
             DateTime.UtcNow,
-            DateTime.UtcNow));   
+            DateTime.UtcNow));
     }
     public async Task<Result<LogInResponseDto>> LogInAsync(LogInRequestDto request, CancellationToken cancellationToken = default)
     {
@@ -108,11 +111,11 @@ public class AuthService : IAuthService
         if (user is null)
         {
             user = await _userManager.FindByNameAsync(input);
-            if(user is null)
+            if (user is null)
                 return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
         }
         // pass check 
-        var isValid = await _SignInManager.CheckPasswordSignInAsync(user, request.Password , true);
+        var isValid = await _SignInManager.CheckPasswordSignInAsync(user, request.Password, true);
         if (isValid.IsLockedOut)
             return Result.Failure<LogInResponseDto>(UserError.UserLockedOut);
         if (isValid.IsNotAllowed)
@@ -122,21 +125,15 @@ public class AuthService : IAuthService
         // Create Accesss Tokens
         var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
         // revoke old tokens 
-        var oldTokens = await _dbContext.RefreshTokens
-                          .Where(x => x.UserId == user.Id && x.RevokedOnUtc == null)
-                          .ToListAsync();
+        await RevokeActiveRefreshTokensAsync(user.Id, cancellationToken);
 
-        foreach (var token in oldTokens)
-        {
-            token.RevokedOnUtc = DateTime.UtcNow;
-        }
         var refreshTokenValue = GenerateRefreshToken();
         var refreshTokenExpiresOnUtc =
             DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
             ? _jwtOptions.RefreshTokenExpirationDays : 7);
 
         // Save Refresh Token in DB
-        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        await _refreshTokenRepo.AddAsync(new RefreshToken
         {
             UserId = user.Id,
             Token = refreshTokenValue,
@@ -144,7 +141,7 @@ public class AuthService : IAuthService
             ExpiresOnUtc = refreshTokenExpiresOnUtc
         }, cancellationToken);
 
-        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        var saved = await _unitOfWork.CompleteAsync(cancellationToken);
         if (saved == 0)
             return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
         return Result.Success(new LogInResponseDto(
@@ -163,14 +160,18 @@ public class AuthService : IAuthService
     {
         if (string.IsNullOrEmpty(refreshToken))
             return Result.Failure(UserError.InvalidRefreshToken);
-        var token = await _dbContext.RefreshTokens
-        .FirstOrDefaultAsync(x => x.Token == refreshToken, cancellationToken);
-        if(token is null) 
+
+        var spec = new RefreshTokenByValueSpecification(refreshToken);
+        var token = await _refreshTokenRepo.GetEntityWithSpecAsync(spec, cancellationToken);
+
+        if (token is null)
             return Result.Failure(UserError.InvalidRefreshToken);
 
         token.RevokedOnUtc = DateTime.UtcNow;
-        var done = await _dbContext.SaveChangesAsync(cancellationToken);
-        if (done == 0 )
+        _refreshTokenRepo.Update(token);
+
+        var done = await _unitOfWork.CompleteAsync(cancellationToken);
+        if (done == 0)
             return Result.Failure(UserError.LogoutFailed);
         return Result.Success();
     }
@@ -180,9 +181,8 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(providedToken))
             return Result.Failure<RefreshTokenResponseDto>(UserError.InvalidRefreshToken);
 
-        var existingRefreshToken = await _dbContext.RefreshTokens
-            .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.Token == providedToken, cancellationToken);
+        var spec = new RefreshTokenWithUserByValueSpecification(providedToken);
+        var existingRefreshToken = await _refreshTokenRepo.GetEntityWithSpecAsync(spec, cancellationToken);
 
         if (existingRefreshToken is null || existingRefreshToken.RevokedOnUtc is not null || existingRefreshToken.ExpiresOnUtc <= DateTime.UtcNow)
             return Result.Failure<RefreshTokenResponseDto>(UserError.InvalidRefreshToken);
@@ -194,8 +194,9 @@ public class AuthService : IAuthService
         var newRefreshTokenExpiresOnUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0 ? _jwtOptions.RefreshTokenExpirationDays : 7);
 
         existingRefreshToken.RevokedOnUtc = DateTime.UtcNow;
+        _refreshTokenRepo.Update(existingRefreshToken);
 
-        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        await _refreshTokenRepo.AddAsync(new RefreshToken
         {
             UserId = user.Id,
             Token = newRefreshTokenValue,
@@ -203,7 +204,7 @@ public class AuthService : IAuthService
             ExpiresOnUtc = newRefreshTokenExpiresOnUtc
         }, cancellationToken);
 
-        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        var saved = await _unitOfWork.CompleteAsync(cancellationToken);
         if (saved == 0)
             return Result.Failure<RefreshTokenResponseDto>(UserError.RegistrationFailed);
 
@@ -258,21 +259,15 @@ public class AuthService : IAuthService
         // Create Accesss Tokens
         var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(identityUser);
         // revoke old tokens 
-        var oldTokens = await _dbContext.RefreshTokens
-                          .Where(x => x.UserId == identityUser.Id && x.RevokedOnUtc == null)
-                          .ToListAsync();
+        await RevokeActiveRefreshTokensAsync(identityUser.Id, cancellationToken);
 
-        foreach (var token in oldTokens)
-        {
-            token.RevokedOnUtc = DateTime.UtcNow;
-        }
         var refreshTokenValue = GenerateRefreshToken();
         var refreshTokenExpiresOnUtc =
             DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
             ? _jwtOptions.RefreshTokenExpirationDays : 7);
 
         // Save Refresh Token in DB
-        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        await _refreshTokenRepo.AddAsync(new RefreshToken
         {
             UserId = identityUser.Id,
             Token = refreshTokenValue,
@@ -280,7 +275,7 @@ public class AuthService : IAuthService
             ExpiresOnUtc = refreshTokenExpiresOnUtc
         }, cancellationToken);
 
-        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        var saved = await _unitOfWork.CompleteAsync(cancellationToken);
         if (saved == 0)
             return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
         return Result.Success(new LogInResponseDto(
@@ -295,7 +290,19 @@ public class AuthService : IAuthService
              refreshTokenExpiresOnUtc));
     }
 
-    
+
+    private async Task RevokeActiveRefreshTokensAsync(long userId, CancellationToken cancellationToken)
+    {
+        var spec = new ActiveRefreshTokensByUserSpecification(userId);
+        var oldTokens = await _refreshTokenRepo.ListAsync(spec, cancellationToken);
+
+        foreach (var token in oldTokens)
+        {
+            token.RevokedOnUtc = DateTime.UtcNow;
+            _refreshTokenRepo.Update(token);
+        }
+    }
+
     private async Task<(string Token, DateTime ExpiresOnUtc)> GenerateAccessTokenAsync(ApplicationUser user)
     {
         var key = _jwtOptions.Key;
@@ -353,5 +360,5 @@ public class AuthService : IAuthService
         return age < 0 ? 0 : age;
     }
 
-    
+
 }

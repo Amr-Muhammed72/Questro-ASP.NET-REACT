@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.Tmdb.Contracts;
@@ -13,11 +14,13 @@ public sealed class TmdbService : ITmdbService
 {
     private readonly HttpClient _httpClient;
     private readonly TmdbOptions _tmdbOptions;
+    private readonly ILogger<TmdbService> _logger;
 
-    public TmdbService(HttpClient httpClient, IOptions<TmdbOptions> tmdbOptions)
+    public TmdbService(HttpClient httpClient, IOptions<TmdbOptions> tmdbOptions, ILogger<TmdbService> logger)
     {
         _httpClient = httpClient;
         _tmdbOptions = tmdbOptions.Value;
+        _logger = logger;
     }
 
     public Task<TmdbPagedMovieResponse?> GetTrendingMoviesWeekAsync(int page = 1, CancellationToken cancellationToken = default)
@@ -150,13 +153,19 @@ public sealed class TmdbService : ITmdbService
             var response = await _httpClient.GetAsync(pathAndQuery, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogWarning("TMDB API returned {StatusCode} for {Path}", (int)response.StatusCode, pathAndQuery);
                 return default;
             }
 
             return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
         }
-        catch
+        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "TMDB API request failed for {Path}", pathAndQuery);
             return default;
         }
     }

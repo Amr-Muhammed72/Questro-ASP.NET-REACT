@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.RAWG.Contracts;
@@ -13,11 +14,13 @@ public sealed class RawgService : IRawgService
 {
     private readonly HttpClient _httpClient;
     private readonly RawgOptions _rawgOptions;
+    private readonly ILogger<RawgService> _logger;
 
-    public RawgService(HttpClient httpClient, IOptions<RawgOptions> rawgOptions)
+    public RawgService(HttpClient httpClient, IOptions<RawgOptions> rawgOptions, ILogger<RawgService> logger)
     {
         _httpClient = httpClient;
         _rawgOptions = rawgOptions.Value;
+        _logger = logger;
     }
 
     public Task<RawgPagedGameResponse?> GetTrendingGamesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
@@ -151,13 +154,19 @@ public sealed class RawgService : IRawgService
             var response = await _httpClient.GetAsync(pathAndQuery, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogWarning("RAWG API returned {StatusCode} for {Path}", (int)response.StatusCode, pathAndQuery);
                 return default;
             }
 
             return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
         }
-        catch
+        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RAWG API request failed for {Path}", pathAndQuery);
             return default;
         }
     }

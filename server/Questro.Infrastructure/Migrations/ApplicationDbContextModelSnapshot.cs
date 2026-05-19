@@ -170,7 +170,7 @@ namespace Questro.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[RAWG_Id] IS NOT NULL");
 
-                    b.ToTable("Games", (string)null);
+                    b.ToTable("Games");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.GameGenre", b =>
@@ -190,7 +190,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasKey("GenreId");
 
-                    b.ToTable("GameGenres", (string)null);
+                    b.ToTable("GameGenres");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.GamePhoto", b =>
@@ -226,7 +226,7 @@ namespace Questro.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[RAWG_Id] IS NOT NULL");
 
-                    b.ToTable("GamePhotos", (string)null);
+                    b.ToTable("GamePhotos");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.GamePlatform", b =>
@@ -243,7 +243,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasKey("Platform_Id");
 
-                    b.ToTable("GamePlatforms", (string)null);
+                    b.ToTable("GamePlatforms");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.Game_GameGenre", b =>
@@ -258,7 +258,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasIndex("GenreId");
 
-                    b.ToTable("GameGameGenres", (string)null);
+                    b.ToTable("GameGameGenres");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.Game_GamePlatform", b =>
@@ -273,7 +273,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasIndex("Platform_Id");
 
-                    b.ToTable("GameGamePlatforms", (string)null);
+                    b.ToTable("GameGamePlatforms");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.UserGameLike", b =>
@@ -300,7 +300,34 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "GameId")
                         .IsUnique();
 
-                    b.ToTable("UserGameLikes", (string)null);
+                    b.ToTable("UserGameLikes");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Games.UserGamePlayed", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("GameId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("UserId", "GameId")
+                        .IsUnique();
+
+                    b.ToTable("UserGamePlayed");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.UserGameRate", b =>
@@ -330,7 +357,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "GameId")
                         .IsUnique();
 
-                    b.ToTable("UserGameRates", (string)null);
+                    b.ToTable("UserGameRates");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.UserGameRecommended", b =>
@@ -363,7 +390,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "GameId")
                         .IsUnique();
 
-                    b.ToTable("UserGameRecommended", (string)null);
+                    b.ToTable("UserGameRecommended");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.UserGameReview", b =>
@@ -394,7 +421,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "GameId")
                         .IsUnique();
 
-                    b.ToTable("UserGameReviews", (string)null);
+                    b.ToTable("UserGameReviews");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Games.UserGameWishlist", b =>
@@ -421,7 +448,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "GameId")
                         .IsUnique();
 
-                    b.ToTable("UserGameWishlists", (string)null);
+                    b.ToTable("UserGameWishlists");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.Movie", b =>
@@ -495,7 +522,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasIndex("TMDB_Rating");
 
-                    b.ToTable("Movies", (string)null);
+                    b.ToTable("Movies");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.MovieGenre", b =>
@@ -519,7 +546,7 @@ namespace Questro.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[TMDB_Id] IS NOT NULL");
 
-                    b.ToTable("MovieGenres", (string)null);
+                    b.ToTable("MovieGenres");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.Movie_MovieGenre", b =>
@@ -537,7 +564,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasIndex("GenreId");
 
-                    b.ToTable("MovieMovieGenres", (string)null);
+                    b.ToTable("MovieMovieGenres");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.Movie_Staff", b =>
@@ -555,7 +582,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasIndex("Staff_Id");
 
-                    b.ToTable("MovieStaff", (string)null);
+                    b.ToTable("MovieStaff");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.Staff", b =>
@@ -591,7 +618,7 @@ namespace Questro.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[TMDB_Id] IS NOT NULL");
 
-                    b.ToTable("Staff", (string)null);
+                    b.ToTable("Staff");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieLike", b =>
@@ -618,7 +645,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "MovieId")
                         .IsUnique();
 
-                    b.ToTable("UserMovieLikes", (string)null);
+                    b.ToTable("UserMovieLikes");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieRate", b =>
@@ -648,7 +675,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "MovieId")
                         .IsUnique();
 
-                    b.ToTable("UserMovieRates", (string)null);
+                    b.ToTable("UserMovieRates");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieRecommended", b =>
@@ -681,7 +708,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "MovieId")
                         .IsUnique();
 
-                    b.ToTable("UserMovieRecommended", (string)null);
+                    b.ToTable("UserMovieRecommended");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieReview", b =>
@@ -716,7 +743,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "MovieId")
                         .IsUnique();
 
-                    b.ToTable("UserMovieReviews", (string)null);
+                    b.ToTable("UserMovieReviews");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieWatched", b =>
@@ -743,7 +770,7 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "MovieId")
                         .IsUnique();
 
-                    b.ToTable("UserMovieWatched", (string)null);
+                    b.ToTable("UserMovieWatched");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Movies.UserMovieWatchlist", b =>
@@ -770,7 +797,73 @@ namespace Questro.Infrastructure.Migrations
                     b.HasIndex("UserId", "MovieId")
                         .IsUnique();
 
-                    b.ToTable("UserMovieWatchlists", (string)null);
+                    b.ToTable("UserMovieWatchlists");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.UserNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NotificationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "NotificationId")
+                        .IsUnique();
+
+                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.Social.UserFollow", b =>
@@ -788,7 +881,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasIndex("FolloweeId");
 
-                    b.ToTable("UserFollows", (string)null);
+                    b.ToTable("UserFollows");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.UserManagement.ApplicationRole", b =>
@@ -857,6 +950,9 @@ namespace Questro.Infrastructure.Migrations
 
                     b.Property<string>("Gender")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsHistoryPublic")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("JoinDate")
                         .HasColumnType("datetime2");
@@ -948,7 +1044,7 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<long>", b =>
@@ -1061,6 +1157,25 @@ namespace Questro.Infrastructure.Migrations
 
                     b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
                         .WithMany("GameLikes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.Games.UserGamePlayed", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.Games.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
+                        .WithMany("GamePlayed")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1298,6 +1413,25 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.UserNotification", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.Notifications.Notification", "Notification")
+                        .WithMany("UserNotifications")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.Social.UserFollow", b =>
                 {
                     b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "Followee")
@@ -1386,6 +1520,11 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("MovieStaffs");
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.Notifications.Notification", b =>
+                {
+                    b.Navigation("UserNotifications");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.UserManagement.ApplicationUser", b =>
                 {
                     b.Navigation("Followers");
@@ -1393,6 +1532,8 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("Following");
 
                     b.Navigation("GameLikes");
+
+                    b.Navigation("GamePlayed");
 
                     b.Navigation("GameRates");
 
