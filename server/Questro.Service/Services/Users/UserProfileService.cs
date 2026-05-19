@@ -34,17 +34,22 @@ public class UserProfileService : IUserProfileService
         if (user is null)
             return Result.Failure<UserProfileDto>(UserError.UserNotFound);
 
-        var followersTask = _followRepo.CountAsync(new FollowersCountByUserSpecification(targetUserId), cancellationToken);
-        var followingTask = _followRepo.CountAsync(new FollowingCountByUserSpecification(targetUserId), cancellationToken);
-        var followTask = currentUserId.HasValue && currentUserId.Value != targetUserId
-            ? _followRepo.GetReadOnlyAsync(new FollowExistsSpecification(currentUserId.Value, targetUserId), cancellationToken)
-            : Task.FromResult<Core.Entities.Social.UserFollow?>(null);
+        var followersCount = await _followRepo.CountAsync(
+            new FollowersCountByUserSpecification(targetUserId),
+            cancellationToken);
+        var followingCount = await _followRepo.CountAsync(
+            new FollowingCountByUserSpecification(targetUserId),
+            cancellationToken);
 
-        await Task.WhenAll(followersTask, followingTask, followTask);
+        UserFollow? follow = null;
+        if (currentUserId.HasValue && currentUserId.Value != targetUserId)
+        {
+            follow = await _followRepo.GetReadOnlyAsync(
+                new FollowExistsSpecification(currentUserId.Value, targetUserId),
+                cancellationToken);
+        }
 
-        var followersCount = followersTask.Result;
-        var followingCount = followingTask.Result;
-        var isFollowed = followTask.Result is not null;
+        var isFollowed = follow is not null;
 
         var dto = new UserProfileDto
         {
