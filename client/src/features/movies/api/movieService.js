@@ -1,19 +1,23 @@
 const BASE_URL = 'http://localhost:5222';
 
-export const getGenres = async () => {
-  const response = await fetch(`${BASE_URL}/api/movies/genres`);
+const handleResponse = async (response) => {
   if (!response.ok) {
-    throw new Error('Failed to fetch genres');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.en || 'An error occurred');
   }
   return response.json();
+};
+
+export const getGenres = async () => {
+  const response = await fetch(`${BASE_URL}/api/movies/genres`);
+  return handleResponse(response);
 };
 
 export const discoverMovies = async (filters, pageIndex, pageSize = 18, signal) => {
   const params = new URLSearchParams();
   const isListEndpoint = !!filters.list;
-  console.log('Discovering movies with filters:', filters, 'pageIndex:', pageIndex, 'pageSize:', pageSize, 'isListEndpoint:', isListEndpoint  );
+  
   if (isListEndpoint) {
-    console.log('Using list endpoint, applying take parameter', pageSize * pageIndex);
     params.append('take', (pageSize * pageIndex).toString());
   } else {
     params.append('pageIndex', pageIndex.toString());
@@ -22,14 +26,13 @@ export const discoverMovies = async (filters, pageIndex, pageSize = 18, signal) 
   
   if (!isListEndpoint) {
     const validFilters = ['search', 'genreId', 'language', 'year', 'minRating', 'maxRating', 'quality', 'sort'];
-    
     validFilters.forEach(key => {
       if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
         params.append(key, filters[key].toString());
       }
     });
   }
-  console.log('Constructed query params:', params.toString());
+  
   let endpoint = `${BASE_URL}/api/movies`;
   if (isListEndpoint) {
     if (filters.list === 'recommended') endpoint = `${BASE_URL}/api/movies/recommended`;
@@ -37,42 +40,27 @@ export const discoverMovies = async (filters, pageIndex, pageSize = 18, signal) 
     else if (filters.list === 'recently-added') endpoint = `${BASE_URL}/api/movies/recently-added`;
     else if (filters.list === 'recommended-for-me') endpoint = `${BASE_URL}/api/movies/recommended-for-me`;
   }
-  console.log(`Lol movies from ${endpoint}?${params.toString()}`);
-  console.log('page index:', pageIndex, 'page size:', pageSize);
+  
   const response = await fetch(`${endpoint}?${params.toString()}`, { signal });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch movies');
-  }
-  console.log(`Fetched movies for ${endpoint} with filters:`, filters);
-  console.log('Response data:', await response.clone().json());
-  return response.json(); 
-};
-
-export const getRecentlyAdded = async (take = 18) => {
-  const response = await fetch(`${BASE_URL}/api/movies/recently-added?take=${take}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch recently added movies');
-  }
-  return response.json();
+  return handleResponse(response);
 };
 
 export const getTrendingMovies = async (take = 18) => {
   const response = await fetch(`${BASE_URL}/api/movies/trending?take=${take}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch trending movies');
-  }
-  return response.json();
+  return handleResponse(response);
+};
+
+export const getRecentlyAdded = async (take = 18) => {
+  const response = await fetch(`${BASE_URL}/api/movies/recently-added?take=${take}`);
+  return handleResponse(response);
 };
 
 export const getRecommended = async (take = 18) => {
   const response = await fetch(`${BASE_URL}/api/movies/recommended?take=${take}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch recommended movies');
-  }
-  console.log('Recommended movies response:', await response.clone().json());
-  return response.json();
+  return handleResponse(response);
+};
+
+export const getRecommendedForMe = async (take = 18) => {
+  const response = await fetch(`${BASE_URL}/api/movies/recommended-for-me?take=${take}`);
+  return handleResponse(response);
 };
