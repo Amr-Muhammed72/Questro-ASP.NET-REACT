@@ -5,6 +5,7 @@ export default function useGamesBrowseData() {
   const [recentlyAdded, setRecentlyAdded] = useState([]);
   const [trending, setTrending] = useState([]);
   const [genresWithGames, setGenresWithGames] = useState([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const fetchedGenres = useRef(new Set());
   const allGenresRef = useRef([]);
   const currentIndexRef = useRef(0);
@@ -52,6 +53,7 @@ export default function useGamesBrowseData() {
     if (currentIndexRef.current >= allGenres.length) return;
 
     isFetchingRef.current = true;
+    setIsLoadingMore(true);
     const nextChunk = allGenres.slice(
       currentIndexRef.current,
       currentIndexRef.current + CHUNK_SIZE
@@ -62,6 +64,7 @@ export default function useGamesBrowseData() {
     );
     await fetchGamesForGenres(nextChunk);
     isFetchingRef.current = false;
+    setIsLoadingMore(false);
   }, [fetchGamesForGenres]);
 
   useEffect(() => {
@@ -119,5 +122,5 @@ export default function useGamesBrowseData() {
     };
   }, [fetchGamesForGenres, loadNextChunk]);
 
-  return { recentlyAdded, trending, genresWithGames, sentinelRef };
+  return { recentlyAdded, trending, genresWithGames, sentinelRef, isLoadingMore };
 }

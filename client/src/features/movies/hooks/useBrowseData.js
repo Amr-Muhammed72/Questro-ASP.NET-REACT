@@ -6,6 +6,7 @@ export const useBrowseData = () => {
   const [recentlyAdded, setRecentlyAdded] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [genresWithMovies, setGenresWithMovies] = useState([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const fetchedGenres = useRef(new Set());
 
   useEffect(() => {
@@ -39,10 +40,12 @@ export const useBrowseData = () => {
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 1500 &&
         currentIndex < allGenres.length
       ) {
+        setIsLoadingMore(true);
         const nextChunk = allGenres.slice(currentIndex, currentIndex + CHUNK_SIZE);
         currentIndex += CHUNK_SIZE;
         currentIndex = Math.min(currentIndex, allGenres.length);
         await fetchMoviesForGenres(nextChunk);
+        setIsLoadingMore(false);
       }
     };
 
@@ -94,5 +97,5 @@ export const useBrowseData = () => {
     };
   }, []);
 
-  return { trending, recentlyAdded, recommended, genresWithMovies };
+  return { trending, recentlyAdded, recommended, genresWithMovies, isLoadingMore };
 };

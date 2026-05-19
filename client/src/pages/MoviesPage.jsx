@@ -52,7 +52,8 @@ const MoviesPage = () => {
     trending,
     recentlyAdded,
     recommended,
-    genresWithMovies
+    genresWithMovies,
+    isLoadingMore
   } = useBrowseData();
 
   const filtersFromParams = useMemo(() => ({
@@ -187,6 +188,11 @@ const MoviesPage = () => {
                       genresWithMovies={genresWithMovies}
                       onGenreSearch={({ genreId }) => handleBrowseGenre(genreId)}
                     />
+                    {isLoadingMore && (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
+                      </div>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div 
