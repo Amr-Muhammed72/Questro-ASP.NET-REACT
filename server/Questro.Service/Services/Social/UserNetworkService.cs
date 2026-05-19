@@ -134,19 +134,26 @@ public class UserNetworkService : IUserNetworkService
 
     public async Task<Result<FollowStatsDto>> GetFollowStatsAsync(long userId, long? currentUserId, CancellationToken cancellationToken = default)
     {
-        var followersTask = _followRepo.CountAsync(new FollowersCountByUserSpecification(userId), cancellationToken);
-        var followingTask = _followRepo.CountAsync(new FollowingCountByUserSpecification(userId), cancellationToken);
-        var followTask = currentUserId.HasValue && currentUserId.Value != userId
-            ? _followRepo.GetReadOnlyAsync(new FollowExistsSpecification(currentUserId.Value, userId), cancellationToken)
-            : Task.FromResult<Core.Entities.Social.UserFollow?>(null);
+        var followersCount = await _followRepo.CountAsync(
+            new FollowersCountByUserSpecification(userId),
+            cancellationToken);
+        var followingCount = await _followRepo.CountAsync(
+            new FollowingCountByUserSpecification(userId),
+            cancellationToken);
 
-        await Task.WhenAll(followersTask, followingTask, followTask);
+        UserFollow? follow = null;
+        if (currentUserId.HasValue && currentUserId.Value != userId)
+        {
+            follow = await _followRepo.GetReadOnlyAsync(
+                new FollowExistsSpecification(currentUserId.Value, userId),
+                cancellationToken);
+        }
 
         return Result.Success(new FollowStatsDto
         {
-            FollowersCount = followersTask.Result,
-            FollowingCount = followingTask.Result,
-            IsFollowedByCurrentUser = followTask.Result is not null
+            FollowersCount = followersCount,
+            FollowingCount = followingCount,
+            IsFollowedByCurrentUser = follow is not null
         });
     }
 }
