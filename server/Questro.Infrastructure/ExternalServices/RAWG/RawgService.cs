@@ -7,6 +7,7 @@ using Questro.Shared.Options.Rawg;
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Questro.Infrastructure.ExternalServices.RAWG;
 
@@ -160,15 +161,42 @@ public sealed class RawgService : IRawgService
 
             return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
         }
-        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (HttpRequestException ex)
         {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "RAWG API request failed for {Path}", pathAndQuery);
+            _logger.LogError(ex, "RAWG API request failed for {Path}. Error: {ErrorMessage}", pathAndQuery, BuildExceptionMessage(ex));
             return default;
         }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "RAWG API request timed out for {Path}. Error: {ErrorMessage}", pathAndQuery, BuildExceptionMessage(ex));
+            return default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "RAWG API response parsing failed for {Path}. Error: {ErrorMessage}", pathAndQuery, BuildExceptionMessage(ex));
+            return default;
+        }
+    }
+
+    private static string BuildExceptionMessage(Exception exception)
+    {
+        var builder = new StringBuilder();
+        var current = exception;
+        var isFirst = true;
+
+        while (current is not null)
+        {
+            if (!isFirst)
+            {
+                builder.Append(" | Inner: ");
+            }
+
+            builder.Append(current.Message);
+            current = current.InnerException;
+            isFirst = false;
+        }
+
+        return builder.ToString();
     }
 
     private string BuildQuery(Dictionary<string, string?>? additionalQuery)
