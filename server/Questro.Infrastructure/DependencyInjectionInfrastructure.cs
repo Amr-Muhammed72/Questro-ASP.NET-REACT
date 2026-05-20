@@ -18,6 +18,7 @@ using Questro.Shared.Contracts.Email;
 using Questro.Shared.Options.Jwt;
 using Questro.Shared.Options.Tmdb;
 using Questro.Shared.Options.Rawg;
+using System.Net;
 using System.Text;
 
 namespace Questro.Infrastructure;
@@ -95,6 +96,11 @@ public static class DependencyInjectionInfrastructure
             }
             client.Timeout = TimeSpan.FromSeconds(15);
         })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+        })
+        .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(10)))
         .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
@@ -107,6 +113,11 @@ public static class DependencyInjectionInfrastructure
             }
             client.Timeout = TimeSpan.FromSeconds(15);
         })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+        })
+        .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(10)))
         .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
         
