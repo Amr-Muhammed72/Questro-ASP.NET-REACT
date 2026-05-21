@@ -45,4 +45,7 @@ public sealed class RawgGameSummaryDto
 
     [JsonPropertyName("stores")]
     public List<RawgStoreDto> Stores { get; set; } = new();
+
+    [JsonPropertyName("tags")]
+    public List<RawgTagDto> Tags { get; set; } = new();
 }

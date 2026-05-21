@@ -81,6 +81,7 @@ All paginated endpoints wrap results in this envelope:
     { "id": 1, "imageUrl": "https://...", "width": 1920, "height": 1080 }
   ],
   "genres": [{ "id": 4, "name": "Action" }],
+  "tags": [{ "id": 31, "name": "Singleplayer" }],
   "platforms": [{ "id": 4, "name": "PC" }],
   "developers": [{ "id": 10, "name": "Rockstar North", "imageUrl": "https://..." }],
   "publishers": [{ "id": 11, "name": "Rockstar Games", "imageUrl": "https://..." }],
@@ -133,6 +134,7 @@ All errors follow this shape:
 | `Game.NotFound` | No games found. | 404 |
 | `Game.InvalidRawgId` | RAWG id must be greater than zero. | 400 |
 | `Game.GenresNotFound` | No game genres found. | 404 |
+| `Game.TagsNotFound` | No game tags found. | 404 |
 | `Game.TrendingUnavailable` | Trending games are currently unavailable. | 503 |
 | `Game.RecentlyAddedUnavailable` | Recently added games are currently unavailable. | 503 |
 | `Game.InvalidRating` | Rating must be between 1 and 5. | 400 |
@@ -350,12 +352,14 @@ All errors follow this shape:
 
 ---
 
-### 1.5 `GET /api/Games/{id}` — Game Details
+
+
+### 1.6 `GET /api/Games/{id}` — Game Details
 
 | | |
 |---|---|
 | **Auth** | None (public) |
-| **Description** | Full detail view for a single game. Includes screenshots, trailers, developers, publishers, store links, and similar games. If the game is not in the local DB, it is auto-synced from RAWG on first access. |
+| **Description** | Full detail view for a single game. Includes screenshots, trailers, tags, developers, publishers, store links, and similar games. If the game is not in the local DB, it is auto-synced from RAWG on first access. |
 
 #### Path Parameters
 
@@ -387,6 +391,10 @@ All errors follow this shape:
   "genres": [
     { "id": 4, "name": "Action" },
     { "id": 3, "name": "Adventure" }
+  ],
+  "tags": [
+    { "id": 31, "name": "Singleplayer" },
+    { "id": 40847, "name": "Steam Achievements" }
   ],
   "platforms": [
     { "id": 4, "name": "PC" },
@@ -442,7 +450,7 @@ All errors follow this shape:
 
 ---
 
-### 1.6 🔒 `GET /api/Games/recommended-for-me` — Personalized Recommendations
+### 1.7 🔒 `GET /api/Games/recommended-for-me` — Personalized Recommendations
 
 | | |
 |---|---|

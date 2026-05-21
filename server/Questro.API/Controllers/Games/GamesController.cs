@@ -93,6 +93,8 @@ namespace Questro.API.Controllers.Games
             return Ok(result.Value);
         }
 
+       
+
         [HttpGet("platforms")]
         public async Task<IActionResult> GetPlatforms(CancellationToken cancellationToken = default)
         {
