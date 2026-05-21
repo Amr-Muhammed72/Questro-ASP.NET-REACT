@@ -45,7 +45,7 @@ public sealed class RawgService : IRawgService
             [RawgConstants.QueryKeys.Ordering] = MapSort(specParams.Sort),
             [RawgConstants.QueryKeys.Genres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.Platforms] = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.Tags] = NormalizeTags(specParams.Tags),
+          
             [RawgConstants.QueryKeys.MetacriticGte] = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.MetacriticLte] = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture)
         });
@@ -60,7 +60,7 @@ public sealed class RawgService : IRawgService
             [RawgConstants.QueryKeys.Search] = specParams.Search,
             [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.PageSize] = (specParams.PageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : specParams.PageSize).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.Tags] = NormalizeTags(specParams.Tags)
+           
         });
 
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);

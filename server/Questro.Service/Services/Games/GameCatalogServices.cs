@@ -283,14 +283,7 @@ namespace Questro.Service.Services.Games
                 query = query.Where(x => x.Genres.Any(g => g.Id == parameters.GenreId.Value));
             }
 
-            var tags = SplitTags(parameters.Tags);
-            if (tags.Count > 0)
-            {
-                var games = query.ToList();
-                query = games.Any(x => x.Tags.Count > 0)
-                    ? games.Where(x => MatchesTags(x, tags))
-                    : games;
-            }
+          
 
             return query;
         }
