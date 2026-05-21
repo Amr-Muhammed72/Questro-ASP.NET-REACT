@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import GameGrid from './GameGrid';
+import MovieGrid from '../../../features/movies/components/MovieGrid';
 
 const SearchView = memo(({ games, loading, hasMore, error, loadMore }) => {
   if (loading && games?.length === 0) {
@@ -11,12 +11,13 @@ const SearchView = memo(({ games, loading, hasMore, error, loadMore }) => {
   }
 
   return (
-    <GameGrid
+    <MovieGrid
       games={games}
       loading={loading}
       hasMore={hasMore}
       onLoadMore={loadMore}
       error={error}
+      type="game"
     />
   );
 });

@@ -8,17 +8,16 @@ export const useRegister = () => {
   const register = async (userData, onSuccess) => {
     setIsLoading(true);
     setError(null);
-    console.log('Registering user with data:', userData); // Debugging log
+    console.log('Registering user with data:', userData);
     try {
       const data = await authService.register(userData);
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {
-      // Standardize error formatting based on API documentation
       const errorData = err.response?.data;
       const errorMessage = errorData?.en || errorData?.description || 'An unexpected error occurred during registration.';
       const details = errorData?.details || [];
-      console.error('Registration error response:', errorData); // Debugging log
+      console.error('Registration error response:', errorData);
       setError({ message: errorMessage, details, code: errorData?.code });
       throw err;
     } finally {

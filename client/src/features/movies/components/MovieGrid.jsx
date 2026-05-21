@@ -1,22 +1,32 @@
 import React, { memo } from 'react';
-import  MovieCard from './MovieCard';
+import MovieCard from './MovieCard';
+import GameCard from '../../../features/games/components/GameCard';
 
-const MovieGrid = memo(({ movies, loading, hasMore, onLoadMore, error }) => {
-  console.log("Rendering MovieGrid with movies:", movies?.length); 
+const MovieGrid = memo(({
+  movies,
+  games,
+  loading,
+  hasMore,
+  onLoadMore,
+  error,
+  type = 'movie'
+}) => {
+  const items = movies || games;
+  const CardComponent = type === 'game' ? GameCard : MovieCard;
+  const getItemId = (item) => type === 'game' ? item.rawgId : item.tmdbId;
 
   return (
     <div className="w-full py-8 px-4 sm:px-8 md:px-12 lg:px-16">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 w-full">
-        {/* We use tmdbId as the key since your JSON provides it */}
-        {movies?.map((movie) => (
-          <MovieCard key={movie.tmdbId} movie={movie} />
+        {items?.map((item) => (
+          <CardComponent key={getItemId(item)} {...{[type]: item}} />
         ))}
       </div>
 
       {/* Empty State */}
-      {!loading && movies?.length === 0 && !error && (
+      {!loading && items?.length === 0 && !error && (
         <div className="w-full text-center py-12 text-zinc-400 font-medium">
-          No movies found. Try adjusting your filters.
+          No {type === 'game' ? 'games' : 'movies'} found. Try adjusting your filters.
         </div>
       )}
 
@@ -35,7 +45,7 @@ const MovieGrid = memo(({ movies, loading, hasMore, onLoadMore, error }) => {
           >
             Load More Options
           </button>
-        ) : movies?.length > 0 ? (
+        ) : items?.length > 0 ? (
           <div className="text-zinc-500 text-sm font-medium">You've reached the end of the list.</div>
         ) : null}
       </div>

@@ -4,7 +4,7 @@ import { useOtpVerification } from '../hooks/useOtpVerification';
 import { useAuth } from '../store/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
-const OtpForm = ({ email, onSuccess }) => {
+const OtpForm = ({ email, registrationData, onSuccess }) => {
   const [otp, setOtp] = useState('');
   const { verifyOtp, resendOtp, isLoading, isResending, error } = useOtpVerification();
   const { login } = useAuth();
@@ -13,8 +13,8 @@ const OtpForm = ({ email, onSuccess }) => {
   const onSubmit = async (event) => {
     event.preventDefault();
     try {
-      const data = await verifyOtp(email, otp);
-      
+      const data = await verifyOtp(email, otp, registrationData);
+
       if (data && data.accessToken) {
         login(data.accessToken);
         navigate('/');
