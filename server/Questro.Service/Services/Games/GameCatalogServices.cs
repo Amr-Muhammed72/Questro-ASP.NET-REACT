@@ -1,4 +1,5 @@
 ﻿using Questro.Core.Entities.Games;
+using System.Globalization;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.RAWG.Contracts;
 using Questro.Service.Abstractions.Games;
@@ -81,7 +82,7 @@ namespace Questro.Service.Services.Games
         }
         public async Task<Result<PagedResponse<GameListItemDto>>> GetRecentlyAddedAsync(
      int take = 20,
-     CancellationToken cancellationToken = default)
+     CancellationToken cancellationToken = default) 
         {
             var safeTake = take < 1 ? 20 : take;
 
@@ -111,7 +112,7 @@ namespace Questro.Service.Services.Games
                     .Where(x =>
                         GameGenreResponseFilter.IsGameVisible(x) &&
                         ParseDate(x.Released) is DateTime releaseDate &&
-                        releaseDate.Date >= oneMonthAgo &&
+                        releaseDate.Date >= oneMonthAgo && releaseDate.Date <= DateTime.UtcNow.Date &&
                         !string.IsNullOrWhiteSpace(x.BackgroundImage))
                     .ToList();
 
@@ -198,6 +199,8 @@ namespace Questro.Service.Services.Games
             return Result.Success<IEnumerable<GameGenreDto>>(ans);
         }
 
+       
+
         public async Task<Result<IEnumerable<GamePlatformDto>>> GetGamePlatformsAsync(CancellationToken cancellationToken = default)
         {
             var rawgPlatforms = await _rawgservices.GetGamePlatformsAsync(cancellationToken);
@@ -280,7 +283,44 @@ namespace Questro.Service.Services.Games
                 query = query.Where(x => x.Genres.Any(g => g.Id == parameters.GenreId.Value));
             }
 
+            var tags = SplitTags(parameters.Tags);
+            if (tags.Count > 0)
+            {
+                var games = query.ToList();
+                query = games.Any(x => x.Tags.Count > 0)
+                    ? games.Where(x => MatchesTags(x, tags))
+                    : games;
+            }
+
             return query;
+        }
+
+        private static IReadOnlyCollection<string> SplitTags(string? tags)
+        {
+            if (string.IsNullOrWhiteSpace(tags))
+            {
+                return Array.Empty<string>();
+            }
+
+            return tags
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        private static bool MatchesTags(RawgGameSummaryDto game, IReadOnlyCollection<string> tags)
+        {
+            var gameTags = game.Tags
+                .SelectMany(x => new[]
+                {
+                    x.Id.ToString(CultureInfo.InvariantCulture),
+                    x.Slug,
+                    x.Name
+                })
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return tags.All(gameTags.Contains);
         }
 
         private static DateTime? ParseDate(string? dateString)

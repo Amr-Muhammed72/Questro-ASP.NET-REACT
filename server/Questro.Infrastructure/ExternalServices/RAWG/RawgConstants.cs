@@ -6,6 +6,7 @@ internal static class RawgConstants
     {
         public const string Games = "games";
         public const string Genres = "genres";
+        public const string Tags = "tags";
         public const string Platforms = "platforms";
         public const string Suggested = "suggested";
         public const string Movies = "movies";
@@ -21,6 +22,7 @@ internal static class RawgConstants
         public const string Ordering = "ordering";
         public const string Genres = "genres";
         public const string Platforms = "platforms";
+        public const string Tags = "tags";
         public const string MetacriticGte = "metacritic_gte";
         public const string MetacriticLte = "metacritic_lte";
     }

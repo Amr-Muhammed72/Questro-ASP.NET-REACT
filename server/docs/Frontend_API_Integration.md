@@ -73,6 +73,17 @@ All paginated endpoints return a `PagedResponse<T>`:
 - `GET /api/movies/recommended-for-me?take=20` (auth)
 - `GET /api/movies/{tmdbId}`
 
+### Games routes
+
+- `GET /api/Games`
+- `GET /api/Games/trending?take=30`
+- `GET /api/Games/recently-added?take=20`
+- `GET /api/Games/genres`
+- `GET /api/Games/tags` (returns one non-paginated array)
+- `GET /api/Games/platforms`
+- `GET /api/Games/recommended-for-me?take=20` (auth)
+- `GET /api/Games/{rawgId}`
+
 ### Interaction routes (auth required)
 
 - `POST /api/movie-interactions/{tmdbId}/like`
@@ -144,12 +155,12 @@ Because movie and game data is sourced from TMDB and RAWG, there is a strict sep
 
 1) The limitation
 
-- TMDB and RAWG text search endpoints do not honor filters like rating, year, or genre.
-- TMDB and RAWG discover endpoints support filters (rating, year, genre, language), but they do not support free-text search.
+- TMDB and RAWG text search endpoints do not honor filters like rating, year, genre, or tags.
+- TMDB and RAWG discover endpoints support filters (rating, year, genre, tags, language), but they do not support free-text search.
 
 2) Frontend rule (must follow)
 
-- Do NOT send `search` together with `minRating`, `maxRating`, `genreId`, or `year`.
+- Do NOT send `search` together with `minRating`, `maxRating`, `genreId`, `tags`, or `year`.
 
 3) UI/UX recommendation
 
