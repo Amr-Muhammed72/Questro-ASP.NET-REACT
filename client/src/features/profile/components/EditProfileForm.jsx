@@ -50,14 +50,14 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
       <div className="bg-zinc-900/60 border border-zinc-700/50 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto backdrop-blur-md">
         {/* Header */}
-        <div className="sticky top-0 bg-zinc-900/60 border-b border-zinc-700/50 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-zinc-900/60 border-b border-zinc-700/50 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">Edit Profile</h2>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5 text-zinc-400" />
           </button>
@@ -98,7 +98,7 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
-                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all cursor-text"
                 maxLength={50}
                 required
               />
@@ -110,7 +110,7 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
-                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all cursor-text"
                 maxLength={50}
               />
             </div>
@@ -123,7 +123,7 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
               name="bio"
               value={formData.bio}
               onChange={handleInputChange}
-              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none"
+              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none cursor-text"
               rows={3}
               maxLength={200}
               placeholder="Tell us about yourself..."
@@ -139,7 +139,7 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
                 name="gender"
                 value={formData.gender}
                 onChange={handleInputChange}
-                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all cursor-pointer"
               >
                 <option value="">Select gender</option>
                 <option value="Male">Male</option>
@@ -155,7 +155,7 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
                 name="birthDate"
                 value={formData.birthDate}
                 onChange={handleInputChange}
-                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all cursor-pointer"
               />
             </div>
           </div>
@@ -167,7 +167,7 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
               name="primaryInterest"
               value={formData.primaryInterest}
               onChange={handleInputChange}
-              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all cursor-pointer"
             >
               <option value={0}>Mixed</option>
               <option value={1}>Movies</option>
@@ -196,14 +196,14 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
               type="button"
               onClick={onCancel}
               disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700/50 rounded-xl transition-all disabled:opacity-50 text-white font-medium"
+              className="flex-1 px-4 py-3 bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700/50 rounded-xl transition-all disabled:opacity-50 text-white font-medium cursor-pointer disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl transition-all disabled:opacity-50 text-white font-medium"
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl transition-all disabled:opacity-50 text-white font-medium cursor-pointer disabled:cursor-not-allowed"
             >
               {isLoading ? 'Saving...' : 'Save Changes'}
             </button>

@@ -1,10 +1,8 @@
 import { memo, useState, useEffect } from 'react';
-import { Loader, Users } from 'lucide-react';
 import { getFollowers, getFollowing } from '../api/profileService';
 import UserCard from './UserCard';
 
-const FollowersFollowing = memo(({ userId, isOwnProfile }) => {
-  const [activeTab, setActiveTab] = useState('followers');
+const FollowersFollowing = memo(({ userId, isOwnProfile, activeTab = 'followers' }) => {
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -14,7 +12,7 @@ const FollowersFollowing = memo(({ userId, isOwnProfile }) => {
 
   useEffect(() => {
     fetchListData();
-  }, [userId, activeTab]);
+  }, [userId, activeTab, followersPagination.pageNumber, followingPagination.pageNumber]);
 
   const fetchListData = async () => {
     try {
@@ -60,34 +58,11 @@ const FollowersFollowing = memo(({ userId, isOwnProfile }) => {
 
   return (
     <div className="space-y-6">
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-zinc-700/50 pb-4">
-        <button
-          onClick={() => setActiveTab('followers')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'followers'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
-              : 'bg-zinc-900/40 border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800/60'
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Followers
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab('following')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'following'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
-              : 'bg-zinc-900/40 border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800/60'
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Following
-          </span>
-        </button>
+      {/* Title */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-white capitalize">
+          {activeTab === 'followers' ? 'Followers' : 'Following'}
+        </h2>
       </div>
 
       {/* Content */}
@@ -98,7 +73,7 @@ const FollowersFollowing = memo(({ userId, isOwnProfile }) => {
         </div>
       ) : isLoading && currentData.length === 0 ? (
         <div className="flex items-center justify-center py-12">
-          <Loader className="w-6 h-6 animate-spin text-indigo-400" />
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
       ) : currentData.length === 0 ? (
         <div className="text-center py-12">

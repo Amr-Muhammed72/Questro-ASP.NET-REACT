@@ -22,14 +22,14 @@ const updateProfile = async (profileData) => {
   return response.data;
 };
 
-const uploadProfilePicture = async (file) => {
+const uploadProfilePicture  = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
 
   const response = await apiClient.post('/users/profile/picture', formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+      'Content-Type': undefined
+    }
   });
   return response.data;
 };
@@ -130,6 +130,40 @@ const getFollowing = async (userId, pageIndex = 1, pageSize = 20) => {
   return response.data;
 };
 
+const removeMovieFromWatchlist = async (movieId) => {
+  const response = await apiClient.post(`/movie-interactions/${movieId}/watchlist`);
+  return response.data;
+};
+
+const removeMovieFromLiked = async (movieId) => {
+  const response = await apiClient.post(`/movie-interactions/${movieId}/like`);
+  return response.data;
+};
+
+const removeMovieFromRated = async (movieId) => {
+  const response = await apiClient.post(`/movie-interactions/${movieId}/rated`);
+  return response.data;
+};
+
+const removeMovieFromWatched = async (movieId) => {
+  const response = await apiClient.post(`/movie-interactions/${movieId}/watched`);
+  return response.data;
+};
+const removeGameFromWishlist = async (gameId) => {
+  const response = await apiClient.post(`/game-interactions/${gameId}/wishlist`);
+  return response.data;
+};
+
+const removeGameFromLiked = async (gameId) => {
+  const response = await apiClient.post(`/game-interactions/${gameId}/liked`);
+  return response.data;
+};
+
+const removeGameFromRated = async (gameId) => {
+  const response = await apiClient.post(`/game-interactions/${gameId}/rated`);
+  return response.data;
+};
+
 export  {
   getUserProfile,
   getMyProfile,
@@ -146,5 +180,12 @@ export  {
   getMovieWatched,
   getGameWishlist,
   getGameLiked,
-  getGameRated
+  getGameRated,
+  removeMovieFromWatchlist,
+  removeMovieFromLiked,
+  removeMovieFromRated,
+  removeMovieFromWatched,
+  removeGameFromWishlist,
+  removeGameFromLiked,
+  removeGameFromRated
 };

@@ -1,7 +1,8 @@
-import { memo, useState, useEffect } from 'react';
-import { Loader, Sparkles, Gamepad2, Film, Search, AlertCircle } from 'lucide-react';
+import { memo, useState, useEffect, useCallback } from 'react';
+import { Sparkles, Gamepad2, Film, Search, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MovieGrid from '../../../features/movies/components/MovieGrid';
+import GameGrid from '../../../features/games/components/GameGrid';
 import {
   getMovieWatchlist,
   getMovieLiked,
@@ -9,7 +10,14 @@ import {
   getMovieWatched,
   getGameWishlist,
   getGameLiked,
-  getGameRated
+  getGameRated,
+  removeMovieFromWatchlist,
+  removeMovieFromLiked,
+  removeMovieFromRated,
+  removeMovieFromWatched,
+  removeGameFromWishlist,
+  removeGameFromLiked,
+  removeGameFromRated
 } from '../api/profileService';
 
 const TABS = [
@@ -22,7 +30,7 @@ const TABS = [
   { id: 'game-rated', label: 'Game Rated', type: 'game', action: 'rated' }
 ];
 
-const UserLibraries = memo(({ userId, username, isOwnProfile = false, activeTab: initialTab = 'movie-watchlist', onTabChange }) => {
+const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTab = 'movie-watchlist', onTabChange }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,11 +41,7 @@ const UserLibraries = memo(({ userId, username, isOwnProfile = false, activeTab:
     setActiveTab(initialTab);
   }, [initialTab]);
 
-  useEffect(() => {
-    fetchLibraryItems();
-  }, [userId, activeTab]);
-
-  const fetchLibraryItems = async () => {
+  const fetchLibraryItems = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -75,6 +79,7 @@ const UserLibraries = memo(({ userId, username, isOwnProfile = false, activeTab:
             break;
         }
       }
+      console.log('Fetched library items:', data);
 
       setItems(data.data || []);
       setPagination({
@@ -93,6 +98,49 @@ const UserLibraries = memo(({ userId, username, isOwnProfile = false, activeTab:
       setError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  }, [userId, activeTab, pagination.pageNumber, pagination.pageSize]);
+
+  useEffect(() => {
+    fetchLibraryItems();
+  }, [fetchLibraryItems]);
+
+  const handleRemoveItem = async (itemId) => {
+    const tab = TABS.find(t => t.id === activeTab);
+
+    try {
+      if (tab.type === 'movie') {
+        switch (tab.action) {
+          case 'watchlist':
+            await removeMovieFromWatchlist(itemId);
+            break;
+          case 'liked':
+            await removeMovieFromLiked(itemId);
+            break;
+          case 'rated':
+            await removeMovieFromRated(itemId);
+            break;
+          case 'watched':
+            await removeMovieFromWatched(itemId);
+            break;
+        }
+      } else {
+        switch (tab.action) {
+          case 'wishlist':
+            await removeGameFromWishlist(itemId);
+            break;
+          case 'liked':
+            await removeGameFromLiked(itemId);
+            break;
+          case 'rated':
+            await removeGameFromRated(itemId);
+            break;
+        }
+      }
+      setItems(items.filter(item => (tab.type === 'movie' ? item.tmdbId : item.rawgId) !== itemId));
+    } catch (err) {
+      console.error('Failed to remove item:', err);
+      setError('Failed to remove item from collection');
     }
   };
 
@@ -144,7 +192,7 @@ const UserLibraries = memo(({ userId, username, isOwnProfile = false, activeTab:
         </div>
       ) : isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader className="w-8 h-8 animate-spin text-indigo-400" />
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
       ) : items.length === 0 ? (
         isOwnProfile ? (
@@ -200,14 +248,25 @@ const UserLibraries = memo(({ userId, username, isOwnProfile = false, activeTab:
         )
       ) : (
         <>
+        {isMovieTab && (
           <MovieGrid
-            movies={isMovieTab ? items : []}
-            games={!isMovieTab ? items : []}
-            type={currentTab.type}
-            loading={isLoading}
-            hasMore={pagination.pageNumber < pagination.totalPages}
-            onLoadMore={() => handlePageChange(pagination.pageNumber + 1)}
+            movies={items}
+            isOwnProfile={isOwnProfile}
+            onRemoveItem={handleRemoveItem}
+            pagination={pagination}
+            onPageChange={handlePageChange}
           />
+        )
+      }
+      {!isMovieTab && (
+        <GameGrid
+          games={items}
+          isOwnProfile={isOwnProfile}
+          onRemoveItem={handleRemoveItem}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+        />
+      )}
         </>
       )}
     </div>

@@ -1,6 +1,5 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Calendar, Users, Star } from 'lucide-react';
-
 const BASE_URL = 'http://localhost:5222';
 
 const getInitialAvatar = (firstName) => {
@@ -9,6 +8,7 @@ const getInitialAvatar = (firstName) => {
 };
 
 const ProfileHeader = memo(({ user, isOwnProfile, followStats, onFollowersClick, onFollowingClick }) => {
+  const [imageError, setImageError] = useState(false);
   if (!user) return null;
 
   const profilePicUrl = user.profilePicUrl ? `${BASE_URL}${user.profilePicUrl}` : null;
@@ -29,17 +29,14 @@ const ProfileHeader = memo(({ user, isOwnProfile, followStats, onFollowersClick,
           <div className="relative w-40 h-40 md:w-48 md:h-48">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/40 via-purple-600/40 to-indigo-600/40 rounded-3xl blur-2xl" />
             <div className="relative w-full h-full rounded-3xl overflow-hidden ring-2 ring-indigo-500/30 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center hover:ring-indigo-400/50 transition-all shadow-lg shadow-indigo-500/20">
-              {profilePicUrl ? (
+              {profilePicUrl && !imageError ? (
                 <img
                   src={profilePicUrl}
                   alt={fullName}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
+                  onError={() => setImageError(true)}
                 />
-              ) : null}
-              {!profilePicUrl && (
+              ) : (
                 <span className="text-white text-6xl md:text-7xl font-bold">{initials}</span>
               )}
             </div>

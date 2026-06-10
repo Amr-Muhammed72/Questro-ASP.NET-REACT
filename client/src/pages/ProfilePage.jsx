@@ -17,7 +17,7 @@ import UserLibraries from '../features/profile/components/UserLibraries';
 import FollowersFollowing from '../features/profile/components/FollowersFollowing';
 import EditProfileForm from '../features/profile/components/EditProfileForm';
 import NavBar from '../components/layout/NavBar';
-import { Loader, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   const { userId } = useParams();
@@ -41,6 +41,10 @@ export default function ProfilePage() {
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    setIsNavVisible(!showEditModal);
+  }, [showEditModal]);
 
   useEffect(() => {
     const token = getToken();
@@ -134,7 +138,7 @@ export default function ProfilePage() {
         await uploadProfilePicture(avatarFile);
       }
 
-      const updatedProfile = await getUserProfile(viewerUserId);
+      const updatedProfile = await getUserProfile(currentProfile?.userId || userId);
       setCurrentProfile(updatedProfile);
       setShowEditModal(false);
     } catch (err) {
@@ -147,18 +151,14 @@ export default function ProfilePage() {
   if (isLoading && !currentProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader className="w-8 h-8 animate-spin text-indigo-400" />
-          <p className="text-zinc-400">Loading profile...</p>
-        </div>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen font-sans py-10 bg-black">
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-zinc-900/50 to-black -z-10" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.05)_0%,transparent_50%)] -z-10" />
+    <div className="relative min-h-screen font-sans py-10 bg-black/20">
+      <div className="absolute inset-0 -z-10" />
       <NavBar onVisibilityChange={setIsNavVisible} />
       <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible ? 'pt-20' : 'pt-4'} `}>
         <div className="w-full px-4 md:px-8 lg:px-12">
@@ -199,7 +199,7 @@ export default function ProfilePage() {
 
               <div>
                 {activeTab === 'followers' || activeTab === 'following' ? (
-                  <FollowersFollowing userId={currentProfile?.userId} isOwnProfile={isOwnProfile} />
+                  <FollowersFollowing userId={currentProfile?.userId} isOwnProfile={isOwnProfile} activeTab={activeTab} />
                 ) : (isOwnProfile || currentProfile.isHistoryPublic) ? (
                   <UserLibraries
                     userId={currentProfile?.userId}
