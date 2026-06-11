@@ -52,5 +52,13 @@ public static class UserError
 
     public static readonly Errors PasswordResetExpired =
         new("User.PasswordResetExpired", "Password reset token has expired.", 401);
-
+    // External Login Errors
+        public static readonly Errors ExternalLoginFailed =
+            new("User.ExternalLoginFailed", "Failed to login with external provider.", 500);
+    
+        public static readonly Errors ExternalLoginEmailNotFound =
+            new("User.ExternalLoginEmailNotFound", "Email not found in external login data.", 400);
+    
+        public static readonly Errors ExternalLoginProviderNotSupported =
+            new("User.ExternalLoginProviderNotSupported", "External login provider is not supported.", 400);
 }

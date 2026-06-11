@@ -18,8 +18,8 @@ public class ApplicationUser : IdentityUser<long>
 	public string? ProfilePic { get; set; }
 	public UserInterest PrimaryInterest { get; set; } = UserInterest.Mixed;
 	public bool IsHistoryPublic { get; set; } = true;
-
-	public virtual ICollection<UserMovieLike> MovieLikes { get; set; } = new HashSet<UserMovieLike>();
+	public bool IsProfileCompleted { get; set; } = true;
+    public virtual ICollection<UserMovieLike> MovieLikes { get; set; } = new HashSet<UserMovieLike>();
 	public virtual ICollection<UserMovieRate> MovieRates { get; set; } = new HashSet<UserMovieRate>();
 	public virtual ICollection<UserMovieReview> MovieReviews { get; set; } = new HashSet<UserMovieReview>();
 	public virtual ICollection<UserMovieWatched> MovieWatched { get; set; } = new HashSet<UserMovieWatched>();

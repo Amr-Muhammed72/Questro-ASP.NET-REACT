@@ -32,6 +32,7 @@ public static class DependencyInjectionService
         services.AddMemoryCache();
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IExternalLoginServices, ExternalLoginServices>();
         services.AddScoped<IOTPService, OTPService>();
         services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
 
