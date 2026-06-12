@@ -22,7 +22,8 @@ public class MoviesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetMovies([FromQuery] MovieSpecParams specParams, CancellationToken cancellationToken)
     {
-        var result = await _movieCatalogService.GetMoviesAsync(specParams, cancellationToken);
+        var userId = GetCurrentUserId();
+        var result = await _movieCatalogService.GetMoviesAsync(specParams, userId, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -41,7 +42,8 @@ public class MoviesController : ControllerBase
     [HttpGet("recently-added")]
     public async Task<IActionResult> GetRecentlyAdded([FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _movieCatalogService.GetRecentlyAddedAsync(take, cancellationToken);
+        var userId = GetCurrentUserId();
+        var result = await _movieCatalogService.GetRecentlyAddedAsync(take, userId, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -60,7 +62,8 @@ public class MoviesController : ControllerBase
     [HttpGet("trending")]
     public async Task<IActionResult> GetTrending([FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _movieCatalogService.GetTrendingAsync(take, cancellationToken);
+        var userId = GetCurrentUserId();
+        var result = await _movieCatalogService.GetTrendingAsync(take, userId, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
@@ -98,7 +101,8 @@ public class MoviesController : ControllerBase
     [HttpGet("recommended")]
     public async Task<IActionResult> GetRecommended([FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _movieCatalogService.GetRecommendedAsync(take, cancellationToken);
+        var userId = GetCurrentUserId();
+        var result = await _movieCatalogService.GetRecommendedAsync(take, userId, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new

@@ -137,7 +137,13 @@ public class UserMovieLibraryService : IUserMovieLibraryService
             return Result.Failure<PagedResponse<UserLibraryMovieItemDto>>(UserError.UserNotFound);
 
         if (!targetUser.IsHistoryPublic)
+        {
+            // Parents can always view their child's library
+            if (requesterId.HasValue && targetUser.ParentId == requesterId.Value)
+                return null;
+
             return Result.Failure<PagedResponse<UserLibraryMovieItemDto>>(SocialError.HistoryIsPrivate);
+        }
 
         return null;
     }
