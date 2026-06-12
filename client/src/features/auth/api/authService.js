@@ -23,10 +23,14 @@ export const authService = {
    * Verify OTP to complete login/register
    * @param {string} email
    * @param {string} otp
+   * @param {Object} registrationData - Full registration data for verify endpoint
    * @returns accessToken and user details
    */
-  verifyOtp: async (email, otp) => {
-    const response = await apiClient.post('/Auth/Verify', { email, otp });
+  verifyOtp: async (email, otp, registrationData) => {
+    const payload = registrationData ?
+      { ...registrationData, email, otp } :
+      { email, otp };
+    const response = await apiClient.post('/Auth/Verify', payload);
     return response.data;
   },
 

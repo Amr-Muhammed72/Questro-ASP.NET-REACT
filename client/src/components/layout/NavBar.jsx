@@ -11,21 +11,30 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const scrollDebounceTimer = useRef(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isLoggedIn: isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
-      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        setIsVisible(false);
-      } else {
-        setIsVisible(true);
-      }
+      const scrollDelta = Math.abs(currentScrollY - lastScrollY.current);
+      const isAtBottom = window.innerHeight + currentScrollY >= document.documentElement.scrollHeight - 100;
 
       setIsScrolled(currentScrollY > 50);
-      lastScrollY.current = currentScrollY;
+
+      // Only update visibility if we've scrolled more than 10px to prevent flickering
+      if (scrollDelta > 10) {
+        // Always show navbar at the top or bottom of page
+        if (currentScrollY < 50 || isAtBottom) {
+          setIsVisible(true);
+        } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+          setIsVisible(false);
+        } else {
+          setIsVisible(true);
+        }
+        lastScrollY.current = currentScrollY;
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -56,10 +65,10 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   return (
     <>
       <nav
-        className={`fixed top-0 w-full z-50 py-3 sm:py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 w-full z-50 py-3 sm:py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-300 ease-in-out border-b ${
           (isVisible && !forceHidden) ? 'translate-y-0' : '-translate-y-full'
         } ${
-          isScrolled ? 'bg-zinc-950/95 backdrop-blur-md shadow-lg border-b border-zinc-800/50' : 'bg-gradient-to-b from-zinc-950/40 to-transparent'
+          isScrolled ? 'bg-zinc-950/95 backdrop-blur-md shadow-lg border-zinc-800/50' : 'bg-gradient-to-b from-zinc-950/40 to-transparent border-transparent'
         }`}
       >
         {/* Logo and Brand */}

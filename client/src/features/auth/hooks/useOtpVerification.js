@@ -6,11 +6,11 @@ export const useOtpVerification = () => {
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState(null);
 
-  const verifyOtp = async (email, otp, onSuccess) => {
+  const verifyOtp = async (email, otp, registrationData, onSuccess) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await authService.verifyOtp(email, otp);
+      const data = await authService.verifyOtp(email, otp, registrationData);
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {

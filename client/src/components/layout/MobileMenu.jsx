@@ -21,7 +21,7 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
 
   const handleLogout = async () => {
     try {
-      await authService.logoutUser();
+      await authService.logout();
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
