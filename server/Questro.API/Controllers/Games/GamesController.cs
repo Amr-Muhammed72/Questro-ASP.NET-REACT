@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Questro.Service.Abstractions.Games;
 using Questro.Shared.Contracts.Games;
 using System.Security.Claims;
-using System.Threading;
 
 namespace Questro.API.Controllers.Games
 {
@@ -23,7 +21,8 @@ namespace Questro.API.Controllers.Games
         [HttpGet]
         public async Task<IActionResult> GetGames([FromQuery] GameSpecParams specParams, CancellationToken cancellationToken = default)
         {
-            var result = await _gamesServices.GetGamesAsync(specParams, cancellationToken);
+            var userId = GetCurrentUserId();
+            var result = await _gamesServices.GetGamesAsync(specParams, userId, cancellationToken);
 
             if (result.IsFailure)
             {
@@ -42,7 +41,8 @@ namespace Questro.API.Controllers.Games
         [HttpGet("recently-added")]
         public async Task<IActionResult> GetRecentlyAdded([FromQuery] int take = 20, CancellationToken cancellationToken = default)
         {
-            var result = await _gamesServices.GetRecentlyAddedAsync(take, cancellationToken);
+            var userId = GetCurrentUserId();
+            var result = await _gamesServices.GetRecentlyAddedAsync(take, userId, cancellationToken);
 
             if (result.IsFailure)
             {
@@ -61,7 +61,8 @@ namespace Questro.API.Controllers.Games
         [HttpGet("trending")]
         public async Task<IActionResult> GetTrending([FromQuery] int take = 30, CancellationToken cancellationToken = default)
         {
-            var result = await _gamesServices.GetTrendingAsync(take, cancellationToken);
+            var userId = GetCurrentUserId();
+            var result = await _gamesServices.GetTrendingAsync(take, userId, cancellationToken);
 
             if (result.IsFailure)
             {
