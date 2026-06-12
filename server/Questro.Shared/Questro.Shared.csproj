@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="1.75.0" />
+  </ItemGroup>
 	<ItemGroup>
 		<None Update="Templates/Email/OtpEmail.html">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

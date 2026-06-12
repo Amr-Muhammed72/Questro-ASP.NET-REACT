@@ -30,6 +30,7 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly JwtOptions _jwtOptions;
     private readonly IValidator<RegisterRequestDto> _validator;
+    private readonly IValidator<CompleteProfileRequestDto> _completeProfileValidator;
     private readonly IOTPService _otpService;
 
 
@@ -41,6 +42,7 @@ public class AuthService : IAuthService
         IUnitOfWork unitOfWork,
         IOptions<JwtOptions> jwtOptions,
         IValidator<RegisterRequestDto> validator,
+        IValidator<CompleteProfileRequestDto> completeProfileValidator,
         IOTPService OTPService
         )
     {
@@ -50,6 +52,7 @@ public class AuthService : IAuthService
         _unitOfWork = unitOfWork;
         _jwtOptions = jwtOptions.Value;
         _validator = validator;
+        _completeProfileValidator = completeProfileValidator;
         _SignInManager = signInManager;
         _otpService = OTPService;
     }
@@ -122,38 +125,7 @@ public class AuthService : IAuthService
             return Result.Failure<LogInResponseDto>(UserError.LoginNotAllowed);
         if (!isValid.Succeeded)
             return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
-        // Create Accesss Tokens
-        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
-        // revoke old tokens 
-        await RevokeActiveRefreshTokensAsync(user.Id, cancellationToken);
-
-        var refreshTokenValue = GenerateRefreshToken();
-        var refreshTokenExpiresOnUtc =
-            DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
-            ? _jwtOptions.RefreshTokenExpirationDays : 7);
-
-        // Save Refresh Token in DB
-        await _refreshTokenRepo.AddAsync(new RefreshToken
-        {
-            UserId = user.Id,
-            Token = refreshTokenValue,
-            CreatedOnUtc = DateTime.UtcNow,
-            ExpiresOnUtc = refreshTokenExpiresOnUtc
-        }, cancellationToken);
-
-        var saved = await _unitOfWork.CompleteAsync(cancellationToken);
-        if (saved == 0)
-            return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
-        return Result.Success(new LogInResponseDto(
-             user.Id,
-             user.UserName ?? string.Empty,
-             user.FirstName ?? string.Empty,
-             user.LastName ?? string.Empty,
-             user.Email ?? string.Empty,
-             accessToken,
-             refreshTokenValue,
-             accessTokenExpiresOnUtc,
-             refreshTokenExpiresOnUtc));
+        return await IssueLoginTokensAsync(user, cancellationToken);
     }
 
     public async Task<Result> LogOutAsync(string? refreshToken, CancellationToken cancellationToken)
@@ -256,20 +228,23 @@ public class AuthService : IAuthService
             return Result.Failure<LogInResponseDto>(
                 UserError.RegistrationFailed, addToRoleResult.Errors.Select(e => e.Description).ToList());
 
-        // Create Accesss Tokens
-        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(identityUser);
-        // revoke old tokens 
-        await RevokeActiveRefreshTokensAsync(identityUser.Id, cancellationToken);
+        return await IssueLoginTokensAsync(identityUser, cancellationToken);
+    }
+
+    public async Task<Result<LogInResponseDto>> IssueLoginTokensAsync(ApplicationUser user, CancellationToken cancellationToken = default)
+    {
+        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
+
+        await RevokeActiveRefreshTokensAsync(user.Id, cancellationToken);
 
         var refreshTokenValue = GenerateRefreshToken();
         var refreshTokenExpiresOnUtc =
             DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
             ? _jwtOptions.RefreshTokenExpirationDays : 7);
 
-        // Save Refresh Token in DB
         await _refreshTokenRepo.AddAsync(new RefreshToken
         {
-            UserId = identityUser.Id,
+            UserId = user.Id,
             Token = refreshTokenValue,
             CreatedOnUtc = DateTime.UtcNow,
             ExpiresOnUtc = refreshTokenExpiresOnUtc
@@ -278,16 +253,63 @@ public class AuthService : IAuthService
         var saved = await _unitOfWork.CompleteAsync(cancellationToken);
         if (saved == 0)
             return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
+
         return Result.Success(new LogInResponseDto(
-             identityUser.Id,
-             identityUser.UserName ?? string.Empty,
-             identityUser.FirstName ?? string.Empty,
-             identityUser.LastName ?? string.Empty,
-             identityUser.Email ?? string.Empty,
+             user.Id,
+             user.UserName ?? string.Empty,
+             user.FirstName ?? string.Empty,
+             user.LastName ?? string.Empty,
+             user.Email ?? string.Empty,
              accessToken,
              refreshTokenValue,
              accessTokenExpiresOnUtc,
              refreshTokenExpiresOnUtc));
+    }
+
+    public async Task<Result<ExternalLoginResponse>> CompleteProfileAsync(long userId, CompleteProfileRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var validationResult = await _completeProfileValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+            return Result.Failure<ExternalLoginResponse>(
+                UserError.InvalidRegistrationData,
+                validationResult.Errors.Select(e => e.ErrorMessage).ToList());
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return Result.Failure<ExternalLoginResponse>(UserError.UserNotFound);
+
+        var userName = request.UserName.Trim();
+        var existingUserName = await _userManager.FindByNameAsync(userName);
+        if (existingUserName is not null && existingUserName.Id != user.Id)
+            return Result.Failure<ExternalLoginResponse>(UserError.UserNameAlreadyExists);
+
+        user.UserName = userName;
+        user.Gender = request.Gender.Trim();
+        user.BirthDate = request.BirthDate.Date;
+        user.Age = CalculateAge(request.BirthDate);
+        user.IsProfileCompleted = true;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+            return Result.Failure<ExternalLoginResponse>(
+                UserError.RegistrationFailed,
+                updateResult.Errors.Select(e => e.Description).ToList());
+
+        var loginResult = await IssueLoginTokensAsync(user, cancellationToken);
+        if (loginResult.IsFailure)
+            return Result.Failure<ExternalLoginResponse>(loginResult.Error, loginResult.Details);
+
+        return Result.Success(new ExternalLoginResponse(
+            user.IsProfileCompleted,
+            loginResult.Value.UserId,
+            loginResult.Value.UserName,
+            loginResult.Value.FirstName,
+            loginResult.Value.LastName,
+            loginResult.Value.Email,
+            loginResult.Value.AccessToken,
+            loginResult.Value.RefreshToken,
+            loginResult.Value.AccessTokenExpiresOnUtc,
+            loginResult.Value.RefreshTokenExpiresOnUtc));
     }
 
 
