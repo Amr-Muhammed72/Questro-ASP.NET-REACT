@@ -66,7 +66,7 @@ export const FilterDropdown = ({
                 <input
                   type="text"
                   value={query}
-                  onChange={(e) => setQuery(event.target.value)}
+                  onChange={(e) => setQuery(e.target.value)}
                   placeholder={searchPlaceholder}
                   className="w-full bg-transparent text-sm text-zinc-100 outline-none placeholder:text-zinc-500"
                 />

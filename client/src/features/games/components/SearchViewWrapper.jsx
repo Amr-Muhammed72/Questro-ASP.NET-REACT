@@ -1,36 +1,44 @@
 import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useGamesDiscovery } from '../hooks/useGamesDiscovery';
 import SearchView from './SearchView';
 
-const SearchViewWrapper = ({ filters }) => {
+const SearchViewWrapper = () => {
+  const [searchParams] = useSearchParams();
   const {
     games,
-    loading: discoveryLoading,
-    hasMore,
+    loading,
     error,
-    loadMore,
+    currentPage,
+    totalPages,
     updateFilters,
+    goToPage,
   } = useGamesDiscovery();
 
-  useEffect(() => {
-    updateFilters(filters);
-  }, [filters, updateFilters]);
+  const buildFilters = (params) => ({
+    search: params.get('search') || null,
+    genreId: params.get('genreId') || null,
+    platformId: params.get('platformId') || null,
+    year: params.get('year') || null,
+    minRating: params.get('minRating') || null,
+    maxRating: params.get('maxRating') || null,
+    sort: params.get('sort') || null,
+    list: params.get('list') || null,
+  });
 
-  if (error) {
-    return (
-      <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-center mb-8">
-        Oops! Something went wrong: {error}
-      </div>
-    );
-  }
+  useEffect(() => {
+    const filters = buildFilters(searchParams);
+    updateFilters(filters);
+  }, [searchParams, updateFilters]);
 
   return (
     <SearchView
       games={games}
-      loading={discoveryLoading}
-      hasMore={hasMore}
+      loading={loading}
       error={error}
-      loadMore={loadMore}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={goToPage}
     />
   );
 };

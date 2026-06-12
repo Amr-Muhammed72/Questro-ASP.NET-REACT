@@ -8,7 +8,6 @@ export const useRegister = () => {
   const register = async (userData, onSuccess) => {
     setIsLoading(true);
     setError(null);
-    console.log('Registering user with data:', userData);
     try {
       const data = await authService.register(userData);
       if (onSuccess) onSuccess(data);

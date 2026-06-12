@@ -8,7 +8,8 @@ const BrowseViewWrapper = ({ onGenreSearch }) => {
     recentlyAdded,
     recommended,
     genresWithMovies,
-    isLoadingMore
+    isLoadingMore,
+    sentinelRef,   // ← attach to a sentinel div so IntersectionObserver works
   } = useBrowseData();
 
   return (
@@ -20,9 +21,13 @@ const BrowseViewWrapper = ({ onGenreSearch }) => {
         genresWithMovies={genresWithMovies}
         onGenreSearch={({ genreId }) => onGenreSearch(genreId)}
       />
+
+      {/* Sentinel node — watched by IntersectionObserver to trigger next genre chunk */}
+      <div ref={sentinelRef} className="h-1" />
+
       {isLoadingMore && (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500" />
         </div>
       )}
     </>

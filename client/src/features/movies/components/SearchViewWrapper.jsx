@@ -1,36 +1,45 @@
 import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMoviesDiscovery } from '../hooks/useMoviesDiscovery';
 import SearchView from './SearchView';
 
-const SearchViewWrapper = ({ filters }) => {
+const SearchViewWrapper = () => {
+  const [searchParams] = useSearchParams();
   const {
     movies,
-    loading: discoveryLoading,
-    hasMore,
+    loading,
     error,
-    loadMore,
+    currentPage,
+    totalPages,
     updateFilters,
+    goToPage,
   } = useMoviesDiscovery();
 
-  useEffect(() => {
-    updateFilters(filters);
-  }, [filters, updateFilters]);
+  const buildFilters = (params) => ({
+    search: params.get('search') || null,
+    genreId: params.get('genreId') || null,
+    language: params.get('language') || null,
+    year: params.get('year') || null,
+    minRating: params.get('minRating') || null,
+    maxRating: params.get('maxRating') || null,
+    quality: params.get('quality') || null,
+    sort: params.get('sort') || null,
+    list: params.get('list') || null,
+  });
 
-  if (error) {
-    return (
-      <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-center mb-8">
-        Oops! Something went wrong: {error}
-      </div>
-    );
-  }
+  useEffect(() => {
+    const filters = buildFilters(searchParams);
+    updateFilters(filters);
+  }, [searchParams, updateFilters]);
 
   return (
     <SearchView
       movies={movies}
-      loading={discoveryLoading}
-      hasMore={hasMore}
+      loading={loading}
       error={error}
-      loadMore={loadMore}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={goToPage}
     />
   );
 };

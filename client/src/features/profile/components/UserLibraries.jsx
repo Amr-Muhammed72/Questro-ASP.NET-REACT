@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { Sparkles, Gamepad2, Film, Search, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MovieGrid from '../../../features/movies/components/MovieGrid';
@@ -17,158 +17,168 @@ import {
   removeMovieFromWatched,
   removeGameFromWishlist,
   removeGameFromLiked,
-  removeGameFromRated
+  removeGameFromRated,
 } from '../api/profileService';
 
 const TABS = [
   { id: 'movie-watchlist', label: 'Movie Watchlist', type: 'movie', action: 'watchlist' },
-  { id: 'movie-liked', label: 'Movie Liked', type: 'movie', action: 'liked' },
-  { id: 'movie-rated', label: 'Movie Rated', type: 'movie', action: 'rated' },
-  { id: 'movie-watched', label: 'Watched', type: 'movie', action: 'watched' },
-  { id: 'game-wishlist', label: 'Game Wishlist', type: 'game', action: 'wishlist' },
-  { id: 'game-liked', label: 'Game Liked', type: 'game', action: 'liked' },
-  { id: 'game-rated', label: 'Game Rated', type: 'game', action: 'rated' }
+  { id: 'movie-liked',     label: 'Movie Liked',     type: 'movie', action: 'liked'     },
+  { id: 'movie-rated',     label: 'Movie Rated',     type: 'movie', action: 'rated'     },
+  { id: 'movie-watched',   label: 'Watched',          type: 'movie', action: 'watched'  },
+  { id: 'game-wishlist',  label: 'Game Wishlist',    type: 'game',  action: 'wishlist'  },
+  { id: 'game-liked',     label: 'Game Liked',       type: 'game',  action: 'liked'     },
+  { id: 'game-rated',     label: 'Game Rated',       type: 'game',  action: 'rated'     },
 ];
 
-const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTab = 'movie-watchlist', onTabChange }) => {
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const [items, setItems] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({ pageNumber: 1, pageSize: 18, totalCount: 0 });
+/** Look up the correct service method for the active tab */
+const getLibraryFetcher = (tab) => {
+  if (!tab) return null;
+  const map = {
+    'movie-watchlist': getMovieWatchlist,
+    'movie-liked':     getMovieLiked,
+    'movie-rated':     getMovieRated,
+    'movie-watched':   getMovieWatched,
+    'game-wishlist':   getGameWishlist,
+    'game-liked':      getGameLiked,
+    'game-rated':      getGameRated,
+  };
+  return map[tab.id] ?? null;
+};
 
+const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTab = 'movie-watchlist', onTabChange }) => {
+  const [activeTab,  setActiveTab]  = useState(initialTab);
+  const [items,      setItems]      = useState([]);
+  const [isLoading,  setIsLoading]  = useState(false);
+  const [error,      setError]      = useState(null);
+  const [pagination, setPagination] = useState({
+    pageNumber: 1,
+    pageSize:   18,
+    totalCount: 0,
+    totalPages: 1,
+  });
+
+  // Keep activeTab in sync with the prop (driven by URL ?tab= param)
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
 
-  const fetchLibraryItems = useCallback(async () => {
+  // ── Pagination/filtering bug fix ───────────────────────────────────────────
+  //
+  // Root cause of the infinite loop:
+  //   fetchLibraryItems was inside useCallback([..., pagination.pageNumber])
+  //   → calling setPagination() inside it created a new pagination object
+  //   → new pagination → new fetchLibraryItems reference
+  //   → useEffect([fetchLibraryItems]) re-ran → infinite loop.
+  //
+  // Root cause of the stale-closure bug on tab switch:
+  //   fetchLibraryItems captured the old pageNumber at call time, so the
+  //   first fetch after a tab click ran with the wrong page.
+  //
+  // Fix: store the "current page" in a ref so fetchLibraryItems is stable
+  // (no dependency on pagination state), and drive re-fetches explicitly
+  // via an [activeTab, currentPage] trigger effect instead.
+
+  const currentPageRef = useRef(1);
+
+  // Reset page to 1 whenever the tab changes
+  useEffect(() => {
+    currentPageRef.current = 1;
+    setPagination(prev => ({ ...prev, pageNumber: 1 }));
+  }, [activeTab]);
+
+  // ── Stable fetch function ──────────────────────────────────────────────────
+  // Depends only on userId (stable across the component's lifetime).
+  // Reads currentPageRef.current at call-time, so it always sees the freshest
+  // page without needing it as a dep (which would trigger recreation).
+  const fetchLibraryItems = useCallback(async (tabId, page) => {
+    const tab = TABS.find(t => t.id === tabId);
+    const fetcher = getLibraryFetcher(tab);
+    if (!fetcher) return;
+
     try {
       setIsLoading(true);
       setError(null);
-
-      const tab = TABS.find(t => t.id === activeTab);
-      const pageIndex = pagination.pageNumber;
-      const pageSize = pagination.pageSize;
-
-      let data;
-      if (tab.type === 'movie') {
-        switch (tab.action) {
-          case 'watchlist':
-            data = await getMovieWatchlist(userId, pageIndex, pageSize);
-            break;
-          case 'liked':
-            data = await getMovieLiked(userId, pageIndex, pageSize);
-            break;
-          case 'rated':
-            data = await getMovieRated(userId, pageIndex, pageSize);
-            break;
-          case 'watched':
-            data = await getMovieWatched(userId, pageIndex, pageSize);
-            break;
-        }
-      } else {
-        switch (tab.action) {
-          case 'wishlist':
-            data = await getGameWishlist(userId, pageIndex, pageSize);
-            break;
-          case 'liked':
-            data = await getGameLiked(userId, pageIndex, pageSize);
-            break;
-          case 'rated':
-            data = await getGameRated(userId, pageIndex, pageSize);
-            break;
-        }
-      }
-      console.log('Fetched library items:', data);
+      const data = await fetcher(userId, page, 18);
 
       setItems(data.data || []);
       setPagination({
-        pageNumber: data.pageNumber,
-        pageSize: data.pageSize,
-        totalCount: data.totalCount,
-        totalPages: data.totalPages
+        pageNumber: data.pageNumber  ?? page,
+        pageSize:   data.pageSize    ?? 18,
+        totalCount: data.totalCount  ?? 0,
+        totalPages: data.totalPages  ?? 1,
       });
     } catch (err) {
       let errorMessage = err.message;
-      if (err.response?.status === 403) {
-        errorMessage = 'This user\'s history is private';
-      } else if (err.response?.status === 404) {
-        errorMessage = 'User not found';
-      }
+      if (err.response?.status === 403) errorMessage = "This user's history is private";
+      if (err.response?.status === 404) errorMessage = 'User not found';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [userId, activeTab, pagination.pageNumber, pagination.pageSize]);
+  }, [userId]); // only recreated if userId changes
 
+  // ── Trigger: run when tab or page changes ──────────────────────────────────
+  // We pass tab + page as explicit arguments so the callback above is stable.
   useEffect(() => {
-    fetchLibraryItems();
-  }, [fetchLibraryItems]);
+    fetchLibraryItems(activeTab, currentPageRef.current);
+  }, [activeTab, fetchLibraryItems]);
+  // Note: currentPageRef.current changes are handled by handlePageChange below,
+  // which explicitly calls fetchLibraryItems — so we don't need it in deps.
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleTabChange = (tabId) => {
+    // currentPageRef reset is handled by the useEffect([activeTab]) above
+    setActiveTab(tabId);
+    setItems([]);
+    if (onTabChange) onTabChange(tabId);
+  };
+
+  const handlePageChange = (newPage) => {
+    currentPageRef.current = newPage;
+    setPagination(prev => ({ ...prev, pageNumber: newPage }));
+    fetchLibraryItems(activeTab, newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleRemoveItem = async (itemId) => {
     const tab = TABS.find(t => t.id === activeTab);
+    const removeMap = {
+      'movie-watchlist': removeMovieFromWatchlist,
+      'movie-liked':     removeMovieFromLiked,
+      'movie-rated':     removeMovieFromRated,
+      'movie-watched':   removeMovieFromWatched,
+      'game-wishlist':   removeGameFromWishlist,
+      'game-liked':      removeGameFromLiked,
+      'game-rated':      removeGameFromRated,
+    };
+    const remover = removeMap[tab?.id];
+    if (!remover) return;
 
     try {
-      if (tab.type === 'movie') {
-        switch (tab.action) {
-          case 'watchlist':
-            await removeMovieFromWatchlist(itemId);
-            break;
-          case 'liked':
-            await removeMovieFromLiked(itemId);
-            break;
-          case 'rated':
-            await removeMovieFromRated(itemId);
-            break;
-          case 'watched':
-            await removeMovieFromWatched(itemId);
-            break;
-        }
-      } else {
-        switch (tab.action) {
-          case 'wishlist':
-            await removeGameFromWishlist(itemId);
-            break;
-          case 'liked':
-            await removeGameFromLiked(itemId);
-            break;
-          case 'rated':
-            await removeGameFromRated(itemId);
-            break;
-        }
-      }
-      setItems(items.filter(item => (tab.type === 'movie' ? item.tmdbId : item.rawgId) !== itemId));
+      await remover(itemId);
+      const idField = tab.type === 'movie' ? 'tmdbId' : 'rawgId';
+      setItems(prev => prev.filter(item => item[idField] !== itemId));
     } catch (err) {
       console.error('Failed to remove item:', err);
       setError('Failed to remove item from collection');
     }
   };
 
-  const currentTab = TABS.find(t => t.id === activeTab);
-  const isMovieTab = currentTab?.type === 'movie';
+  const currentTab  = TABS.find(t => t.id === activeTab);
+  const isMovieTab  = currentTab?.type === 'movie';
 
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, pageNumber: newPage }));
-  };
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Section Title */}
+      {/* Section Title + Tabs */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-4">My Collections</h2>
-
-        {/* Tabs */}
         <div className="flex flex-wrap gap-2">
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setPagination({ pageNumber: 1, pageSize: 18, totalCount: 0 });
-                if (onTabChange) {
-                  onTabChange(tab.id);
-                }
-              }}
+              onClick={() => handleTabChange(tab.id)}
               className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30'
@@ -192,7 +202,7 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
         </div>
       ) : isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500" />
         </div>
       ) : items.length === 0 ? (
         isOwnProfile ? (
@@ -209,7 +219,6 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
                     )}
                   </div>
                 </div>
-
                 <div>
                   <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
                     Start exploring {isMovieTab ? 'movies' : 'games'}!
@@ -220,7 +229,6 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
                       : 'Build your collection, track games you want to play, and share your gaming journey.'}
                   </p>
                 </div>
-
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center pt-4">
                   <Link
                     to={isMovieTab ? '/movies' : '/games'}
@@ -237,36 +245,35 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
                     {isMovieTab ? 'Explore Games' : 'Explore Movies'}
                   </Link>
                 </div>
-
               </div>
             </div>
           </div>
         ) : (
           <div className="text-center py-16">
-            <p className="text-zinc-400 text-lg">This user hasn't added any {isMovieTab ? 'movies' : 'games'} yet</p>
+            <p className="text-zinc-400 text-lg">
+              This user hasn&apos;t added any {isMovieTab ? 'movies' : 'games'} yet
+            </p>
           </div>
         )
       ) : (
         <>
-        {isMovieTab && (
-          <MovieGrid
-            movies={items}
-            isOwnProfile={isOwnProfile}
-            onRemoveItem={handleRemoveItem}
-            pagination={pagination}
-            onPageChange={handlePageChange}
-          />
-        )
-      }
-      {!isMovieTab && (
-        <GameGrid
-          games={items}
-          isOwnProfile={isOwnProfile}
-          onRemoveItem={handleRemoveItem}
-          pagination={pagination}
-          onPageChange={handlePageChange}
-        />
-      )}
+          {isMovieTab ? (
+            <MovieGrid
+              movies={items}
+              isOwnProfile={isOwnProfile}
+              onRemoveItem={handleRemoveItem}
+              currentPage={pagination.pageNumber}
+              onPageChange={handlePageChange}
+            />
+          ) : (
+            <GameGrid
+              games={items}
+              isOwnProfile={isOwnProfile}
+              onRemoveItem={handleRemoveItem}
+              currentPage={pagination.pageNumber}
+              onPageChange={handlePageChange}
+            />
+          )}
         </>
       )}
     </div>

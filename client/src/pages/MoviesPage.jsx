@@ -38,18 +38,6 @@ const MoviesPage = () => {
   const list = searchParams.get('list') || null;
   const search = searchParams.get('search') || null;
 
-  const filtersFromParams = useMemo(() => ({
-    search,
-    genreId,
-    language,
-    year,
-    minRating,
-    maxRating,
-    quality,
-    sort,
-    list,
-  }), [search, genreId, language, year, minRating, maxRating, quality, sort, list]);
-
   const isBrowsing = useMemo(() => {
     return !search && !genreId && !list && !language && !year && !minRating && !maxRating && !quality && !sort;
   }, [search, genreId, list, language, year, minRating, maxRating, quality, sort]);
@@ -155,7 +143,7 @@ const MoviesPage = () => {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <SearchViewWrapper filters={filtersFromParams} />
+                    <SearchViewWrapper />
                   </motion.div>
                 )}
               </AnimatePresence>

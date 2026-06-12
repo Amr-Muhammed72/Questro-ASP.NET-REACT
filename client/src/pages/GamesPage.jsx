@@ -39,17 +39,6 @@ const GamesPage = () => {
   const list = searchParams.get('list') || null;
   const search = searchParams.get('search') || null;
 
-  const filtersFromParams = useMemo(() => ({
-    search,
-    genreId,
-    platformId,
-    year,
-    minRating,
-    maxRating,
-    sort,
-    list,
-  }), [search, genreId, platformId, year, minRating, maxRating, sort, list]);
-
   const isBrowsing = useMemo(() => {
     return !search && !genreId && !list && !platformId && !year && !minRating && !maxRating && !sort;
   }, [search, genreId, list, platformId, year, minRating, maxRating, sort]);
@@ -155,7 +144,7 @@ const GamesPage = () => {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <SearchViewWrapper filters={filtersFromParams} />
+                    <SearchViewWrapper />
                   </motion.div>
                 )}
               </AnimatePresence>
