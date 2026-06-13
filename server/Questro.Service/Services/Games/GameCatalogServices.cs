@@ -46,7 +46,7 @@ namespace Questro.Service.Services.Games
         {
             var parameters = specParams ?? new GameSpecParams();
             var safePageIndex = parameters.PageIndex < 1 ? 1 : parameters.PageIndex;
-            var safePageSize = parameters.PageSize < 1 ? 20 : parameters.PageSize;
+            var safePageSize =20;
 
             if (GameGenreResponseFilter.IsHiddenGenreId(parameters.GenreId))
             {
@@ -150,7 +150,7 @@ namespace Questro.Service.Services.Games
         // ── Trending ────────────────────────────────────────────────────────
 
         public async Task<Result<PagedResponse<GameListItemDto>>> GetTrendingAsync(
-            int take = 30, long? userId = null, CancellationToken cancellationToken = default)
+            int take = 20, long? userId = null, CancellationToken cancellationToken = default)
         {
             var safeTake = take < 1 ? 20 : take;
 
