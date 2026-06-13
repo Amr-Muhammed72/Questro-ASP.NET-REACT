@@ -7,6 +7,8 @@ public sealed class NotificationDto
     public string Body { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public int? ReferenceId { get; set; }
+    public string? ReferenceName { get; set; }
+    public string? ImageUrl { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ReadAt { get; set; }
