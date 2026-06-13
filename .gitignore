@@ -1,4 +1,7 @@
 .vscode/settings.json
 *.pyc
-*/data_cache
-*/test.py
+*/test*.py
+*/venv
+*cache
+*.bin
+*.db
