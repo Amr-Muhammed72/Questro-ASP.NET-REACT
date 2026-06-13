@@ -11,7 +11,6 @@ export const useLogin = () => {
     try {
       const data = await authService.login(credentials);
       if (onSuccess) onSuccess(data);
-      console.log('Login successful:', data);
       return data;
     } catch (err) {
       const errorData = err.response?.data;

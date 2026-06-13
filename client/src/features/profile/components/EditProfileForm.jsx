@@ -13,8 +13,9 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
   });
 
   const [avatarFile, setAvatarFile] = useState(null);
+  const [fileError, setFileError] = useState('');
   const [previewUrl, setPreviewUrl] = useState(
-    user?.profilePicUrl ? `http://localhost:5222${user.profilePicUrl}` : null
+    user?.profilePicUrl ? `http://localhost:5222${user.profilePicUrl}?t=${Date.now()}` : null
   );
 
   const handleInputChange = (e) => {
@@ -27,7 +28,14 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
+    setFileError('');
     if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setFileError('Invalid file format. Please upload a JPG, PNG, GIF, or WEBP.');
+        e.target.value = '';
+        return;
+      }
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result);
@@ -82,11 +90,12 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
               <span className="text-sm font-medium text-zinc-300">Upload Photo</span>
               <input
                 type="file"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.gif,.webp"
                 onChange={handleAvatarChange}
                 className="hidden"
               />
             </label>
+            {fileError && <p className="text-red-400 text-sm mt-3 text-center">{fileError}</p>}
           </div>
 
           {/* Name Fields */}

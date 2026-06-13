@@ -8,7 +8,7 @@ import {
   unfollowUser,
   getMyProfile,
   updateProfile,
-  uploadProfilePicture
+  uploadProfilePicture,
 } from '../features/profile/api/profileService';
 import { getToken } from '../lib/apiClient';
 import ProfileHeader from '../features/profile/components/ProfileHeader';
@@ -18,6 +18,7 @@ import FollowersFollowing from '../features/profile/components/FollowersFollowin
 import EditProfileForm from '../features/profile/components/EditProfileForm';
 import NavBar from '../components/layout/NavBar';
 import { AlertCircle } from 'lucide-react';
+import NotificationsTab from '../features/notifications/components/NotificationsTab';
 
 export default function ProfilePage() {
   const { userId } = useParams();
@@ -33,79 +34,84 @@ export default function ProfilePage() {
     setCurrentProfile,
     setFollowStats,
     setIsLoading,
-    setError
+    setError,
+    clearProfile,
+    setImageUpdateStamp,
   } = useProfileStore();
 
   const [viewerUserId, setViewerUserId] = useState(null);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing]   = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdating, setIsUpdating]     = useState(false);
 
   useEffect(() => {
     setIsNavVisible(!showEditModal);
   }, [showEditModal]);
 
+  // ── Single unified effect — replaces two separate getMyProfile() calls ─────
   useEffect(() => {
     const token = getToken();
-    if (!token) return;
 
-    const fetchViewerId = async () => {
+    const fetchProfileData = async () => {
+      // Clear any previously displayed profile immediately so stale data from
+      // the last visit doesn't bleed through while the new fetch is in-flight.
+      clearProfile();
+      setIsLoading(true);
+
       try {
-        const profileData = await getMyProfile();
-        const fetchedUserId = profileData?.userId ?? null;
-        setViewerUserId(fetchedUserId);
-      } catch (err) {
-        console.error('Failed to fetch viewer profile:', err);
-        setViewerUserId(null);
-      }
-    };
-
-    fetchViewerId();
-  }, []);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!userId) {
-        try {
-          setIsLoading(true);
-          const profileData = await getMyProfile();
-          if (profileData?.userId) {
-            navigate(`/users/${profileData.userId}`, { replace: true });
+        // Step 1 — Identify the currently logged-in viewer (one call).
+        // If there is no token we can still view a public profile, just
+        // without knowing the viewer's identity.
+        let myId = null;
+        if (token) {
+          try {
+            const myProfile = await getMyProfile();
+            myId = myProfile?.userId ?? null;
+          } catch {
+            // Non-fatal: viewer identity is nice-to-have, not required.
           }
-        } catch (err) {
-          console.error('Failed to fetch profile:', err);
-          setError(err.message);
-          navigate('/');
-        } finally {
-          setIsLoading(false);
         }
-        return;
-      }
+        setViewerUserId(myId);
 
-      try {
-        setIsLoading(true);
+        // Step 2 — If no userId in the URL, redirect to the viewer's own profile.
+        if (!userId) {
+          if (myId) {
+            navigate(`/users/${myId}`, { replace: true });
+          } else {
+            navigate('/');
+          }
+          return;
+        }
+
+        // Step 3 — Fetch the target profile and its follow stats in parallel.
         const [profileData, statsData] = await Promise.all([
           getUserProfile(userId),
-          getFollowStats(userId)
+          getFollowStats(userId),
         ]);
 
         setCurrentProfile(profileData);
         setFollowStats(statsData);
         setIsFollowing(statsData?.isFollowedByCurrentUser || false);
-        setError(null);
       } catch (err) {
+        console.error('Failed to fetch profile:', err);
         setError(err.message);
+        if (!userId) navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProfile();
-  }, [userId, setCurrentProfile, setFollowStats, setIsLoading, setError, navigate]);
+    fetchProfileData();
+  // Re-run only when the target profile changes (userId param).
+  // Deliberately omit the setter callbacks from deps — they are stable
+  // references from Zustand and including them would cause spurious re-runs.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  const isOwnProfile = currentProfile?.userId && viewerUserId === currentProfile?.userId;
+  const isOwnProfile = !!(currentProfile?.userId && viewerUserId === currentProfile?.userId);
 
+  // ── Follow / Unfollow ──────────────────────────────────────────────────────
   const handleFollow = async () => {
     try {
       setIsLoading(true);
@@ -130,14 +136,17 @@ export default function ProfilePage() {
     }
   };
 
+  // ── Edit profile ───────────────────────────────────────────────────────────
   const handleEditProfile = async ({ avatarFile, ...profileData }) => {
     try {
       setIsUpdating(true);
       await updateProfile(profileData);
       if (avatarFile) {
         await uploadProfilePicture(avatarFile);
+        // Add a slight delay to ensure the backend has completely written the file before we re-fetch the profile
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setImageUpdateStamp(Date.now());
       }
-
       const updatedProfile = await getUserProfile(currentProfile?.userId || userId);
       setCurrentProfile(updatedProfile);
       setShowEditModal(false);
@@ -148,20 +157,23 @@ export default function ProfilePage() {
     }
   };
 
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (isLoading && !currentProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500" />
       </div>
     );
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="relative min-h-screen font-sans py-10 bg-black/20">
       <div className="absolute inset-0 -z-10" />
       <NavBar onVisibilityChange={setIsNavVisible} />
-      <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible ? 'pt-20' : 'pt-4'} `}>
+      <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible ? 'pt-20' : 'pt-4'}`}>
         <div className="w-full px-4 md:px-8 lg:px-12">
+
           {error && (
             <div className="mb-6 flex gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -194,13 +206,20 @@ export default function ProfilePage() {
                 onViewFollowers={() => setSearchParams({ tab: 'followers' })}
                 onViewFollowing={() => setSearchParams({ tab: 'following' })}
                 onViewLibrary={() => setSearchParams({ tab: 'library' })}
+                onViewNotifications={() => setSearchParams({ tab: 'notifications' })}
                 activeTab={activeTab}
               />
 
               <div>
-                {activeTab === 'followers' || activeTab === 'following' ? (
-                  <FollowersFollowing userId={currentProfile?.userId} isOwnProfile={isOwnProfile} activeTab={activeTab} />
-                ) : (isOwnProfile || currentProfile.isHistoryPublic) ? (
+                {activeTab === 'notifications' && isOwnProfile ? (
+                  <NotificationsTab />
+                ) : activeTab === 'followers' || activeTab === 'following' ? (
+                  <FollowersFollowing
+                    userId={currentProfile?.userId}
+                    isOwnProfile={isOwnProfile}
+                    activeTab={activeTab}
+                  />
+                ) : isOwnProfile || currentProfile.isHistoryPublic ? (
                   <UserLibraries
                     userId={currentProfile?.userId}
                     isOwnProfile={isOwnProfile}
@@ -209,7 +228,7 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <div className="text-center py-12">
-                    <p className="text-zinc-400">This user's history is private</p>
+                    <p className="text-zinc-400">This user&apos;s history is private</p>
                   </div>
                 )}
               </div>
