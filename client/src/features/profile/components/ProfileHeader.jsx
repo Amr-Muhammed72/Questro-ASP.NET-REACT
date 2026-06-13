@@ -1,5 +1,6 @@
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { Calendar, Users, Star } from 'lucide-react';
+import { useProfileStore } from '../store/useProfileStore';
 const BASE_URL = 'http://localhost:5222';
 
 const getInitialAvatar = (firstName) => {
@@ -9,9 +10,15 @@ const getInitialAvatar = (firstName) => {
 
 const ProfileHeader = memo(({ user, isOwnProfile, followStats, onFollowersClick, onFollowingClick }) => {
   const [imageError, setImageError] = useState(false);
+  const { imageUpdateStamp } = useProfileStore();
+
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.profilePicUrl, imageUpdateStamp]);
+
   if (!user) return null;
 
-  const profilePicUrl = user.profilePicUrl ? `${BASE_URL}${user.profilePicUrl}` : null;
+  const profilePicUrl = user.profilePicUrl ? `${BASE_URL}${user.profilePicUrl}?t=${imageUpdateStamp}` : null;
   const initials = getInitialAvatar(user.firstName);
 
   const joinDate = user.joinDate ? new Date(user.joinDate).toLocaleDateString('en-US', {

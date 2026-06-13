@@ -5,11 +5,14 @@ export const useProfileStore = create((set) => ({
   followStats: null,
   isLoading: false,
   error: null,
+  imageUpdateStamp: Date.now(),
 
   setCurrentProfile: (profile) => set({
     currentProfile: profile,
     error: null
   }),
+
+  setImageUpdateStamp: (stamp) => set({ imageUpdateStamp: stamp }),
 
   setFollowStats: (stats) => set({ followStats: stats }),
 
@@ -20,6 +23,7 @@ export const useProfileStore = create((set) => ({
   clearProfile: () => set({
     currentProfile: null,
     followStats: null,
-    error: null
+    error: null,
+    imageUpdateStamp: Date.now()
   })
 }));

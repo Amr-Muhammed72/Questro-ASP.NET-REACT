@@ -6,6 +6,7 @@ import GuestActions from './GuestActions';
 import UserActions from './UserActions';
 import MobileMenu from './MobileMenu';
 import { useAuth } from '../../features/auth/store/AuthContext';
+import NotificationDropdown from '../../features/notifications/components/NotificationDropdown';
 
 const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -87,7 +88,8 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
         </div>
 
         {/* Desktop Actions */}
-        <div className="hidden lg:flex items-center">
+        <div className="hidden lg:flex items-center gap-4">
+          {isAuthenticated && <NotificationDropdown />}
           {isAuthenticated ? <UserActions /> : <GuestActions />}
         </div>
 

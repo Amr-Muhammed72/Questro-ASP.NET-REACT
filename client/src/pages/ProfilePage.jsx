@@ -18,6 +18,7 @@ import FollowersFollowing from '../features/profile/components/FollowersFollowin
 import EditProfileForm from '../features/profile/components/EditProfileForm';
 import NavBar from '../components/layout/NavBar';
 import { AlertCircle } from 'lucide-react';
+import NotificationsTab from '../features/notifications/components/NotificationsTab';
 
 export default function ProfilePage() {
   const { userId } = useParams();
@@ -35,6 +36,7 @@ export default function ProfilePage() {
     setIsLoading,
     setError,
     clearProfile,
+    setImageUpdateStamp,
   } = useProfileStore();
 
   const [viewerUserId, setViewerUserId] = useState(null);
@@ -141,6 +143,9 @@ export default function ProfilePage() {
       await updateProfile(profileData);
       if (avatarFile) {
         await uploadProfilePicture(avatarFile);
+        // Add a slight delay to ensure the backend has completely written the file before we re-fetch the profile
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setImageUpdateStamp(Date.now());
       }
       const updatedProfile = await getUserProfile(currentProfile?.userId || userId);
       setCurrentProfile(updatedProfile);
@@ -201,11 +206,14 @@ export default function ProfilePage() {
                 onViewFollowers={() => setSearchParams({ tab: 'followers' })}
                 onViewFollowing={() => setSearchParams({ tab: 'following' })}
                 onViewLibrary={() => setSearchParams({ tab: 'library' })}
+                onViewNotifications={() => setSearchParams({ tab: 'notifications' })}
                 activeTab={activeTab}
               />
 
               <div>
-                {activeTab === 'followers' || activeTab === 'following' ? (
+                {activeTab === 'notifications' && isOwnProfile ? (
+                  <NotificationsTab />
+                ) : activeTab === 'followers' || activeTab === 'following' ? (
                   <FollowersFollowing
                     userId={currentProfile?.userId}
                     isOwnProfile={isOwnProfile}
