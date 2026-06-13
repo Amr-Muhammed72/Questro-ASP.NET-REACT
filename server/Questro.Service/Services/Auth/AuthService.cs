@@ -1,11 +1,11 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Questro.Core.Entities.UserManagement;
 using Questro.Core.Entities.Users;
-using Questro.Infrastructure.Data;
+using Questro.Core.Specifications.Auth;
+using Questro.Infrastructure.Abstractions;
 using Questro.Service.Abstractions.Auth;
 using Questro.Shared.Contracts.Auth;
 using Questro.Shared.Contracts.OTP;
@@ -26,7 +26,8 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _SignInManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IGenericRepository<RefreshToken> _refreshTokenRepo;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly JwtOptions _jwtOptions;
     private readonly IValidator<RegisterRequestDto> _validator;
     private readonly IOTPService _otpService;
@@ -36,7 +37,8 @@ public class AuthService : IAuthService
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<ApplicationRole> roleManager,
-        ApplicationDbContext dbContext,
+        IGenericRepository<RefreshToken> refreshTokenRepo,
+        IUnitOfWork unitOfWork,
         IOptions<JwtOptions> jwtOptions,
         IValidator<RegisterRequestDto> validator,
         IOTPService OTPService
@@ -44,7 +46,8 @@ public class AuthService : IAuthService
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        _dbContext = dbContext;
+        _refreshTokenRepo = refreshTokenRepo;
+        _unitOfWork = unitOfWork;
         _jwtOptions = jwtOptions.Value;
         _validator = validator;
         _SignInManager = signInManager;
@@ -71,58 +74,32 @@ public class AuthService : IAuthService
         var existingByUserName = await _userManager.FindByNameAsync(userName);
         if (existingByUserName is not null)
             return Result.Failure<RegisterResponseDto>(UserError.UserNameAlreadyExists);
-
-        var identityUser = new ApplicationUser
+        await _otpService.SendOTPAsync(
+                        new SendOtpRequestDto(request.Email),
+                         cancellationToken);
+        // Create temporary user data for response (without creating account in DB)
+        var tempUser = new
         {
+            UserId = 0L, // Will be set after user is created on OTP verification
             UserName = userName,
-            Email = email,
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
-            Gender = request.Gender?.Trim(),
-            BirthDate = request.BirthDate,
-            Age = CalculateAge(request.BirthDate),
-            JoinDate = DateTime.UtcNow,
-            PrimaryInterest = UserInterest.Mixed,
-            EmailConfirmed = false
+            Email = email
         };
 
-        var identityCreateResult = await _userManager.CreateAsync(identityUser, request.Password);
-        if (!identityCreateResult.Succeeded)
-            return Result.Failure<RegisterResponseDto>(
-             UserError.RegistrationFailed,
-                    identityCreateResult.Errors.Select(e => e.Description).ToList()
-                            );
 
-        const string defaultRole = "User";
-        if (!await _roleManager.RoleExistsAsync(defaultRole))
-        {
-            var roleResult = await _roleManager.CreateAsync(new ApplicationRole { Name = defaultRole });
-            if (!roleResult.Succeeded)
-                return Result.Failure<RegisterResponseDto>
-                    (UserError.RegistrationFailed, roleResult.Errors.Select(e => e.Description).ToList());
-        }
 
-        var addToRoleResult = await _userManager.AddToRoleAsync(identityUser, defaultRole);
-        if (!addToRoleResult.Succeeded)
-            return Result.Failure<RegisterResponseDto>(
-                UserError.RegistrationFailed, addToRoleResult.Errors.Select(e => e.Description).ToList());
-
-        await _otpService.SendOTPAsync(
-                        new SendOtpRequestDto(identityUser.Email),
-                         cancellationToken);
-
-        
-
+        // Return empty tokens since user hasn't completed registration yet
         return Result.Success(new RegisterResponseDto(
-            identityUser.Id,
-            identityUser.UserName ?? string.Empty,
-            identityUser.FirstName ?? string.Empty,
-            identityUser.LastName ?? string.Empty,
-            identityUser.Email ?? string.Empty,
-            null,
-            null,
-            default,
-            default));
+            tempUser.UserId,
+            tempUser.UserName,
+            tempUser.FirstName,
+            tempUser.LastName,
+            tempUser.Email,
+            string.Empty, // AccessToken will be provided after OTP verification
+            string.Empty, // RefreshToken will be provided after OTP verification
+            DateTime.UtcNow,
+            DateTime.UtcNow));
     }
     public async Task<Result<LogInResponseDto>> LogInAsync(LogInRequestDto request, CancellationToken cancellationToken = default)
     {
@@ -134,44 +111,67 @@ public class AuthService : IAuthService
         if (user is null)
         {
             user = await _userManager.FindByNameAsync(input);
-            if(user is null)
+            if (user is null)
                 return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
         }
         // pass check 
-        var isValid = await _SignInManager.CheckPasswordSignInAsync(user, request.Password , true);
+        var isValid = await _SignInManager.CheckPasswordSignInAsync(user, request.Password, true);
         if (isValid.IsLockedOut)
             return Result.Failure<LogInResponseDto>(UserError.UserLockedOut);
         if (isValid.IsNotAllowed)
             return Result.Failure<LogInResponseDto>(UserError.LoginNotAllowed);
         if (!isValid.Succeeded)
             return Result.Failure<LogInResponseDto>(UserError.InvalidCredentials);
-        await _otpService.SendOTPAsync(
-                new SendOtpRequestDto(user.Email),
-                 cancellationToken);
+        // Create Accesss Tokens
+        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
+        // revoke old tokens 
+        await RevokeActiveRefreshTokensAsync(user.Id, cancellationToken);
+
+        var refreshTokenValue = GenerateRefreshToken();
+        var refreshTokenExpiresOnUtc =
+            DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
+            ? _jwtOptions.RefreshTokenExpirationDays : 7);
+
+        // Save Refresh Token in DB
+        await _refreshTokenRepo.AddAsync(new RefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshTokenValue,
+            CreatedOnUtc = DateTime.UtcNow,
+            ExpiresOnUtc = refreshTokenExpiresOnUtc
+        }, cancellationToken);
+
+        var saved = await _unitOfWork.CompleteAsync(cancellationToken);
+        if (saved == 0)
+            return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
         return Result.Success(new LogInResponseDto(
              user.Id,
              user.UserName ?? string.Empty,
              user.FirstName ?? string.Empty,
              user.LastName ?? string.Empty,
              user.Email ?? string.Empty,
-             null,
-             null,
-             default,
-             default ));
+             accessToken,
+             refreshTokenValue,
+             accessTokenExpiresOnUtc,
+             refreshTokenExpiresOnUtc));
     }
 
     public async Task<Result> LogOutAsync(string? refreshToken, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(refreshToken))
             return Result.Failure(UserError.InvalidRefreshToken);
-        var token = await _dbContext.RefreshTokens
-        .FirstOrDefaultAsync(x => x.Token == refreshToken, cancellationToken);
-        if(token is null) 
+
+        var spec = new RefreshTokenByValueSpecification(refreshToken);
+        var token = await _refreshTokenRepo.GetEntityWithSpecAsync(spec, cancellationToken);
+
+        if (token is null)
             return Result.Failure(UserError.InvalidRefreshToken);
 
         token.RevokedOnUtc = DateTime.UtcNow;
-        var done = await _dbContext.SaveChangesAsync(cancellationToken);
-        if (done == 0 )
+        _refreshTokenRepo.Update(token);
+
+        var done = await _unitOfWork.CompleteAsync(cancellationToken);
+        if (done == 0)
             return Result.Failure(UserError.LogoutFailed);
         return Result.Success();
     }
@@ -181,9 +181,8 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(providedToken))
             return Result.Failure<RefreshTokenResponseDto>(UserError.InvalidRefreshToken);
 
-        var existingRefreshToken = await _dbContext.RefreshTokens
-            .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.Token == providedToken, cancellationToken);
+        var spec = new RefreshTokenWithUserByValueSpecification(providedToken);
+        var existingRefreshToken = await _refreshTokenRepo.GetEntityWithSpecAsync(spec, cancellationToken);
 
         if (existingRefreshToken is null || existingRefreshToken.RevokedOnUtc is not null || existingRefreshToken.ExpiresOnUtc <= DateTime.UtcNow)
             return Result.Failure<RefreshTokenResponseDto>(UserError.InvalidRefreshToken);
@@ -195,8 +194,9 @@ public class AuthService : IAuthService
         var newRefreshTokenExpiresOnUtc = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0 ? _jwtOptions.RefreshTokenExpirationDays : 7);
 
         existingRefreshToken.RevokedOnUtc = DateTime.UtcNow;
+        _refreshTokenRepo.Update(existingRefreshToken);
 
-        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        await _refreshTokenRepo.AddAsync(new RefreshToken
         {
             UserId = user.Id,
             Token = newRefreshTokenValue,
@@ -204,7 +204,7 @@ public class AuthService : IAuthService
             ExpiresOnUtc = newRefreshTokenExpiresOnUtc
         }, cancellationToken);
 
-        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        var saved = await _unitOfWork.CompleteAsync(cancellationToken);
         if (saved == 0)
             return Result.Failure<RefreshTokenResponseDto>(UserError.RegistrationFailed);
 
@@ -221,49 +221,88 @@ public class AuthService : IAuthService
         if (verifyResult.IsFailure)
             return Result.Failure<LogInResponseDto>(verifyResult.Error);
 
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var identityUser = new ApplicationUser
+        {
+            UserName = request.UserName,
+            Email = request.Email,
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
+            Gender = request.Gender?.Trim(),
+            BirthDate = request.BirthDate,
+            Age = CalculateAge(request.BirthDate),
+            JoinDate = DateTime.UtcNow,
+            PrimaryInterest = UserInterest.Mixed,
+            EmailConfirmed = false
+        };
+
+        var identityCreateResult = await _userManager.CreateAsync(identityUser, request.Password);
+        if (!identityCreateResult.Succeeded)
+            return Result.Failure<LogInResponseDto>(
+             UserError.RegistrationFailed,
+                    identityCreateResult.Errors.Select(e => e.Description).ToList()
+                            );
+
+        const string defaultRole = "User";
+        if (!await _roleManager.RoleExistsAsync(defaultRole))
+        {
+            var roleResult = await _roleManager.CreateAsync(new ApplicationRole { Name = defaultRole });
+            if (!roleResult.Succeeded)
+                return Result.Failure<LogInResponseDto>
+                    (UserError.RegistrationFailed, roleResult.Errors.Select(e => e.Description).ToList());
+        }
+
+        var addToRoleResult = await _userManager.AddToRoleAsync(identityUser, defaultRole);
+        if (!addToRoleResult.Succeeded)
+            return Result.Failure<LogInResponseDto>(
+                UserError.RegistrationFailed, addToRoleResult.Errors.Select(e => e.Description).ToList());
 
         // Create Accesss Tokens
-        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(user);
+        var (accessToken, accessTokenExpiresOnUtc) = await GenerateAccessTokenAsync(identityUser);
         // revoke old tokens 
-        var oldTokens = await _dbContext.RefreshTokens
-                          .Where(x => x.UserId == user.Id && x.RevokedOnUtc == null)
-                          .ToListAsync();
+        await RevokeActiveRefreshTokensAsync(identityUser.Id, cancellationToken);
 
-        foreach (var token in oldTokens)
-        {
-            token.RevokedOnUtc = DateTime.UtcNow;
-        }
         var refreshTokenValue = GenerateRefreshToken();
         var refreshTokenExpiresOnUtc =
             DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays > 0
             ? _jwtOptions.RefreshTokenExpirationDays : 7);
 
         // Save Refresh Token in DB
-        await _dbContext.RefreshTokens.AddAsync(new RefreshToken
+        await _refreshTokenRepo.AddAsync(new RefreshToken
         {
-            UserId = user.Id,
+            UserId = identityUser.Id,
             Token = refreshTokenValue,
             CreatedOnUtc = DateTime.UtcNow,
             ExpiresOnUtc = refreshTokenExpiresOnUtc
         }, cancellationToken);
 
-        var saved = await _dbContext.SaveChangesAsync(cancellationToken);
+        var saved = await _unitOfWork.CompleteAsync(cancellationToken);
         if (saved == 0)
             return Result.Failure<LogInResponseDto>(UserError.LogInFailed);
         return Result.Success(new LogInResponseDto(
-             user.Id,
-             user.UserName ?? string.Empty,
-             user.FirstName ?? string.Empty,
-             user.LastName ?? string.Empty,
-             user.Email ?? string.Empty,
+             identityUser.Id,
+             identityUser.UserName ?? string.Empty,
+             identityUser.FirstName ?? string.Empty,
+             identityUser.LastName ?? string.Empty,
+             identityUser.Email ?? string.Empty,
              accessToken,
              refreshTokenValue,
              accessTokenExpiresOnUtc,
              refreshTokenExpiresOnUtc));
     }
 
-    
+
+    private async Task RevokeActiveRefreshTokensAsync(long userId, CancellationToken cancellationToken)
+    {
+        var spec = new ActiveRefreshTokensByUserSpecification(userId);
+        var oldTokens = await _refreshTokenRepo.ListAsync(spec, cancellationToken);
+
+        foreach (var token in oldTokens)
+        {
+            token.RevokedOnUtc = DateTime.UtcNow;
+            _refreshTokenRepo.Update(token);
+        }
+    }
+
     private async Task<(string Token, DateTime ExpiresOnUtc)> GenerateAccessTokenAsync(ApplicationUser user)
     {
         var key = _jwtOptions.Key;
@@ -321,5 +360,5 @@ public class AuthService : IAuthService
         return age < 0 ? 0 : age;
     }
 
-    
+
 }

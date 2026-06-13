@@ -225,7 +225,6 @@ public sealed class MovieInteractionService : IMovieInteractionService
         var mapped = reviews
             .Select(x => new MovieReviewDto(
                 x.Id,
-                x.MovieId,
                 movie.TMDB_Id,
                 x.UserId,
                 x.User?.UserName,
@@ -295,7 +294,6 @@ public sealed class MovieInteractionService : IMovieInteractionService
         var userName = await GetUserNameAsync(userId);
         return Result.Success(new MovieReviewDto(
             review.Id,
-            review.MovieId,
             movie.TMDB_Id,
             review.UserId,
             userName,
@@ -349,7 +347,6 @@ public sealed class MovieInteractionService : IMovieInteractionService
         var userName = await GetUserNameAsync(userId);
         return Result.Success(new MovieReviewDto(
             existingReview.Id,
-            existingReview.MovieId,
             movie.TMDB_Id,
             existingReview.UserId,
             userName,

@@ -29,20 +29,32 @@ This guide documents the current authentication flow implemented in:
 
 ## Auth Flow Summary
 
-The auth flow is a 2-step OTP-based login flow:
+### Registration (with OTP)
 
-1. Register or log in with email/password.
+1. Frontend calls `POST /api/Auth/register` with email and password.
 2. Backend sends a 6-digit OTP to the user email.
-3. Frontend calls `POST /api/Auth/Verify` with `email` and `otp`.
-4. Backend returns an access token in the response body and sets the refresh token in an `HttpOnly` cookie.
+3. **User is NOT stored in the database yet** – only OTP is generated and sent.
+4. Frontend calls `POST /api/Auth/Verify` with `email`, `otp`, and additional registration details (`UserName`, `FirstName`, `LastName`, `Gender`, `BirthDate`, `Password`).
+5. Backend verifies the OTP, then creates and stores the user in the database.
+6. Backend returns an access token in the response body and sets the refresh token in an `HttpOnly` cookie.
 
 Important behavior:
 
-- Register does not return tokens.
-- Log in does not return tokens.
-- Only `Verify` returns the access token and creates the refresh token cookie.
+- `Register` does NOT store the user in the database or return tokens.
+- `Register` only sends the OTP to the email address.
+- `Verify` creates the user account, returns the access token, and creates the refresh token cookie.
 - OTP expires after `3 minutes`.
 - Resend OTP replaces any previous OTP immediately.
+
+### Login (no OTP)
+
+1. Frontend calls `POST /api/Auth/logIn` with email and password.
+2. Backend returns an access token in the response body and sets the refresh token in an `HttpOnly` cookie immediately.
+
+Important behavior:
+
+- Login returns both access token and refresh token cookie directly.
+- No OTP step required for login.
 
 ## Reset Password Flow Summary
 
@@ -80,7 +92,8 @@ Frontend implication:
 
 ### Access token
 
-- Returned in the JSON body from `POST /api/Auth/Verify`
+- Returned in the JSON body from `POST /api/Auth/logIn` (direct login)
+- Returned in the JSON body from `POST /api/Auth/Verify` (after registration OTP)
 - Returned again from `POST /api/Auth/refresh-token`
 - Frontend should store it in memory or your preferred app auth store
 - Send it as `Authorization: Bearer <token>` on protected APIs
@@ -137,6 +150,7 @@ Request body:
 
 Validation rules:
 
+- `email`: required, valid email, max `256`
 - `userName`: required, max `50`
 - `firstName`: required, max `50`
 - `lastName`: required, max `50`
@@ -186,25 +200,47 @@ Frontend notes:
 - After success, navigate user to OTP verification screen.
 - Use the returned `email` as the source of truth for the verify step.
 
-### 2) Verify OTP and Complete Login
+### 2) Verify OTP and Complete Registration
 
 - Method: `POST`
 - URL: `/api/Auth/Verify`
 - Auth: No
+- Used for: **Registration only** (completes OTP-based registration)
 
 Request body:
 
 ```json
 {
+  "otp": "123456",
+  "userName": "mohamed123",
+  "firstName": "Mohamed",
+  "lastName": "Ali",
   "email": "mohamed@example.com",
-  "otp": "123456"
+  "password": "Password123!",
+  "gender": "Male",
+  "birthDate": "2000-05-10T00:00:00"
 }
 ```
+
+Validation rules:
+
+- `otp`: required, 6 digits, must not be expired (3 minute window)
+- `userName`: required, max `50`, must not already exist
+- `firstName`: required, max `50`
+- `lastName`: required, max `50`
+- `email`: required, must match the email used in register request
+- `userName`: required, max `50`, must not already exist
+- `firstName`: required, max `50`
+- `lastName`: required, max `50`
+- `password`: required, min `8`, max `128`, must match the password used in register request
+- `gender`: optional, max `20`
+- `birthDate`: required, must be a valid date
 
 Success response:
 
 - Status: `200 OK`
 - Also sets `refreshToken` cookie
+- **User is created in the database on successful OTP verification**
 
 ```json
 {
@@ -214,7 +250,8 @@ Success response:
   "lastName": "Ali",
   "email": "mohamed@example.com",
   "accessToken": "jwt-access-token",
-  "accessTokenExpiresOnUtc": "2026-04-27T15:30:00Z"
+  "accessTokenExpiresOnUtc": "2026-04-27T15:30:00Z",
+
 }
 ```
 
@@ -229,15 +266,19 @@ Failure response shape:
 
 Common errors:
 
-- `400` invalid or expired OTP
+- `400` `User.InvalidOtp` – invalid or expired OTP
+- `400` `User.InvalidOtpAttempts` – too many failed OTP attempts
 - `404` user not found
-- `500` login failed while saving refresh token
+- `409` `User.UserNameAlreadyExists`
+- `500` `User.RegistrationFailed` – error while creating user or saving refresh token
 
 Frontend notes:
 
-- This is the only step that finishes authentication.
+- **This is the final step that creates the user account and completes registration after OTP verification.**
+- **Frontend must send all registration details (not just OTP) to complete the registration.**
 - Save `accessToken` from response body.
 - Make sure the request allows cookies so the refresh token can be stored by the browser.
+- The password must match what was sent in the initial register request.
 
 ### 3) Log In
 
@@ -261,15 +302,17 @@ Important note:
 Success response:
 
 - Status: `200 OK`
+- Also sets `refreshToken` cookie
 
 ```json
 {
-  "message": "OTP sent to your email",
   "userId": 15,
   "userName": "mohamed123",
   "firstName": "Mohamed",
   "lastName": "Ali",
-  "email": "mohamed@example.com"
+  "email": "mohamed@example.com",
+  "accessToken": "jwt-access-token",
+  "accessTokenExpiresOnUtc": "2026-04-27T15:30:00Z"
 }
 ```
 
@@ -282,8 +325,9 @@ Common errors:
 
 Frontend notes:
 
-- Do not expect tokens from this endpoint.
-- After success, move user to OTP verification screen.
+- Login returns tokens directly. No OTP step required.
+- Save `accessToken` from response body.
+- Make sure the request allows cookies so the refresh token can be stored by the browser.
 
 ### 4) Resend OTP
 
@@ -320,9 +364,11 @@ Failure response:
 
 Frontend notes:
 
-- This endpoint removes the old OTP and creates a new one.
+- This endpoint generates and sends a new OTP to the email.
+- Used during registration when user requests a new OTP before completing verification.
 - Unlike other auth endpoints, the controller currently returns `400 Bad Request` for every failure, even when the embedded error says `404` or `429`.
 - Frontend should read the error body `code`, not only the HTTP status code.
+- New OTP replaces any previously generated OTP immediately.
 
 ### 5) Refresh Access Token
 
@@ -509,8 +555,7 @@ Common errors:
 Frontend notes:
 
 - This endpoint does not return auth tokens.
-- After success, redirect the user back to the normal login flow.
-- Since login here is OTP-based, the user will still need to log in and verify OTP after resetting the password.
+- After success, redirect the user back to the normal login screen.
 
 ## Error Handling Notes
 
@@ -571,10 +616,9 @@ Recommended frontend normalization:
 ### Login flow
 
 1. Call `POST /api/Auth/logIn`
-2. On success, open OTP screen
-3. Call `POST /api/Auth/Verify`
-4. Store `accessToken`
-5. Use `POST /api/Auth/refresh-token` when access token expires
+2. On success, store `accessToken` and log user in (no OTP required)
+3. Keep credentials enabled so refresh cookie is preserved
+4. Use `POST /api/Auth/refresh-token` when access token expires
 
 ### Reset password flow
 
@@ -587,10 +631,11 @@ Recommended frontend normalization:
 
 ## Quick Checklist
 
-1. Do not expect tokens from `register` or `logIn`.
-2. Expect tokens only after `Verify`.
-3. OTP is `6 digits` and valid for `3 minutes`.
-4. Enable browser credentials for `Verify`, `refresh-token`, and `logOut`.
-5. Normalize on `code`, `en`, and optional `details`.
-6. The login `email` field accepts either email or username.
-7. Reset password is a 3-step flow: request OTP, verify OTP, then submit new password with `resetToken`.
+1. Do not expect tokens from `register`. Expect tokens directly from `logIn` and after `Verify` (registration).
+2. `logIn` returns tokens directly (no OTP required).
+3. `Verify` is only for completing registration after OTP verification.
+4. OTP is `6 digits` and valid for `3 minutes` (registration only).
+5. Enable browser credentials for all endpoints to preserve refresh token cookie.
+6. Normalize on `code`, `en`, and optional `details`.
+7. The login `email` field accepts either email or username.
+8. Reset password is a 3-step flow: request OTP, verify OTP, then submit new password with `resetToken`.

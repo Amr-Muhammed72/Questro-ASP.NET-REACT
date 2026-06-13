@@ -32,50 +32,39 @@ namespace Questro.Service.Services.Auth
             
         }
        
-        public async Task<Result> SendOTPAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default)
+        public  Task<Result> SendOTPAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default)
         {
+            
             var email = request.Email?.Trim().ToLowerInvariant();
-            var user = await _userManager.FindByEmailAsync(email);
-            if(user is null)
-                return Result.Failure(OTPError.UserNotFound);
-            var key = $"OTP:{email}";
+            if(string.IsNullOrEmpty(email))
+                return Task.FromResult(Result.Failure(OTPError.UserNotFound)); var key = $"OTP:{email}";
             if (_cache.TryGetValue(key, out var value))
-                return Result.Failure(OTPError.OtpAlreadySent);
+                return Task.FromResult(Result.Failure(OTPError.OtpAlreadySent));
             var otp = GenerateOtp();
-            _cache.Set(key,HashOtp(otp),TimeSpan.FromMinutes(3));
+            _cache.Set(key,value: HashOtp(otp),TimeSpan.FromMinutes(3));
             var subject = "Your OTP Verification Code";
             var body = _emailTemplateService.GetOtpEmailBody(otp, expiryMinutes: 3);
 
             BackgroundJob.Enqueue<IEmailService>(s =>
-            s.SendEmailAsync(email, subject, body));
-            return Result.Success();
+                     s.SendEmailAsync(email, subject, body));
+            return Task.FromResult(Result.Success());
         }
 
-        public async Task<Result> VerifyOTPAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken = default)
+        public  Task<Result> VerifyOTPAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken = default)
         {
             var email = request.Email.Trim().ToLowerInvariant();
-          
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user is null)
-                return Result.Failure(OTPError.UserNotFound);
 
             var cacheKey = $"OTP:{email}";
 
             if (!_cache.TryGetValue(cacheKey, out string? storedOtp))
-                return Result.Failure(OTPError.InvalidOtp);
+                return Task.FromResult(Result.Failure(OTPError.InvalidOtp));
 
             if (storedOtp != HashOtp(request.Otp))
-                return Result.Failure(OTPError.InvalidOtp);
-
+                return Task.FromResult(Result.Failure(OTPError.InvalidOtp));
           
             _cache.Remove(cacheKey);
-
-            
-            user.EmailConfirmed = true;
-            await _userManager.UpdateAsync(user);
       
-            return Result.Success();
+            return Task.FromResult(Result.Success());
         }
         public async Task<Result> ResendOTPAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default)
         {
