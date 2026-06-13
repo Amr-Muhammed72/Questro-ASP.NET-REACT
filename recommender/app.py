@@ -1,9 +1,10 @@
+import pandas as pd
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 
-from rag import CrossDomainRAGIndex
-from util import generate_recommendation_prompt
+from src.core.rag import CrossDomainRAGIndex
+from src.core.util import generate_recommendation_prompt
 
 app = Flask(__name__)
 
@@ -12,8 +13,8 @@ port = int(os.getenv('PORT', 5000))
 
 CORS(app, origins=[client_url])
 
-INDEX_FILE = "./data_cache/faiss_index.bin"
-META_FILE = "./data_cache/metadata.json"
+INDEX_FILE = "./vector_store/faiss_index.bin"
+META_FILE = "./vector_store/metadata.db"
 
 rag_system = None
 
@@ -43,7 +44,7 @@ def recommend():
     data = request.get_json() or {}
     
     query = data.get("query")
-    top_k = data.get("top_k", 5)
+    top_k = min(int(data.get("top_k", 5)), 50)
     user_profile = data.get("user_profile", None)
 
     if not query:
@@ -69,8 +70,6 @@ def recommend():
         return jsonify({"error": f"An error occurred during processing: {str(e)}"}), 500
 
 
-with app.app_context():
-    initialize_rag()
-
 if __name__ == "__main__":
+    initialize_rag()
     app.run(host="0.0.0.0", port=port, debug=False)

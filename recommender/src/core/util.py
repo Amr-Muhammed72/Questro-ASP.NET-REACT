@@ -5,12 +5,12 @@ import shutil
 import glob
 import os
 
-# Load spaCy once
-nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"]) # Disable what you don't need!
+nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "tagger", "parser", "ner"])
 def batch_normalize_text(texts_list, column_name="Text"):
+    """Batch normalizes text using spaCy lemmatization."""
     cleaned_texts = []
     
-    pipe = nlp.pipe(texts_list, batch_size=128, n_process=4)
+    pipe = nlp.pipe(texts_list, batch_size=256, n_process=4)
     
     for doc in tqdm(pipe, total=len(texts_list), desc=f"Processing {column_name}"): 
         clean_string = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
@@ -20,8 +20,7 @@ def batch_normalize_text(texts_list, column_name="Text"):
         
 
 def normalize_text(text: str) -> str:
-    """Processes a single query string using spaCy safely."""
-    # Guard check: if an array accidentally slips in from the API, flatten it
+    """Processes a single query string using spaCy lemmatization."""
     if isinstance(text, list):
         text = " ".join([str(t) for t in text])
         
@@ -39,7 +38,6 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_
         context += f"Themes: {data['themes']}\n"
         context += f"Description: {data['narrative']}\n"
 
-    # Format the user profile if one is provided
     profile_context = ""
     if user_profile:
         profile_context = "User Background & Preferences:\n"
@@ -66,6 +64,7 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_
     return prompt
 
 def clean_disk():
+    """Cleans up temporary disk caches if needed."""
     parquet_files = glob.glob("./data_cache/*.parquet")
     for file_path in parquet_files:
         try:

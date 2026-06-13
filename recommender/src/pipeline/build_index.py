@@ -1,16 +1,17 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import gc
-import itertools
 import pandas as pd
 
-from dataset_downloader import get_all_datasets
+from src.pipeline.dataset_downloader import get_all_datasets
+from src.core.rag import CrossDomainRAGIndex
+from src.core.util import generate_recommendation_prompt, batch_normalize_text, clean_disk
+from src.pipeline.preprocess import unify_and_format_domain
 
-from rag import CrossDomainRAGIndex
-from util import generate_recommendation_prompt,batch_normalize_text, clean_disk
-from preprocess import unify_and_format_domain
-
-INDEX_FILE = "./data_cache/faiss_index.bin"
-META_FILE = "./data_cache/metadata.json"
+INDEX_FILE = "./vector_store/faiss_index.bin"
+META_FILE = "./vector_store/metadata.db"
 
 def get_unified_records(datasets: dict) -> list:
     
@@ -22,10 +23,10 @@ def get_unified_records(datasets: dict) -> list:
     
     print(f"Applying text normalization to {len(unified_df)} records...")
     
-    unified_df['norm_title'] = batch_normalize_text(unified_df['title'].astype(str))
-    unified_df['norm_creators'] = batch_normalize_text(unified_df['creators'].astype(str))
-    unified_df['norm_themes'] = batch_normalize_text(unified_df['themes'].astype(str))
-    unified_df['norm_narrative'] = batch_normalize_text(unified_df['narrative'].astype(str))
+    unified_df['norm_title'] = batch_normalize_text(unified_df['title'].astype(str), column_name="title")
+    unified_df['norm_creators'] = batch_normalize_text(unified_df['creators'].astype(str), column_name="creators")
+    unified_df['norm_themes'] = batch_normalize_text(unified_df['themes'].astype(str), column_name="themes")
+    unified_df['norm_narrative'] = batch_normalize_text(unified_df['narrative'].astype(str), column_name="narrative")
 
     print("Building final embedding strings...")
     
@@ -37,7 +38,7 @@ def get_unified_records(datasets: dict) -> list:
         "Narrative: " + unified_df['norm_narrative'] + "."
     )
     
-    columns_to_keep = ['id', 'type', 'title', 'creators', 'themes', 'narrative', 'domain', 'embedding_text']
+    columns_to_keep = ['id', 'type', 'title', 'creators', 'themes', 'narrative', 'domain', 'embedding_text', 'is_adult']
     final_df = unified_df[columns_to_keep]
     
     print(f"Successfully unified {len(final_df)} records.")
@@ -45,6 +46,11 @@ def get_unified_records(datasets: dict) -> list:
     return final_df.to_dict(orient='records')
 
 if __name__ == "__main__":
+    if os.path.exists("./vector_store"):
+        pass
+    else:
+        os.makedirs("./vector_store", exist_ok=True)
+        
     rag_system = CrossDomainRAGIndex()
 
     if os.path.exists(INDEX_FILE) and os.path.exists(META_FILE):

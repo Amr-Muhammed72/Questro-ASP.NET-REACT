@@ -6,17 +6,20 @@ This service is designed as an independent microservice. It exposes a fast, stat
 
 ## 🏗️ Architecture & Design Decisions
 
-To ensure production-grade stability and fast server boot times, the system architecture is strictly decoupled into two distinct phases:
+To ensure production-grade stability and fast server boot times, the system architecture uses a decoupled data layer with strict memory mapping:
 
-1. **Offline Indexing (`build_index.py`):** An intensive ETL pipeline that downloads massive datasets from Hugging Face, unifies disparate schemas, normalizes text using `spaCy`, generates embeddings via `sentence-transformers`, and builds a highly optimized `FAISS` vector index. It cleans up temporary files to save disk space and outputs production-ready `.bin` and `.json` artifacts.
-
-2. **Real-Time Serving (`app.py`):** A lightweight Flask API that loads the pre-built FAISS index into RAM in $O(1)$ time. It strictly serves incoming queries without any heavy data-processing overhead, preventing platform timeouts and out-of-memory (OOM) crashes.
+1. **Vector Storage (`faiss_index.bin`):** Uses FAISS Memory Mapping (`faiss.IO_FLAG_MMAP`) to allow the 2.1+ million vector embeddings to stream directly from the SSD rather than loading into RAM. This effectively eliminates OOM crashes.
+2. **Metadata Storage (`metadata.db`):** Uses SQLite to store the large text payloads (Narratives, Themes, Titles) indexed by FAISS IDs. This performs $O(1)$ disk lookups to retrieve item data without holding massive JSON arrays in RAM.
+3. **Real-Time Serving (`app.py`):** A lightweight Flask API that loads the pre-built artifacts. It serves incoming queries with minimal memory footprint, preventing platform timeouts.
 
 ## ⚙️ Prerequisites
 
 * Python 3.8 or higher
-* Minimum 6GB RAM (required to hold the embedding model and FAISS index in memory)
 * Internet connection (first-time setup only, to download models and datasets)
+* **RAM Requirements:**
+  * **Serving the API:** ~1GB RAM (thanks to FAISS memory-mapping and SQLite disk-lookups).
+  * **Building the Index:** Minimum 8GB RAM (temporarily required by pandas for processing massive datasets).
+* Optional: NVIDIA GPU (CUDA) for significantly faster index building
 
 ## 🚀 Installation & Setup
 
@@ -42,13 +45,12 @@ To ensure production-grade stability and fast server boot times, the system arch
 ## 🛠️ Usage
 
 ### 1. Build the Vector Index
-Before running the API, you must generate the FAISS index and metadata. This script handles data downloading, cleaning, and embedding.
+Before running the API, you must generate the FAISS index and the SQLite metadata DB.
 ```bash
-python build_index.py
+python src/pipeline/build_index.py
 ```
 *   **Input:** Fetches Steam, TMDB, and RAWG datasets from Hugging Face.
-*   **Output:** Generates `./data_cache/faiss_index.bin` and `./data_cache/metadata.json`.
-*   **Cleanup:** Automatically removes raw parquet files and Hugging Face cache to save disk space after completion.
+*   **Output:** Generates `./vector_store/faiss_index.bin` and `./vector_store/metadata.db`.
 
 ### 2. Start the Recommendation API
 
@@ -70,7 +72,14 @@ gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app
 waitress-serve --listen=0.0.0.0:5000 app:app
 ```
 
-The server will initialize the `CrossDomainRAGIndex`, load the artifacts into memory, and listen for requests.
+The server will initialize the `CrossDomainRAGIndex`, map the artifacts into memory, and listen for requests.
+
+### 3. Run Realistic Tests & Visualization
+You can generate 100 realistic test queries and plot their cosine similarity distributions:
+```bash
+python src/tests/generate_100_tests.py
+python src/tests/plot_test_data.py
+```
 
 ## 🔌 API Reference
 
@@ -111,14 +120,17 @@ Retrieves semantically relevant items and generates a prompt for an LLM.
 
 ## 📂 Project Structure
 
-| File | Description |
+| Path | Description |
 | :--- | :--- |
 | `app.py` | Flask entry point; handles API routing and server startup. |
-| `build_index.py` | The main ETL pipeline script to build the vector index from scratch. |
-| `rag.py` | Core class for FAISS indexing, embedding generation, and retrieval logic. |
-| `preprocess.py` | Schema unification logic for Steam, TMDB, and RAWG data. |
-| `dataset_downloader.py` | Utilities for downloading and caching Hugging Face datasets. |
-| `util.py` | Text normalization (spaCy), prompt engineering, and disk maintenance. |
+| `src/core/rag.py` | Core class for FAISS indexing, embedding generation, and retrieval logic using SQLite mapping. |
+| `src/core/util.py` | Text normalization (spaCy) and prompt engineering utilities. |
+| `src/pipeline/build_index.py` | The main ETL pipeline script to build the vector index and database from scratch. |
+| `src/pipeline/dataset_downloader.py` | Utilities for downloading and caching Hugging Face datasets. |
+| `src/pipeline/preprocess.py` | Schema unification logic for Steam, TMDB, and RAWG data. |
+| `src/pipeline/validate_dataset.py` | Validation scripts to ensure data integrity during ETL. |
+| `src/tests/generate_100_tests.py` | Generates 100 nuanced testing queries and evaluates them against the index. |
+| `src/tests/plot_test_data.py` | Parses the test results and generates data visualizations. |
 | `requirements.txt` | List of Python dependencies and the spaCy model. |
 
 ## 🧪 Advanced Configuration
