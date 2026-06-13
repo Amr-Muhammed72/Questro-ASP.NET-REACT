@@ -25,7 +25,7 @@ namespace Questro.Service.Services.Games
         {
             var parameters = specParams ?? new GameSpecParams();
             var safePageIndex = parameters.PageIndex < 1 ? 1 : parameters.PageIndex;
-            var safePageSize = 20;
+            var safePageSize = parameters.PageSize < 1 ? 20 : parameters.PageSize;
 
             if (GameGenreResponseFilter.IsHiddenGenreId(parameters.GenreId))
             {
@@ -137,7 +137,7 @@ namespace Questro.Service.Services.Games
                 });
         }
 
-        public async Task<Result<PagedResponse<GameListItemDto>>> GetTrendingAsync(int take = 20, CancellationToken cancellationToken = default)
+        public async Task<Result<PagedResponse<GameListItemDto>>> GetTrendingAsync(int take = 30, CancellationToken cancellationToken = default)
         {
             var safeTake = take < 1 ? 20 : take;
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
