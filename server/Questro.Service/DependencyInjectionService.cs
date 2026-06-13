@@ -32,6 +32,7 @@ public static class DependencyInjectionService
         services.AddMemoryCache();
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IExternalLoginServices, ExternalLoginServices>();
         services.AddScoped<IOTPService, OTPService>();
         services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
 
@@ -51,6 +52,7 @@ public static class DependencyInjectionService
         services.AddScoped<IUserProfileService, UserProfileService>();
         services.AddScoped<IUserMovieLibraryService, UserMovieLibraryService>();
         services.AddScoped<IUserGameLibraryService, UserGameLibraryService>();
+        services.AddScoped<IFamilyManagementService, FamilyManagementService>();
         services.AddScoped<IUserNetworkService, UserNetworkService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<NewContentNotificationJob>();

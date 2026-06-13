@@ -4,6 +4,7 @@ import GameCard from './GameCard';
 import CategoryHeader from '../../movies/components/CategoryHeader';
 
 export default function GameRow({ title = '', games = [], onTitleClick }) {
+  const displayGames = games.slice(0, 10);
   const rowRef = useRef(null);
   const rafRef = useRef(null);
   const [isAtStart, setIsAtStart] = useState(true);
@@ -61,7 +62,7 @@ export default function GameRow({ title = '', games = [], onTitleClick }) {
           onScroll={handleRowScroll}
           className="flex-1 flex flex-nowrap overflow-x-auto overflow-y-visible gap-3 sm:gap-4 md:gap-5 scroll-smooth snap-x snap-mandatory py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {games.map((game, index) => (
+          {displayGames.map((game, index) => (
             <div key={game.rawgId || game.gameId || index} className="snap-start shrink-0">
                <GameCard game={game} isRowItem={true} />
             </div>

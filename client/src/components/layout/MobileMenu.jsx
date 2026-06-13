@@ -2,11 +2,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../features/auth/store/AuthContext';
 import {authService} from '../../features/auth/api/authService';
+import { useNotificationStore } from '../../features/notifications/store/useNotificationStore';
 
 const MobileMenu = ({ isAuthenticated, onClose }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { unreadCount } = useNotificationStore();
 
   const baseLinks = [
     { name: 'Home', path: '/' },
@@ -21,7 +23,7 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
 
   const handleLogout = async () => {
     try {
-      await authService.logoutUser();
+      await authService.logout();
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
@@ -79,6 +81,18 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
                     className="block px-4 py-3 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors duration-200"
                   >
                     View Profile
+                  </Link>
+                  <Link
+                    to="/profile?tab=notifications"
+                    onClick={onClose}
+                    className="flex justify-between items-center px-4 py-3 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors duration-200"
+                  >
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Link>
                   <button
                     onClick={handleLogout}

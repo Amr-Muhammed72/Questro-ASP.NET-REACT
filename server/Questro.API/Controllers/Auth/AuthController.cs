@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Questro.Service.Abstractions.Auth;
 using Questro.Service.Abstractions;
@@ -5,6 +6,7 @@ using Questro.Shared.Contracts.Auth;
 using Questro.Shared.Contracts.OTP;
 
 using Questro.Shared.Result;
+using System.Security.Claims;
 
 namespace Questro.API.Controllers.Auth;
 
@@ -13,12 +15,12 @@ namespace Questro.API.Controllers.Auth;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
-   
+    private readonly IExternalLoginServices _externalLoginServices;
 
-    public AuthController(IAuthService authService )
+    public AuthController(IAuthService authService, IExternalLoginServices externalLoginServices)
     {
         _authService = authService;
-        
+        _externalLoginServices = externalLoginServices;
     }
   
 
@@ -100,6 +102,76 @@ public class AuthController : ControllerBase
             result.Value.AccessTokenExpiresOnUtc
         });
 
+    }
+
+    
+    [HttpPost("external-login/google")]
+    public async Task<IActionResult> GoogleLogin([FromBody] ExternalLoginRequest request)
+    {
+        var result = await _externalLoginServices.LoginWithGoogleAsync(request);
+        if (result.IsFailure)
+        {
+            var errorResponse = new
+            {
+                code = result.Error.Code,
+                en = result.Error.en,
+                Details = result.Details
+            };
+
+            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+        }
+
+        SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
+
+        return Ok(new
+        {
+            result.Value.IsProfileCompleted,
+            result.Value.UserId,
+            result.Value.UserName,
+            result.Value.FirstName,
+            result.Value.LastName,
+            result.Value.Email,
+            result.Value.AccessToken,
+            result.Value.AccessTokenExpiresOnUtc
+        });
+    }
+
+    [Authorize]
+    [HttpPost("complete-profile")]
+    public async Task<IActionResult> CompleteProfile(
+        [FromBody] CompleteProfileRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        var result = await _authService.CompleteProfileAsync(userId, request, cancellationToken);
+        if (result.IsFailure)
+        {
+            var errorResponse = new
+            {
+                code = result.Error.Code,
+                en = result.Error.en,
+                Details = result.Details
+            };
+
+            return StatusCode(result.Error.StatusCode ?? 500, errorResponse);
+        }
+
+        SetRefreshTokenInCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiresOnUtc);
+
+        return Ok(new
+        {
+            result.Value.IsProfileCompleted,
+            result.Value.UserId,
+            result.Value.UserName,
+            result.Value.FirstName,
+            result.Value.LastName,
+            result.Value.Email,
+            result.Value.AccessToken,
+            result.Value.AccessTokenExpiresOnUtc
+        });
     }
 
     [HttpPost("refresh-token")]

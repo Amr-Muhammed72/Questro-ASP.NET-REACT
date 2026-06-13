@@ -816,8 +816,14 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("ReferenceId")
                         .HasColumnType("int");
+
+                    b.Property<string>("ReferenceName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -954,6 +960,9 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<bool>("IsHistoryPublic")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsProfileCompleted")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("JoinDate")
                         .HasColumnType("datetime2");
 
@@ -973,6 +982,9 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<long?>("ParentId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
@@ -1009,7 +1021,34 @@ namespace Questro.Infrastructure.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
+                    b.HasIndex("ParentId");
+
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.UserManagement.ChildRestriction", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("BlockedGameGenreIds")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BlockedMovieGenreIds")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MaxContentRating")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("MaxMetacriticRating")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("ChildRestrictions");
                 });
 
             modelBuilder.Entity("Questro.Core.Entities.UserManagement.RefreshToken", b =>
@@ -1451,6 +1490,27 @@ namespace Questro.Infrastructure.Migrations
                     b.Navigation("Follower");
                 });
 
+            modelBuilder.Entity("Questro.Core.Entities.UserManagement.ApplicationUser", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("Questro.Core.Entities.UserManagement.ChildRestriction", b =>
+                {
+                    b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
+                        .WithOne("ChildRestriction")
+                        .HasForeignKey("Questro.Core.Entities.UserManagement.ChildRestriction", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Questro.Core.Entities.UserManagement.RefreshToken", b =>
                 {
                     b.HasOne("Questro.Core.Entities.UserManagement.ApplicationUser", "User")
@@ -1527,6 +1587,10 @@ namespace Questro.Infrastructure.Migrations
 
             modelBuilder.Entity("Questro.Core.Entities.UserManagement.ApplicationUser", b =>
                 {
+                    b.Navigation("ChildRestriction");
+
+                    b.Navigation("Children");
+
                     b.Navigation("Followers");
 
                     b.Navigation("Following");

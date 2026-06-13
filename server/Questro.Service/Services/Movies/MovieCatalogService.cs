@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Caching.Memory;
 using Questro.Core.Entities.Movies;
+using Questro.Core.Entities.UserManagement;
+using Questro.Core.Specifications.Family;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.Tmdb.Contracts;
 using Questro.Service.Abstractions.Movies;
@@ -12,23 +16,43 @@ namespace Questro.Service.Services.Movies;
 public sealed class MovieCatalogService : IMovieCatalogService
 {
     private const int DefaultTake = 20;
+    private const int SafeDiscoveryPages = 5;
+    private static readonly TimeSpan SafeCacheExpiration = TimeSpan.FromMinutes(30);
 
     private readonly ITmdbService _tmdbService;
     private readonly IGenericRepository<MovieGenre> _movieGenreRepository;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IGenericRepository<ChildRestriction> _restrictionRepo;
+    private readonly IMemoryCache _memoryCache;
 
     public MovieCatalogService(
         ITmdbService tmdbService,
-        IGenericRepository<MovieGenre> movieGenreRepository)
+        IGenericRepository<MovieGenre> movieGenreRepository,
+        UserManager<ApplicationUser> userManager,
+        IGenericRepository<ChildRestriction> restrictionRepo,
+        IMemoryCache memoryCache)
     {
         _tmdbService = tmdbService;
         _movieGenreRepository = movieGenreRepository;
+        _userManager = userManager;
+        _restrictionRepo = restrictionRepo;
+        _memoryCache = memoryCache;
     }
 
-    public async Task<Result<PagedResponse<MovieListItemDto>>> GetMoviesAsync(MovieSpecParams specParams, CancellationToken cancellationToken = default)
+    // ── Discover / Search ───────────────────────────────────────────────────
+
+    public async Task<Result<PagedResponse<MovieListItemDto>>> GetMoviesAsync(
+        MovieSpecParams specParams, long? userId = null, CancellationToken cancellationToken = default)
     {
         var parameters = specParams ?? new MovieSpecParams();
         var safePageIndex = parameters.PageIndex < 1 ? 1 : parameters.PageIndex;
         var safePageSize = parameters.PageSize < 1 ? DefaultTake : parameters.PageSize;
+
+        var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+        if (restriction is not null && HasActiveMovieRestrictions(restriction))
+        {
+            return await GetDiscoverSafeAsync(parameters, restriction, userId!.Value, safePageIndex, safePageSize, cancellationToken);
+        }
 
         var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
@@ -38,14 +62,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
         if (tmdbResponse?.Results is null || tmdbResponse.Results.Count == 0)
         {
-            return Result.Success(new PagedResponse<MovieListItemDto>
-            {
-                Data = Enumerable.Empty<MovieListItemDto>(),
-                PageNumber = safePageIndex,
-                PageSize = safePageSize,
-                TotalCount = 0,
-                TotalPages = 0
-            });
+            return Result.Success(EmptyPagedResponse<MovieListItemDto>(safePageIndex, safePageSize));
         }
 
         var filtered = tmdbResponse.Results
@@ -63,11 +80,20 @@ public sealed class MovieCatalogService : IMovieCatalogService
         });
     }
 
-    public async Task<Result<IEnumerable<MovieListItemDto>>> GetRecentlyAddedAsync(int take = DefaultTake, CancellationToken cancellationToken = default)
+    // ── Recently Added ──────────────────────────────────────────────────────
+
+    public async Task<Result<IEnumerable<MovieListItemDto>>> GetRecentlyAddedAsync(
+        int take = DefaultTake, long? userId = null, CancellationToken cancellationToken = default)
     {
         var safeTake = take < 1 ? DefaultTake : take;
-        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
+        var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+        if (restriction is not null && HasActiveMovieRestrictions(restriction))
+        {
+            return await GetRecentlyAddedSafeAsync(restriction, userId!.Value, safeTake, cancellationToken);
+        }
+
+        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
         var poolSize = Math.Max(100, safeTake);
         var tmdbMovies = await CollectMoviesAsync(_tmdbService.GetNowPlayingMoviesAsync, poolSize, cancellationToken);
         if (tmdbMovies.Count == 0)
@@ -90,11 +116,20 @@ public sealed class MovieCatalogService : IMovieCatalogService
         return Result.Success<IEnumerable<MovieListItemDto>>(mapped);
     }
 
-    public async Task<Result<IEnumerable<MovieListItemDto>>> GetTrendingAsync(int take = DefaultTake, CancellationToken cancellationToken = default)
+    // ── Trending ────────────────────────────────────────────────────────────
+
+    public async Task<Result<IEnumerable<MovieListItemDto>>> GetTrendingAsync(
+        int take = DefaultTake, long? userId = null, CancellationToken cancellationToken = default)
     {
         var safeTake = take < 1 ? DefaultTake : take;
-        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
+        var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+        if (restriction is not null && HasActiveMovieRestrictions(restriction))
+        {
+            return await GetTrendingSafeAsync(restriction, userId!.Value, safeTake, cancellationToken);
+        }
+
+        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
         var tmdbMovies = await CollectMoviesAsync(_tmdbService.GetTrendingMoviesWeekAsync, safeTake, cancellationToken);
         if (tmdbMovies.Count == 0)
         {
@@ -107,6 +142,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
         return Result.Success<IEnumerable<MovieListItemDto>>(mapped);
     }
+
+    // ── Genres ───────────────────────────────────────────────────────────────
 
     public async Task<Result<IEnumerable<MovieGenreDto>>> GetGenresAsync(CancellationToken cancellationToken = default)
     {
@@ -136,11 +173,21 @@ public sealed class MovieCatalogService : IMovieCatalogService
         return Result.Success<IEnumerable<MovieGenreDto>>(fallback);
     }
 
-    public async Task<Result<IEnumerable<MovieListItemDto>>> GetRecommendedAsync(int take = DefaultTake, CancellationToken cancellationToken = default)
+    // ── Recommended ─────────────────────────────────────────────────────────
+
+    public async Task<Result<IEnumerable<MovieListItemDto>>> GetRecommendedAsync(
+        int take = DefaultTake, long? userId = null, CancellationToken cancellationToken = default)
     {
         var safeTake = take < 1 ? DefaultTake : take;
-        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
+        // Recommended reuses the trending safe path — same data source, just re-ranked
+        var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+        if (restriction is not null && HasActiveMovieRestrictions(restriction))
+        {
+            return await GetTrendingSafeAsync(restriction, userId!.Value, safeTake, cancellationToken);
+        }
+
+        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
         var tmdbMovies = await CollectMoviesAsync(_tmdbService.GetTrendingMoviesWeekAsync, safeTake * 2, cancellationToken);
         if (tmdbMovies.Count == 0)
         {
@@ -159,8 +206,178 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
     public Task<Result<IEnumerable<MovieListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 20, CancellationToken cancellationToken = default)
     {
-        _ = userId;
-        return GetRecommendedAsync(take, cancellationToken);
+        return GetRecommendedAsync(take, userId, cancellationToken);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  SAFE METHODS (Child Accounts — Blacklist Filtering)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private async Task<Result<PagedResponse<MovieListItemDto>>> GetDiscoverSafeAsync(
+        MovieSpecParams parameters,
+        ChildRestriction restriction,
+        long userId,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var isSearch = !string.IsNullOrWhiteSpace(parameters.Search);
+        var cacheKey = isSearch
+            ? BuildSafeCacheKey($"SafeSearch_Movies_{parameters.Search}", userId, restriction)
+            : BuildSafeCacheKey("SafeDiscover_Movies", userId, restriction);
+
+        if (!_memoryCache.TryGetValue(cacheKey, out List<TmdbMovieSummaryDto>? cachedMovies) || cachedMovies is null)
+        {
+            var tasks = new List<Task<TmdbPagedMovieResponse?>>(SafeDiscoveryPages);
+            for (var page = 1; page <= SafeDiscoveryPages; page++)
+            {
+                var fetchParams = new MovieSpecParams
+                {
+                    Search = parameters.Search,
+                    Sort = parameters.Sort,
+                    Language = parameters.Language,
+                    Year = parameters.Year,
+                    MinRating = parameters.MinRating,
+                    MaxRating = parameters.MaxRating,
+                    PageIndex = page,
+                    PageSize = parameters.PageSize
+                };
+
+                tasks.Add(isSearch
+                    ? _tmdbService.SearchMoviesAsync(fetchParams, cancellationToken)
+                    : _tmdbService.DiscoverMoviesAsync(fetchParams, cancellationToken));
+            }
+
+            var responses = await Task.WhenAll(tasks);
+            cachedMovies = FilterMoviesByBlacklist(responses, restriction);
+            _memoryCache.Set(cacheKey, cachedMovies, SafeCacheExpiration);
+        }
+
+        return await PaginateFromCache(cachedMovies, pageIndex, pageSize, cancellationToken);
+    }
+
+    private async Task<Result<IEnumerable<MovieListItemDto>>> GetTrendingSafeAsync(
+        ChildRestriction restriction,
+        long userId,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = BuildSafeCacheKey("SafeTrending_Movies", userId, restriction);
+
+        if (!_memoryCache.TryGetValue(cacheKey, out List<TmdbMovieSummaryDto>? cachedMovies) || cachedMovies is null)
+        {
+            var tasks = Enumerable.Range(1, SafeDiscoveryPages)
+                .Select(page => _tmdbService.GetTrendingMoviesWeekAsync(page, cancellationToken))
+                .ToList();
+
+            var responses = await Task.WhenAll(tasks);
+            cachedMovies = FilterMoviesByBlacklist(responses, restriction);
+            _memoryCache.Set(cacheKey, cachedMovies, SafeCacheExpiration);
+        }
+
+        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
+        var mapped = cachedMovies.Take(take).Select(x => MapLiveMovie(x, genreMap)).ToList();
+        return Result.Success<IEnumerable<MovieListItemDto>>(mapped);
+    }
+
+    private async Task<Result<IEnumerable<MovieListItemDto>>> GetRecentlyAddedSafeAsync(
+        ChildRestriction restriction,
+        long userId,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = BuildSafeCacheKey("SafeRecentlyAdded_Movies", userId, restriction);
+
+        if (!_memoryCache.TryGetValue(cacheKey, out List<TmdbMovieSummaryDto>? cachedMovies) || cachedMovies is null)
+        {
+            var tasks = Enumerable.Range(1, SafeDiscoveryPages)
+                .Select(page => _tmdbService.GetNowPlayingMoviesAsync(page, cancellationToken))
+                .ToList();
+
+            var responses = await Task.WhenAll(tasks);
+
+            // Apply blacklist filter + 30-day recency window
+            var thirtyDaysAgo = DateTime.UtcNow.Date.AddDays(-30);
+            var blockedSet = new HashSet<int>(restriction.BlockedMovieGenreIds);
+
+            cachedMovies = responses
+                .Where(r => r?.Results is not null)
+                .SelectMany(r => r!.Results)
+                .Where(m => !m.GenreIds.Any(g => blockedSet.Contains(g)))
+                .Where(m => ParseDate(m.ReleaseDate) is DateTime rd && rd.Date >= thirtyDaysAgo)
+                .ToList();
+
+            _memoryCache.Set(cacheKey, cachedMovies, SafeCacheExpiration);
+        }
+
+        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
+        var mapped = cachedMovies.Take(take).Select(x => MapLiveMovie(x, genreMap)).ToList();
+        return Result.Success<IEnumerable<MovieListItemDto>>(mapped);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  SHARED HELPERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Core blacklist filter: a movie is safe ONLY IF it does NOT contain ANY blocked genres.
+    /// </summary>
+    private static List<TmdbMovieSummaryDto> FilterMoviesByBlacklist(
+        TmdbPagedMovieResponse?[] responses, ChildRestriction restriction)
+    {
+        var blockedSet = new HashSet<int>(restriction.BlockedMovieGenreIds);
+
+        return responses
+            .Where(r => r?.Results is not null)
+            .SelectMany(r => r!.Results)
+            .Where(m => !m.GenreIds.Any(g => blockedSet.Contains(g)))
+            .ToList();
+    }
+
+    private async Task<Result<PagedResponse<MovieListItemDto>>> PaginateFromCache(
+        List<TmdbMovieSummaryDto> cachedMovies,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var totalCount = cachedMovies.Count;
+        var skip = (pageIndex - 1) * pageSize;
+        var pageSlice = cachedMovies.Skip(skip).Take(pageSize).ToList();
+
+        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
+        var mapped = pageSlice.Select(x => MapLiveMovie(x, genreMap)).ToList();
+
+        return Result.Success(new PagedResponse<MovieListItemDto>
+        {
+            Data = mapped,
+            PageNumber = pageIndex,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        });
+    }
+
+    private static bool HasActiveMovieRestrictions(ChildRestriction r) =>
+        r.BlockedMovieGenreIds.Count > 0 || r.MaxContentRating is not null;
+
+    private async Task<ChildRestriction?> GetChildRestrictionAsync(long? userId, CancellationToken cancellationToken)
+    {
+        if (!userId.HasValue)
+            return null;
+
+        var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+        if (user is null || !user.IsChildAccount)
+            return null;
+
+        var spec = new ChildRestrictionByUserIdSpecification(userId.Value);
+        return await _restrictionRepo.GetEntityWithSpecAsync(spec, cancellationToken);
+    }
+
+    private static string BuildSafeCacheKey(string prefix, long userId, ChildRestriction restriction)
+    {
+        var genreHash = string.Join(",", restriction.BlockedMovieGenreIds.OrderBy(x => x));
+        var ratingHash = restriction.MaxContentRating ?? "none";
+        return $"{prefix}_{userId}_{genreHash}_{ratingHash}";
     }
 
     private async Task<Dictionary<int, string>> GetLocalGenreMapAsync(CancellationToken cancellationToken)
@@ -233,6 +450,15 @@ public sealed class MovieCatalogService : IMovieCatalogService
             genreNames,
             Enumerable.Empty<string>());
     }
+
+    private static PagedResponse<T> EmptyPagedResponse<T>(int pageIndex, int pageSize) => new()
+    {
+        Data = Enumerable.Empty<T>(),
+        PageNumber = pageIndex,
+        PageSize = pageSize,
+        TotalCount = 0,
+        TotalPages = 0
+    };
 
     private static string? BuildImageUrl(string? imagePath, string size)
     {

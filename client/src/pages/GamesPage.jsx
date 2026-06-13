@@ -3,26 +3,19 @@ import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SlidersHorizontal, Search } from 'lucide-react';
 
-import { useGamesDiscovery } from '../features/games/hooks/useGamesDiscovery';
-import useGamesBrowseData from '../features/games/hooks/useGamesBrowseData';
 import { useDebounce } from '../hooks/useDebounce';
 
 import NavBar from '../components/layout/NavBar';
 
 import { AdvancedFiltersDrawer } from '../components/common/AdvancedFiltersDrawer';
-import BrowseView from '../features/games/components/BrowseView';
-import SearchView from '../features/games/components/SearchView';
+import BrowseViewWrapper from '../features/games/components/BrowseViewWrapper';
+import SearchViewWrapper from '../features/games/components/SearchViewWrapper';
 
 const GamesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
-
-  const initialSearch = searchParams.get('search') || '';
-  const initialGenre = searchParams.get('genreId') || null;
-  const initialList = searchParams.get('list') || null;
-
-  const [localSearch, setLocalSearch] = useState(initialSearch);
+  const [localSearch, setLocalSearch] = useState('');
   const debouncedSearch = useDebounce(localSearch, 500);
 
   useEffect(() => {
@@ -37,52 +30,18 @@ const GamesPage = () => {
     }, { replace: true });
   }, [debouncedSearch, setSearchParams]);
 
-  useEffect(() => {
-    setLocalSearch(initialSearch);
-  }, [initialSearch]);
-
-  const {
-    games, 
-    loading: discoveryLoading,
-    hasMore,
-    error,
-    loadMore,
-    updateFilters,
-  } = useGamesDiscovery(); 
-
-  const {
-    trending,
-    recentlyAdded,
-    genresWithGames,
-    sentinelRef,
-    isLoadingMore
-  } = useGamesBrowseData(); 
-
-  const filtersFromParams = useMemo(() => ({
-    search: initialSearch || null,
-    genreId: initialGenre || null,
-    platformId: searchParams.get('platformId') || null,
-    year: searchParams.get('year') || null,
-    minRating: searchParams.get('minRating') || null,
-    maxRating: searchParams.get('maxRating') || null,
-    sort: searchParams.get('sort') || null,
-    list: initialList || null,
-  }), [initialSearch, initialGenre, initialList, searchParams]);
-
-  useEffect(() => {
-    updateFilters(filtersFromParams);
-  }, [filtersFromParams, updateFilters]);
+  const platformId = searchParams.get('platformId') || null;
+  const year = searchParams.get('year') || null;
+  const minRating = searchParams.get('minRating') || null;
+  const maxRating = searchParams.get('maxRating') || null;
+  const sort = searchParams.get('sort') || null;
+  const genreId = searchParams.get('genreId') || null;
+  const list = searchParams.get('list') || null;
+  const search = searchParams.get('search') || null;
 
   const isBrowsing = useMemo(() => {
-    return !filtersFromParams.search &&
-      !filtersFromParams.genreId &&
-      !filtersFromParams.list &&
-      !filtersFromParams.platformId &&
-      !filtersFromParams.year &&
-      !filtersFromParams.minRating &&
-      !filtersFromParams.maxRating &&
-      !filtersFromParams.sort;
-  }, [filtersFromParams]);
+    return !search && !genreId && !list && !platformId && !year && !minRating && !maxRating && !sort;
+  }, [search, genreId, list, platformId, year, minRating, maxRating, sort]);
 
   const handleBrowseGenre = useCallback((genreId) => {
     setSearchParams(prev => {
@@ -100,18 +59,17 @@ const GamesPage = () => {
       <div className="absolute inset-0 bg-black/20 z-0"></div>
       <NavBar onVisibilityChange={setIsNavVisible} forceHidden={areFiltersOpen} />
       <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible && !areFiltersOpen ? 'pt-20' : 'pt-4'}`}>
-        
-        {/* Cinematic Hero Section */}
+
         <div className="w-full relative flex flex-col items-center justify-center min-h-[50vh] md:min-h-[60vh] py-12 px-4 overflow-hidden mb-8">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-[60vw] h-[60vw] max-w-[800px] max-h-[800px]"></div>
           </div>
-          
+
           <div className="relative z-10 w-full max-w-4xl flex flex-col items-center mt-[-4rem]">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-2 drop-shadow-2xl text-center leading-tight">
               Discover The Perfect Game <br className="hidden sm:block" /> With An Effortless Search And Selection
             </h1>
-            
+
             <div className="relative w-full max-w-3xl flex flex-col sm:flex-row items-center gap-4 mt-6">
               <div className="relative w-full">
                 <input
@@ -167,50 +125,26 @@ const GamesPage = () => {
             />
 
             <div className="w-full min-w-0">
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-center mb-8">
-                  Oops! Something went wrong: {error}
-                </div>
-              )}
-
               <AnimatePresence mode="sync">
                 {isBrowsing ? (
-                  <motion.div 
+                  <motion.div
                     key="browsing"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <BrowseView
-                      recentlyAdded={recentlyAdded}
-                      trending={trending}
-                      // Make sure your BrowseView is expecting this prop name!
-                      genresWithGames={genresWithGames} 
-                      onGenreSearch={({ genreId }) => handleBrowseGenre(genreId)}
-                      sentinelRef={sentinelRef}
-                    />
-                    {isLoadingMore && (
-                      <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
-                      </div>
-                    )}
+                    <BrowseViewWrapper onGenreSearch={handleBrowseGenre} />
                   </motion.div>
                 ) : (
-                  <motion.div 
+                  <motion.div
                     key="searching"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <SearchView
-                      games={games} 
-                      loading={discoveryLoading}
-                      hasMore={hasMore}
-                      error={error}
-                      loadMore={loadMore}
-                    />
+                    <SearchViewWrapper />
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -24,7 +24,8 @@ export const useLandingMedia = () => {
         let games = extractData(trendingGamesRes);
 
         if (games.length === 0) {
-          console.log('No trending games found. Fetching recently added games as fallback...');
+
+
           const fallbackGamesRes = await gameService.getRecentlyAdded({ take: 4 });
           games = extractData(fallbackGamesRes);
         }

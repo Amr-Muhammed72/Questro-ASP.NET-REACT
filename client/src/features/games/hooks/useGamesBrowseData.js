@@ -26,7 +26,7 @@ export default function useGamesBrowseData() {
         if (fetchedGenres.current.has(genreId)) return;
         fetchedGenres.current.add(genreId);
         try {
-          const res = await gameService.getGames({ genreId, pageSize: 18, pageIndex: 1 });
+          const res = await gameService.getGames({ genreId, pageSize: 10, pageIndex: 1 });
           const games = res?.data ?? (Array.isArray(res) ? res : []);
           if (games.length > 0) {
             newItems.push({ ...genre, genreId, games });
@@ -73,8 +73,8 @@ export default function useGamesBrowseData() {
     const loadData = async () => {
       try {
         const results = await Promise.allSettled([
-          gameService.getTrending({ take: 18 }),
-          gameService.getRecentlyAdded({ take: 18 }),
+          gameService.getTrending({ take: 10 }),
+          gameService.getRecentlyAdded({ take: 10 }),
           gameService.getGenres()
         ]);
 

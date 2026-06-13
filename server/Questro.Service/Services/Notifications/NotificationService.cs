@@ -49,6 +49,8 @@ public class NotificationService : INotificationService
             Body = un.Notification.Body,
             Type = un.Notification.Type.ToString(),
             ReferenceId = un.Notification.ReferenceId,
+            ReferenceName = un.Notification.ReferenceName,
+            ImageUrl = un.Notification.ImageUrl,
             IsRead = un.IsRead,
             CreatedAt = un.Notification.CreatedAt,
             ReadAt = un.ReadAt
@@ -109,7 +111,7 @@ public class NotificationService : INotificationService
     }
 
     public async Task CreateNotificationForAllUsersAsync(
-        string title, string body, NotificationType type, int? referenceId, CancellationToken cancellationToken = default)
+        string title, string body, NotificationType type, int? referenceId, string? referenceName = null, string? imageUrl = null, CancellationToken cancellationToken = default)
     {
         await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
@@ -121,6 +123,8 @@ public class NotificationService : INotificationService
                 Body = body,
                 Type = type,
                 ReferenceId = referenceId,
+                ReferenceName = referenceName,
+                ImageUrl = imageUrl,
                 CreatedAt = DateTime.UtcNow
             };
 

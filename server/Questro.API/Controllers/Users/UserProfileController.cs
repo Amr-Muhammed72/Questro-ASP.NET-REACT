@@ -9,10 +9,14 @@ namespace Questro.API.Controllers.Users;
 public class UserProfileController : ApiControllerBase
 {
     private readonly IUserProfileService _userProfileService;
+    private readonly IFamilyManagementService _familyManagementService;
 
-    public UserProfileController(IUserProfileService userProfileService)
+    public UserProfileController(
+        IUserProfileService userProfileService,
+        IFamilyManagementService familyManagementService)
     {
         _userProfileService = userProfileService;
+        _familyManagementService = familyManagementService;
     }
 
     [HttpGet("{userId:long}/profile")]
@@ -53,6 +57,17 @@ public class UserProfileController : ApiControllerBase
 
         using var stream = file.OpenReadStream();
         var result = await _userProfileService.UpdateProfilePictureAsync(userId.Value, stream, file.FileName, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [Authorize]
+    [HttpGet("me/restrictions")]
+    public async Task<IActionResult> GetMyRestrictions(CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _familyManagementService.GetMyRestrictionsAsync(userId.Value, cancellationToken);
         return HandleResult(result);
     }
 }
