@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 const PORT = import.meta.env.VITE_PORT || 5222;
 export const BASE_URL = `http://localhost:${PORT}/api`;
 let token = null;
@@ -8,7 +9,7 @@ export const getToken = () => {
     token = localStorage.getItem('accessToken');
   }
   return token;
-}
+};
 
 export const setToken = (newToken) => {
   token = newToken;
@@ -17,7 +18,7 @@ export const setToken = (newToken) => {
   } else {
     localStorage.removeItem('accessToken');
   }
-}
+};
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -27,11 +28,12 @@ export const apiClient = axios.create({
   },
 });
 
+// Intercept requests to automatically attach the token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const currentToken = getToken();
+    if (currentToken) {
+      config.headers.Authorization = `Bearer ${currentToken}`;
     }
     return config;
   },
@@ -42,6 +44,7 @@ apiClient.interceptors.request.use(
 
 let refreshPromise = null;
 
+// Intercept responses to handle token refreshing on 401 errors
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -60,8 +63,7 @@ apiClient.interceptors.response.use(
             setToken(newToken);
             return newToken;
           } catch (refreshError) {
-            token = null;
-            localStorage.removeItem('accessToken');
+            setToken(null);
             window.location.href = '/login';
             throw refreshError;
           } finally {
@@ -81,4 +83,8 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-export default {apiClient, getToken, setToken};
+export default { 
+  apiClient, 
+  getToken, 
+  setToken
+};

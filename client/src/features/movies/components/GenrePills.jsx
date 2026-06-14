@@ -1,5 +1,6 @@
 import React, { useState, useEffect, memo } from 'react';
 import { getGenres } from '../api/movieService';
+import { useFamilyStore } from '../../family/store/useFamilyStore';
 
 const GenrePills = memo(({ activeGenreId, updateFilters }) => {
   const [genres, setGenres] = useState([]);
@@ -22,7 +23,11 @@ const GenrePills = memo(({ activeGenreId, updateFilters }) => {
     return () => { isMounted = false; }
   }, []);
 
-  const displayGenres = genres.length > 0 ? genres : [];
+  const restrictions = useFamilyStore((state) => state.restrictions);
+  const displayGenres = genres.filter(genre => {
+    if (!restrictions || !restrictions.blockedMovieGenreIds) return true;
+    return !restrictions.blockedMovieGenreIds.includes(genre.genreId || genre.id);
+  });
 
   const handleTagClick = (genreId) => {
     // bypass text state and toggle genre pill state

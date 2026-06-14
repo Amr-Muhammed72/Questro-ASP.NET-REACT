@@ -1,6 +1,7 @@
 import { memo, useState, useEffect } from 'react';
-import { Calendar, Users, Star } from 'lucide-react';
+import { Calendar, Users, Star, Baby, ShieldCheck } from 'lucide-react';
 import { useProfileStore } from '../store/useProfileStore';
+import { useFamilyStore } from '../../family/store/useFamilyStore';
 const BASE_URL = 'http://localhost:5222';
 
 const getInitialAvatar = (firstName) => {
@@ -11,6 +12,7 @@ const getInitialAvatar = (firstName) => {
 const ProfileHeader = memo(({ user, isOwnProfile, followStats, onFollowersClick, onFollowingClick }) => {
   const [imageError, setImageError] = useState(false);
   const { imageUpdateStamp } = useProfileStore();
+  const isChildAccount = useFamilyStore((state) => state.isChild);
 
   useEffect(() => {
     setImageError(false);
@@ -53,7 +55,15 @@ const ProfileHeader = memo(({ user, isOwnProfile, followStats, onFollowersClick,
         {/* User Details */}
         <div className="flex-1">
           <div className="mb-6">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">{fullName}</h1>
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-4xl md:text-5xl font-bold text-white bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">{fullName}</h1>
+              {!isChildAccount && isOwnProfile && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 border border-indigo-500/30 rounded-full">
+                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Parent Account</span>
+                </div>
+              )}
+            </div>
             {user.userName && (
               <p className="text-indigo-400 text-lg font-medium">@{user.userName}</p>
             )}
