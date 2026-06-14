@@ -377,9 +377,12 @@ namespace Questro.Service.Services.Games
             CancellationToken cancellationToken)
         {
             var isSearch = !string.IsNullOrWhiteSpace(parameters.Search);
+            // Include every SpecParam that affects the fetched result set in the cache key
+            // so that ?GenreId=4 and ?GenreId=51 never collide in cache.
+            var paramsFingerprint = BuildSpecParamsFingerprint(parameters);
             var cacheKey = isSearch
-                ? BuildSafeCacheKey($"SafeSearch_Games_{parameters.Search}", userId, restriction)
-                : BuildSafeCacheKey("SafeDiscover_Games", userId, restriction);
+                ? BuildSafeCacheKey($"SafeSearch_Games_{parameters.Search}_{paramsFingerprint}", userId, restriction)
+                : BuildSafeCacheKey($"SafeDiscover_Games_{paramsFingerprint}", userId, restriction);
 
             if (!_memoryCache.TryGetValue(cacheKey, out List<RawgGameSummaryDto>? cachedGames) || cachedGames is null)
             {
@@ -394,6 +397,7 @@ namespace Questro.Service.Services.Games
                         Year = parameters.Year,
                         MinRating = parameters.MinRating,
                         MaxRating = parameters.MaxRating,
+                        GenreId = parameters.GenreId,
                         PageIndex = page,
                         PageSize = parameters.PageSize
                     };
@@ -588,6 +592,13 @@ namespace Questro.Service.Services.Games
             var ratingHash = restriction.MaxMetacriticRating?.ToString(CultureInfo.InvariantCulture) ?? "none";
             return $"{prefix}_{userId}_{genreHash}_{ratingHash}";
         }
+
+        /// <summary>
+        /// Builds a deterministic fingerprint from the caller's SpecParams so that
+        /// different filter combinations never share the same safe-discovery cache slot.
+        /// </summary>
+        private static string BuildSpecParamsFingerprint(GameSpecParams p) =>
+            $"g{p.GenreId}_plat{p.PlatformId}_y{p.Year}_min{p.MinRating}_max{p.MaxRating}_s{p.Sort}";
 
         private static PagedResponse<T> EmptyPagedResponse<T>(int pageIndex, int pageSize) => new()
         {

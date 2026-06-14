@@ -76,7 +76,20 @@ public sealed class MovieCatalogService : IMovieCatalogService
             return Result.Success(EmptyPagedResponse<MovieListItemDto>(safePageIndex, safePageSize));
         }
 
-        var filtered = tmdbResponse.Results
+        // TMDB's /search/movie endpoint ignores with_genres and vote_average params.
+        // Apply genre and rating post-filters locally when the caller specifies them on a search.
+        var results = tmdbResponse.Results.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            if (parameters.GenreId.HasValue)
+                results = results.Where(m => m.GenreIds.Contains(parameters.GenreId.Value));
+            if (parameters.MinRating.HasValue)
+                results = results.Where(m => (m.VoteAverage ?? 0) >= parameters.MinRating.Value);
+            if (parameters.MaxRating.HasValue)
+                results = results.Where(m => (m.VoteAverage ?? 0) <= parameters.MaxRating.Value);
+        }
+
+        var filtered = results
             .Take(safePageSize)
             .Select(x => MapLiveMovie(x, genreMap))
             .ToList();
@@ -354,9 +367,12 @@ public sealed class MovieCatalogService : IMovieCatalogService
         CancellationToken cancellationToken)
     {
         var isSearch = !string.IsNullOrWhiteSpace(parameters.Search);
+        // Include every SpecParam that affects the fetched result set in the cache key
+        // so that ?GenreId=16 and ?GenreId=28 never collide in cache.
+        var paramsFingerprint = BuildSpecParamsFingerprint(parameters);
         var cacheKey = isSearch
-            ? BuildSafeCacheKey($"SafeSearch_Movies_{parameters.Search}", userId, restriction)
-            : BuildSafeCacheKey("SafeDiscover_Movies", userId, restriction);
+            ? BuildSafeCacheKey($"SafeSearch_Movies_{parameters.Search}_{paramsFingerprint}", userId, restriction)
+            : BuildSafeCacheKey($"SafeDiscover_Movies_{paramsFingerprint}", userId, restriction);
 
         if (!_memoryCache.TryGetValue(cacheKey, out List<TmdbMovieSummaryDto>? cachedMovies) || cachedMovies is null)
         {
@@ -371,6 +387,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
                     Year = parameters.Year,
                     MinRating = parameters.MinRating,
                     MaxRating = parameters.MaxRating,
+                    GenreId = parameters.GenreId,
                     PageIndex = page,
                     PageSize = parameters.PageSize
                 };
@@ -511,6 +528,13 @@ public sealed class MovieCatalogService : IMovieCatalogService
         var ratingHash = restriction.MaxContentRating ?? "none";
         return $"{prefix}_{userId}_{genreHash}_{ratingHash}";
     }
+
+    /// <summary>
+    /// Builds a deterministic fingerprint from the caller's SpecParams so that
+    /// different filter combinations never share the same safe-discovery cache slot.
+    /// </summary>
+    private static string BuildSpecParamsFingerprint(MovieSpecParams p) =>
+        $"g{p.GenreId}_y{p.Year}_min{p.MinRating}_max{p.MaxRating}_s{p.Sort}_l{p.Language}";
 
     private async Task<Dictionary<int, string>> GetLocalGenreMapAsync(CancellationToken cancellationToken)
     {

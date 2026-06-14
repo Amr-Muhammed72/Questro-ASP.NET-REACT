@@ -40,14 +40,15 @@ public sealed class RawgService : IRawgService
     {
         var query = BuildQuery(new Dictionary<string, string?>
         {
-            [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = ( RawgConstants.QueryValues.DefaultPageSize).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Page]     = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.Ordering] = MapSort(specParams.Sort),
-            [RawgConstants.QueryKeys.Genres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.Platforms] = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
-          
-            [RawgConstants.QueryKeys.MetacriticGte] = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.MetacriticLte] = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture)
+            [RawgConstants.QueryKeys.Genres]   = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Platforms]  = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
+            // RAWG uses a single `dates` param: "YYYY-01-01,YYYY-12-31"
+            [RawgConstants.QueryKeys.Dates]    = BuildRawgDateRange(specParams.Year),
+            // RAWG uses a single `metacritic` param: "min,max" (both bounds optional)
+            [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
         });
 
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
@@ -55,12 +56,18 @@ public sealed class RawgService : IRawgService
 
     public Task<RawgPagedGameResponse?> SearchGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default)
     {
+        // RAWG's games endpoint supports `search` alongside `genres`, `dates`, `metacritic`,
+        // and `platforms` in the same request — unlike TMDB where search and discover are separate.
         var query = BuildQuery(new Dictionary<string, string?>
         {
-            [RawgConstants.QueryKeys.Search] = specParams.Search,
-            [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = (RawgConstants.QueryValues.DefaultPageSize).ToString(CultureInfo.InvariantCulture),
-           
+            [RawgConstants.QueryKeys.Search]   = specParams.Search,
+            [RawgConstants.QueryKeys.Page]     = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
+            // Carry through all remaining filters — RAWG honours them alongside search
+            [RawgConstants.QueryKeys.Genres]     = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Platforms]  = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Dates]      = BuildRawgDateRange(specParams.Year),
+            [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
         });
 
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
@@ -270,6 +277,34 @@ public sealed class RawgService : IRawgService
             .ToArray();
 
         return normalizedTags.Length == 0 ? null : string.Join(",", normalizedTags);
+    }
+
+    /// <summary>
+    /// Builds the RAWG `dates` query parameter from a year filter.
+    /// RAWG expects: "YYYY-01-01,YYYY-12-31"
+    /// </summary>
+    private static string? BuildRawgDateRange(int? year)
+    {
+        if (!year.HasValue)
+            return null;
+
+        return $"{year.Value}-01-01,{year.Value}-12-31";
+    }
+
+    /// <summary>
+    /// Builds the RAWG `metacritic` query parameter from min/max rating bounds.
+    /// RAWG expects a single comma-separated range: "80,100".
+    /// Either bound can be omitted: "80," means "at least 80"; ",90" means "at most 90".
+    /// </summary>
+    private static string? BuildRawgMetacriticRange(double? min, double? max)
+    {
+        if (!min.HasValue && !max.HasValue)
+            return null;
+
+        var minStr = min.HasValue ? ((int)Math.Round(min.Value)).ToString(CultureInfo.InvariantCulture) : string.Empty;
+        var maxStr = max.HasValue ? ((int)Math.Round(max.Value)).ToString(CultureInfo.InvariantCulture) : string.Empty;
+
+        return $"{minStr},{maxStr}";
     }
 
     private string BuildEndpoint(string endpoint)
