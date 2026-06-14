@@ -100,10 +100,20 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
       setError(null);
       const data = await fetcher(userId, page, 18);
 
-      setItems(data.data || []);
+      const rawItems = data.data || [];
+      const itemsList = rawItems.slice(0, 18);
+
+      if (itemsList.length === 0 && page > 1) {
+        currentPageRef.current = 1;
+        setPagination(prev => ({ ...prev, pageNumber: 1 }));
+        fetchLibraryItems(tabId, 1);
+        return;
+      }
+
+      setItems(itemsList);
       setPagination({
         pageNumber: data.pageNumber  ?? page,
-        pageSize:   data.pageSize    ?? 18,
+        pageSize:   18,
         totalCount: data.totalCount  ?? 0,
         totalPages: data.totalPages  ?? 1,
       });

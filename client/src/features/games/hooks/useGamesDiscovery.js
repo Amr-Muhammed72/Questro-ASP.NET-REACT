@@ -48,7 +48,15 @@ export const useGamesDiscovery = () => {
 
       if (currentRequestId !== requestIdRef.current) return;
 
-      const items = Array.isArray(data) ? data : (data.data || []);
+      const rawItems = Array.isArray(data) ? data : (data.data || []);
+      const items = rawItems.slice(0, 18);
+
+      if (items.length === 0 && pageIndex > 1) {
+        paramsRef.current = { ...paramsRef.current, pageIndex: 1 };
+        fetchGames();
+        return;
+      }
+
       setGames(items);
       setCurrentPage(data.pageNumber  ?? pageIndex);
       setTotalPages(data.totalPages   ?? 1);

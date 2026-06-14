@@ -52,6 +52,13 @@ export const useMoviesDiscovery = () => {
 
       // Always replace — this is page-based navigation, not infinite scroll.
       const items = Array.isArray(data) ? data : (data.data || []);
+
+      if (items.length === 0 && pageIndex > 1) {
+        paramsRef.current = { ...paramsRef.current, pageIndex: 1 };
+        fetchMovies();
+        return;
+      }
+
       setMovies(items);
       setCurrentPage(data.pageNumber  ?? pageIndex);
       setTotalPages(data.totalPages   ?? 1);

@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 // Route guards
 import GuestRoute from './guards/GuestRoute';
 import ProtectedRoute from './guards/ProtectedRoute';
+import ParentRoute from './guards/ParentRoute';
 
 // Shared wrapper
 import PageTransition from '../components/common/PageTransition';
@@ -22,6 +23,7 @@ import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 const MoviesPage  = lazy(() => import('../pages/MoviesPage'));
 const GamesPage   = lazy(() => import('../pages/GamesPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
+const FamilyDashboard = lazy(() => import('../features/family/components/FamilyDashboard').then(module => ({ default: module.FamilyDashboard })));
 
 // ── Full-page loading fallback ─────────────────────────────────────────────
 const PageLoader = () => (
@@ -72,6 +74,10 @@ export default function AnimatedRoutes() {
           <Route
             path="/users/:userId"
             element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>}
+          />
+          <Route
+            path="/family-management"
+            element={<ParentRoute><PageTransition><FamilyDashboard /></PageTransition></ParentRoute>}
           />
 
         </Routes>

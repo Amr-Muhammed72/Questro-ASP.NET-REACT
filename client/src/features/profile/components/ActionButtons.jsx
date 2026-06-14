@@ -1,5 +1,7 @@
 import { memo } from 'react';
-import { UserPlus, UserMinus, Edit2, Users, Library, Bell } from 'lucide-react';
+import { UserPlus, UserMinus, Edit2, Users, Library, Bell, Baby } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useFamilyStore } from '../../family/store/useFamilyStore';
 
 const ActionButtons = memo(({
   isOwnProfile,
@@ -18,6 +20,7 @@ const ActionButtons = memo(({
   const isFollowersActive = activeTab === 'followers';
   const isFollowingActive = activeTab === 'following';
   const isNotificationsActive = activeTab === 'notifications';
+  const isChildAccount = useFamilyStore((state) => state.isChild);
 
   if (isOwnProfile) {
     return (
@@ -72,14 +75,26 @@ const ActionButtons = memo(({
           </button>
         </div>
 
-        <button
-          onClick={onEdit}
-          disabled={isLoading}
-          className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-colors disabled:opacity-50 text-white font-medium ml-auto"
-        >
-          <Edit2 className="w-4 h-4" />
-          <span>Edit Profile</span>
-        </button>
+        <div className="flex items-center gap-3 ml-auto">
+          {!isChildAccount && (
+            <Link
+              to="/family-management"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 rounded-lg transition-all shadow-lg shadow-purple-500/20 text-white font-medium group"
+            >
+              <Baby className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+              <span>Family Management</span>
+            </Link>
+          )}
+
+          <button
+            onClick={onEdit}
+            disabled={isLoading}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-colors disabled:opacity-50 text-white font-medium"
+          >
+            <Edit2 className="w-4 h-4" />
+            <span>Edit Profile</span>
+          </button>
+        </div>
       </div>
     );
   }
