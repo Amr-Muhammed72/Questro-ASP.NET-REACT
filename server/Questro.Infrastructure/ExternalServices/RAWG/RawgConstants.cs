@@ -29,7 +29,7 @@ internal static class RawgConstants
 
     internal static class QueryValues
     {
-        public const int DefaultPageSize = 20;
+        public const int DefaultPageSize = 40;
     }
 
     internal static class SortValues

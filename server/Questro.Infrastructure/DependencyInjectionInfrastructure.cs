@@ -13,11 +13,13 @@ using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.Data;
 using Questro.Infrastructure.ExternalServices.Tmdb;
 using Questro.Infrastructure.ExternalServices.RAWG;
+using Questro.Infrastructure.ExternalServices.Recommender;
 using Questro.Infrastructure.Repositories;
 using Questro.Shared.Contracts.Email;
 using Questro.Shared.Options.Jwt;
 using Questro.Shared.Options.Tmdb;
 using Questro.Shared.Options.Rawg;
+using Questro.Shared.Options.Recommender;
 using System.Net;
 using System.Text;
 
@@ -120,7 +122,30 @@ public static class DependencyInjectionInfrastructure
         .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(10)))
         .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
-        
+
+        // ── Recommender API ─────────────────────────────────────────────────
+        services.AddOptions<RecommenderOptions>()
+            .Bind(configuration.GetSection(RecommenderOptions.SectionName));
+
+        services.AddHttpClient<IRecommenderService, RecommenderService>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<RecommenderOptions>>().Value;
+            if (Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
+            {
+                client.BaseAddress = baseUri;
+            }
+            client.Timeout = TimeSpan.FromSeconds(30);
+
+            
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+        })
+        .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(25)))
+        .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
+        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+
         return services;
     }
 }

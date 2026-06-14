@@ -16,6 +16,12 @@ public class ApplicationUser : IdentityUser<long>
 	public int? Age { get; set; }
 	public DateTime? JoinDate { get; set; }
 	public string? ProfilePic { get; set; }
+	public string? Country { get; set; }
+	public string? Profession { get; set; }
+	public List<string> MovieGenresFav { get; set; } = new List<string>();
+	public List<string> MovieGenresDisliked { get; set; } = new List<string>();
+	public List<string> GameGenresFav { get; set; } = new List<string>();
+	public List<string> GameGenresDisliked { get; set; } = new List<string>();
 	public UserInterest PrimaryInterest { get; set; } = UserInterest.Mixed;
 	public bool IsHistoryPublic { get; set; } = true;
 	public bool IsProfileCompleted { get; set; } = true;
