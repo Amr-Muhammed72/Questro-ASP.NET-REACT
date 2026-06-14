@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { useAuth } from '../../features/auth/store/AuthContext';
 import {authService} from '../../features/auth/api/authService';
 import { useNotificationStore } from '../../features/notifications/store/useNotificationStore';
+import { useProfileStore } from '../../features/profile/store/useProfileStore';
 
 const MobileMenu = ({ isAuthenticated, onClose }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { unreadCount } = useNotificationStore();
+  const { currentProfile, imageUpdateStamp } = useProfileStore();
 
   const baseLinks = [
     { name: 'Home', path: '/' },
@@ -61,10 +63,18 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
                 className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-zinc-800/50 text-zinc-100 font-semibold hover:bg-zinc-800 transition-colors duration-200"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden ring-1 ring-indigo-500/30">
+                    {currentProfile?.profilePicUrl ? (
+                      <img 
+                        src={`http://localhost:5222${currentProfile.profilePicUrl}?t=${imageUpdateStamp}`} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <span className="text-white text-sm font-bold">
+                        {currentProfile?.firstName ? currentProfile.firstName.charAt(0).toUpperCase() : '?'}
+                      </span>
+                    )}
                   </div>
                   <span>Profile</span>
                 </div>

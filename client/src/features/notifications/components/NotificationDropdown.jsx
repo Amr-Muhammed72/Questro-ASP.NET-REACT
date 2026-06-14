@@ -61,17 +61,17 @@ const NotificationDropdown = () => {
 
   const handleNotificationClick = (notification) => {
     setIsOpen(false);
-    // if (notification.type === 'NewMovie') {
-    //   navigate(`/movies/${notification.referenceId}`);
-    // } else if (notification.type === 'NewGame') {
-    //   navigate(`/games/${notification.referenceId}`);
-    // }
-    console.log('Navigate to:', notification.type, notification.referenceId);
-  };
-
-  const handleMarkAsRead = (e, notificationId) => {
-    e.stopPropagation();
-    markAsRead(notificationId);
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+    
+    if (notification.referenceId && notification.referenceId !== 0) {
+      if (notification.type === 'NewMovie') {
+        navigate(`/movies/${notification.referenceId}`);
+      } else if (notification.type === 'NewGame') {
+        navigate(`/games/${notification.referenceId}`);
+      }
+    }
   };
 
   const formatTime = (dateString) => {
@@ -123,10 +123,19 @@ const NotificationDropdown = () => {
                       !notification.isRead 
                         ? 'bg-purple-500/10 hover:bg-purple-500/20 shadow-[inset_4px_0_0_0_rgba(168,85,247,1)]' 
                         : 'hover:bg-zinc-800/50'
-                    }`}
+                    }`} 
                   >
-                    <div className="flex-shrink-0 mt-1">
-                      {getIconForType(notification.type)}
+                    <div className="flex-shrink-0 mt-1 relative">
+                      {notification.imageUrl ? (
+                        <img src={notification.imageUrl} alt="" className="w-10 h-10 object-cover rounded-lg shadow-sm" />
+                      ) : (
+                        <div className="w-10 h-10 flex items-center justify-center bg-zinc-800 rounded-lg">
+                          {getIconForType(notification.type)}
+                        </div>
+                      )}
+                      {!notification.isRead && (
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-zinc-900 shadow-[0_0_8px_rgba(168,85,247,0.8)] animate-pulse" />
+                      )}
                     </div>
                     <div className="flex-1 pr-12">
                       <p className={`text-sm ${!notification.isRead ? 'text-white font-bold' : 'text-zinc-200 font-semibold'}`}>
@@ -139,15 +148,6 @@ const NotificationDropdown = () => {
                     <span className="absolute top-4 right-4 text-xs text-zinc-500 font-medium">
                       {formatTime(notification.createdAt)}
                     </span>
-                    {!notification.isRead && (
-                      <button
-                        onClick={(e) => handleMarkAsRead(e, notification.id)}
-                        className="absolute bottom-4 right-4 p-1 rounded-full text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 transition-colors"
-                        title="Mark as Read"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
                 ))}
               </div>
