@@ -57,7 +57,7 @@ namespace Questro.Service.Services.Games
         {
             var parameters = specParams ?? new GameSpecParams();
             var safePageIndex = parameters.PageIndex < 1 ? 1 : parameters.PageIndex;
-            var safePageSize = parameters.PageSize < 1 ? 20 : parameters.PageSize;
+            var safePageSize =20;
 
             if (GameGenreResponseFilter.IsHiddenGenreId(parameters.GenreId))
             {

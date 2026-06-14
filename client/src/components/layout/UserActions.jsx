@@ -8,7 +8,7 @@ import {authService} from '../../features/auth/api/authService';
 const UserActions = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { currentProfile, imageUpdateStamp } = useProfileStore();
+  const { currentProfile, imageUpdateStamp, setCurrentProfile } = useProfileStore();
   const [userId, setUserId] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -20,6 +20,7 @@ const UserActions = () => {
       const fetchUserId = async () => {
         try {
           const profile = await getMyProfile();
+          setCurrentProfile(profile);
           setUserId(profile.userId);
         } catch (error) {
           console.error('Failed to fetch user ID:', error);
@@ -27,7 +28,7 @@ const UserActions = () => {
       };
       fetchUserId();
     }
-  }, [currentProfile]);
+  }, [currentProfile, setCurrentProfile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
