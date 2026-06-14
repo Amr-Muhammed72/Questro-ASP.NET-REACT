@@ -1,0 +1,17 @@
+gunicorn
+waitress
+flask
+flask_cors
+sentence-transformers
+faiss-cpu
+spacy
+pandas
+numpy
+tqdm
+datasets
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+matplotlib
+seaborn
+requests

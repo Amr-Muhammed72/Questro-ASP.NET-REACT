@@ -1,1 +1,10 @@
+.vscode/settings.json
+*.pyc
+*/test*.py
+*/test.py
+*/venv
+*cache
+*/data_cache
 *.lscache
+*.bin
+*.db
