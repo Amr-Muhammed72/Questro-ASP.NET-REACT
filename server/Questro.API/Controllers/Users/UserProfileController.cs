@@ -61,6 +61,19 @@ public class UserProfileController : ApiControllerBase
     }
 
     [Authorize]
+    [HttpPost("survey")]
+    public async Task<IActionResult> SubmitSurvey(
+        [FromBody] SubmitSurveyRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _userProfileService.SubmitSurveyAsync(userId.Value, request, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [Authorize]
     [HttpGet("me/restrictions")]
     public async Task<IActionResult> GetMyRestrictions(CancellationToken cancellationToken = default)
     {
