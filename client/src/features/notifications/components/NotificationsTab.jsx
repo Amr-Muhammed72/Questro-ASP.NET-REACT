@@ -24,17 +24,17 @@ const NotificationsTab = () => {
   };
 
   const handleNotificationClick = (notification) => {
-    // if (notification.type === 'NewMovie') {
-    //   navigate(`/movies/${notification.referenceId}`);
-    // } else if (notification.type === 'NewGame') {
-    //   navigate(`/games/${notification.referenceId}`);
-    // }
-    console.log('Navigate to:', notification.type, notification.referenceId);
-  };
-
-  const handleMarkAsRead = (e, notificationId) => {
-    e.stopPropagation();
-    markAsRead(notificationId);
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+    
+    if (notification.referenceId && notification.referenceId !== 0) {
+      if (notification.type === 'NewMovie') {
+        navigate(`/movies/${notification.referenceId}`);
+      } else if (notification.type === 'NewGame') {
+        navigate(`/games/${notification.referenceId}`);
+      }
+    }
   };
 
   const formatTime = (dateString) => {
@@ -88,12 +88,21 @@ const NotificationsTab = () => {
               onClick={() => handleNotificationClick(notification)}
               className={`relative p-5 rounded-xl border transition-all duration-200 flex items-start gap-4 ${
                 !notification.isRead 
-                  ? 'bg-purple-500/10 border-purple-500/30 cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/20 shadow-[inset_4px_0_0_0_rgba(168,85,247,1)]' 
-                  : 'bg-zinc-900/40 border-white/5 opacity-80'
+                  ? 'bg-white/5 border-white/10 cursor-pointer hover:bg-white/10 shadow-[inset_4px_0_0_0_rgba(168,85,247,1)] backdrop-blur-md' 
+                  : 'bg-zinc-900/40 border-white/5 opacity-80 backdrop-blur-md cursor-pointer hover:bg-zinc-800/50'
               }`}
             >
-              <div className="mt-1 flex-shrink-0">
-                {getIconForType(notification.type)}
+              <div className="mt-1 flex-shrink-0 relative">
+                {notification.imageUrl ? (
+                  <img src={notification.imageUrl} alt="" className="w-12 h-12 object-cover rounded-xl shadow-sm" />
+                ) : (
+                  <div className="w-12 h-12 flex items-center justify-center bg-zinc-800 rounded-xl">
+                    {getIconForType(notification.type)}
+                  </div>
+                )}
+                {!notification.isRead && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-purple-500 rounded-full border-2 border-zinc-900 shadow-[0_0_8px_rgba(168,85,247,0.8)] animate-pulse" />
+                )}
               </div>
               <div className="flex-1 pr-16">
                 <p className={`text-base ${!notification.isRead ? 'text-white font-bold' : 'text-zinc-200 font-semibold'}`}>
@@ -106,15 +115,6 @@ const NotificationsTab = () => {
               <span className="absolute top-5 right-5 text-sm text-zinc-500 font-medium whitespace-nowrap">
                 {formatTime(notification.createdAt)}
               </span>
-              {!notification.isRead && (
-                <button
-                  onClick={(e) => handleMarkAsRead(e, notification.id)}
-                  className="absolute bottom-5 right-5 p-1.5 rounded-full text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 transition-colors"
-                  title="Mark as Read"
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                </button>
-              )}
             </div>
           ))
         ) : (
