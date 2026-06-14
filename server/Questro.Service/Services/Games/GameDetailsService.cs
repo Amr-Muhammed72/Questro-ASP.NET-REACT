@@ -165,7 +165,7 @@ public sealed class GameDetailsService : IGameDetailsService
                 continue;
             }
 
-            var response = await _rawgService.DiscoverGamesAsync(specParams, cancellationToken);
+            var response = await _rawgService.DiscoverGamesAsync(specParams, maxContentRating: null, cancellationToken);
             if (response?.Results.Any(x => x.Id != rawgId) == true)
             {
                 return response;

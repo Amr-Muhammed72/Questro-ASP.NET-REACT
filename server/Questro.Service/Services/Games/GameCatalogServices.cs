@@ -73,8 +73,8 @@ namespace Questro.Service.Services.Games
             // Standard discovery path
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
             RawgPagedGameResponse? rawgResponse = string.IsNullOrWhiteSpace(parameters.Search)
-                ? await _rawgservices.DiscoverGamesAsync(parameters, cancellationToken)
-                : await _rawgservices.SearchGamesAsync(parameters, cancellationToken);
+                ? await _rawgservices.DiscoverGamesAsync(parameters, maxContentRating: null, cancellationToken)
+                : await _rawgservices.SearchGamesAsync(parameters, maxContentRating: null, cancellationToken);
             
             if (rawgResponse is null || !rawgResponse.Results.Any())
             {
@@ -127,7 +127,7 @@ namespace Questro.Service.Services.Games
                     Sort = "latest"
                 };
 
-                var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, cancellationToken);
+                var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, maxContentRating: null, cancellationToken);
                 if (rawgResponse is null || !rawgResponse.Results.Any())
                     break;
 
@@ -403,8 +403,8 @@ namespace Questro.Service.Services.Games
                     };
 
                     tasks.Add(isSearch
-                        ? _rawgservices.SearchGamesAsync(fetchParams, cancellationToken)
-                        : _rawgservices.DiscoverGamesAsync(fetchParams, cancellationToken));
+                        ? _rawgservices.SearchGamesAsync(fetchParams, restriction.MaxContentRating ?? "Teen", cancellationToken)
+                        : _rawgservices.DiscoverGamesAsync(fetchParams, restriction.MaxContentRating ?? "Teen", cancellationToken));
                 }
 
                 var responses = await Task.WhenAll(tasks);
@@ -471,7 +471,7 @@ namespace Questro.Service.Services.Games
                             PageSize = 40,
                             Sort = "latest"
                         };
-                        return _rawgservices.DiscoverGamesAsync(fetchParams, cancellationToken);
+                        return _rawgservices.DiscoverGamesAsync(fetchParams, maxContentRating: restriction.MaxContentRating ?? "Teen", cancellationToken);
                     })
                     .ToList();
 

@@ -44,37 +44,51 @@ public sealed class TmdbService : ITmdbService
         return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.NowPlayingMovie)}{query}", cancellationToken);
     }
 
-    public Task<TmdbPagedMovieResponse?> DiscoverMoviesAsync(MovieSpecParams specParams, CancellationToken cancellationToken = default)
+    public Task<TmdbPagedMovieResponse?> DiscoverMoviesAsync(
+        MovieSpecParams specParams,
+        string? maxContentRating = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = BuildQuery(new Dictionary<string, string?>
+        var queryParams = new Dictionary<string, string?>
         {
-            [TmdbConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.SortBy] = MapSort(specParams.Sort),
-            [TmdbConstants.QueryKeys.WithGenres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.Page]                 = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.SortBy]              = MapSort(specParams.Sort),
+            [TmdbConstants.QueryKeys.WithGenres]          = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
             [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language,
-            [TmdbConstants.QueryKeys.PrimaryReleaseYear] = specParams.Year?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.VoteAverageGte] = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.VoteAverageLte] = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.IncludeAdult] = TmdbConstants.QueryValues.False
-        });
+            [TmdbConstants.QueryKeys.PrimaryReleaseYear]  = specParams.Year?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.VoteAverageGte]      = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.VoteAverageLte]      = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture)
+        };
 
+        ApplyTmdbContentSafety(queryParams, maxContentRating);
+
+        var query = BuildQuery(queryParams);
         return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.DiscoverMovie)}{query}", cancellationToken);
     }
 
-    public Task<TmdbPagedMovieResponse?> SearchMoviesAsync(MovieSpecParams specParams, CancellationToken cancellationToken = default)
+    public Task<TmdbPagedMovieResponse?> SearchMoviesAsync(
+        MovieSpecParams specParams,
+        string? maxContentRating = null,
+        CancellationToken cancellationToken = default)
     {
         // TMDB /search/movie only honours: query, page, year, language, include_adult.
         // with_genres, vote_average.gte/.lte are discover-only params — the search endpoint silently ignores them.
         // Genre/rating post-filtering happens in MovieCatalogService's LINQ layer.
-        var query = BuildQuery(new Dictionary<string, string?>
+        // NOTE: certification.lte is also a Discover-only param; for Search the Child Shield
+        // is enforced via LINQ post-filtering in MovieCatalogService (MpaCertification check).
+        var queryParams = new Dictionary<string, string?>
         {
-            [TmdbConstants.QueryKeys.Query]          = specParams.Search,
-            [TmdbConstants.QueryKeys.Page]           = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.Year]           = specParams.Year?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language,
-            [TmdbConstants.QueryKeys.IncludeAdult]   = TmdbConstants.QueryValues.False
-        });
+            [TmdbConstants.QueryKeys.Query]               = specParams.Search,
+            [TmdbConstants.QueryKeys.Page]                = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.Year]                = specParams.Year?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language
+        };
 
+        // Global Shield only — include_adult=false is always applied.
+        // Child certification filter is a Discover-only TMDB param and is omitted here.
+        ApplyTmdbContentSafety(queryParams, maxContentRating: null);
+
+        var query = BuildQuery(queryParams);
         return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchMovie)}{query}", cancellationToken);
     }
 
@@ -238,6 +252,23 @@ public sealed class TmdbService : ITmdbService
         }
 
         return builder.ToString();
+    }
+
+    private static void ApplyTmdbContentSafety(
+        Dictionary<string, string?> queryParams,
+        string? maxContentRating)
+    {
+        // ── Global Shield ── always block adult content for every user ──────
+        queryParams[TmdbConstants.QueryKeys.IncludeAdult] = TmdbConstants.QueryValues.False;
+
+        // ── Child Shield ── enforce MPA certification cap ───────────────────
+        // maxContentRating is guaranteed non-null here for child paths
+        // (callers default to "PG-13" via ?? before passing it in).
+        if (!string.IsNullOrWhiteSpace(maxContentRating))
+        {
+            queryParams[TmdbConstants.QueryKeys.CertificationCountry] = TmdbConstants.QueryValues.CertificationCountryUs;
+            queryParams[TmdbConstants.QueryKeys.CertificationLte]     = maxContentRating;
+        }
     }
 
     private static string MapSort(string? input)

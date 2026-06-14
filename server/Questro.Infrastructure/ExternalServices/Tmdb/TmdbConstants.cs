@@ -30,11 +30,16 @@ internal static class TmdbConstants
         public const string IncludeAdult = "include_adult";
         public const string Query = "query";
         public const string Year = "year";
+        // Child Shield — certification filter (Discover only)
+        public const string CertificationCountry = "certification_country";
+        public const string CertificationLte = "certification.lte";
     }
 
     internal static class QueryValues
     {
         public const string False = "false";
+        public const string True = "true";
+        public const string CertificationCountryUs = "US";
     }
 
     internal static class SortValues
