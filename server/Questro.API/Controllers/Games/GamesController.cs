@@ -80,7 +80,8 @@ namespace Questro.API.Controllers.Games
         [HttpGet("genres")]
         public async Task<IActionResult> GetGenres(CancellationToken cancellationToken = default)
         {
-            var result = await _gamesServices.GetGameGenresAsync(cancellationToken);
+            var userId = GetCurrentUserId();
+            var result = await _gamesServices.GetGameGenresAsync(userId, cancellationToken);
             if (result.IsFailure)
             {
                 var errorResponse = new

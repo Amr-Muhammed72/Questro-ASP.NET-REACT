@@ -325,7 +325,7 @@ namespace Questro.Service.Services.Games
             });
         }
 
-        public async Task<Result<IEnumerable<GameGenreDto>>> GetGameGenresAsync(CancellationToken cancellationToken = default)
+        public async Task<Result<IEnumerable<GameGenreDto>>> GetGameGenresAsync(long? userId = null, CancellationToken cancellationToken = default)
         {
             var rawgGenres = await _rawgservices.GetGameGenresAsync(cancellationToken);
             if (rawgGenres?.Results is null)
@@ -333,13 +333,18 @@ namespace Questro.Service.Services.Games
                 return Result.Failure<IEnumerable<GameGenreDto>>(GameError.GenresNotFound);
             }
 
-            var ans = rawgGenres.Results
+            IEnumerable<GameGenreDto> ans = rawgGenres.Results
                 .Where(x => !string.IsNullOrWhiteSpace(x.Name) && GameGenreResponseFilter.IsVisible(x))
                 .OrderBy(x => x.Name)
-                .Select(x => new GameGenreDto(x.Id, x.Name ?? string.Empty))
-                .ToList();
+                .Select(x => new GameGenreDto(x.Id, x.Name ?? string.Empty));
 
-            return Result.Success<IEnumerable<GameGenreDto>>(ans);
+            var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+            if (restriction is not null && restriction.BlockedGameGenreIds.Any())
+            {
+                ans = ans.Where(g => !restriction.BlockedGameGenreIds.Contains(g.Id));
+            }
+
+            return Result.Success<IEnumerable<GameGenreDto>>(ans.ToList());
         }
 
         public async Task<Result<IEnumerable<GamePlatformDto>>> GetGamePlatformsAsync(CancellationToken cancellationToken = default)
