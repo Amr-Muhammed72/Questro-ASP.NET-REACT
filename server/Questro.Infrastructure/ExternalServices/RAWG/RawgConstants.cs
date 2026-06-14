@@ -27,6 +27,10 @@ internal static class RawgConstants
         public const string MetacriticLte = "metacritic_lte";   // kept for safety — not used
         public const string Metacritic = "metacritic";           // real RAWG param: "80,100"
         public const string Dates = "dates";                     // real RAWG param: "2010-01-01,2010-12-31"
+        // Global Shield — always exclude explicit tags
+        public const string ExcludeTags = "exclude_tags";
+        // Child Shield — ESRB rating cap
+        public const string EsrbRating = "esrb_rating";
     }
 
     internal static class QueryValues

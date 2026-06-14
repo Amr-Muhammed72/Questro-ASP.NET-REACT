@@ -68,8 +68,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
         var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
         TmdbPagedMovieResponse? tmdbResponse = string.IsNullOrWhiteSpace(parameters.Search)
-            ? await _tmdbService.DiscoverMoviesAsync(parameters, cancellationToken)
-            : await _tmdbService.SearchMoviesAsync(parameters, cancellationToken);
+            ? await _tmdbService.DiscoverMoviesAsync(parameters, maxContentRating: null, cancellationToken)
+            : await _tmdbService.SearchMoviesAsync(parameters, maxContentRating: null, cancellationToken);
 
         if (tmdbResponse?.Results is null || tmdbResponse.Results.Count == 0)
         {
@@ -393,8 +393,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
                 };
 
                 tasks.Add(isSearch
-                    ? _tmdbService.SearchMoviesAsync(fetchParams, cancellationToken)
-                    : _tmdbService.DiscoverMoviesAsync(fetchParams, cancellationToken));
+                    ? _tmdbService.SearchMoviesAsync(fetchParams, restriction.MaxContentRating ?? "PG-13", cancellationToken)
+                    : _tmdbService.DiscoverMoviesAsync(fetchParams, restriction.MaxContentRating ?? "PG-13", cancellationToken));
             }
 
             var responses = await Task.WhenAll(tasks);

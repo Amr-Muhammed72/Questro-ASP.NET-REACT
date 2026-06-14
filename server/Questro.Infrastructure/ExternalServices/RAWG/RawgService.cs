@@ -36,40 +36,52 @@ public sealed class RawgService : IRawgService
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
-    public Task<RawgPagedGameResponse?> DiscoverGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default)
+    public Task<RawgPagedGameResponse?> DiscoverGamesAsync(
+        GameSpecParams specParams,
+        string? maxContentRating = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = BuildQuery(new Dictionary<string, string?>
+        var queryParams = new Dictionary<string, string?>
         {
-            [RawgConstants.QueryKeys.Page]     = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.Ordering] = MapSort(specParams.Sort),
-            [RawgConstants.QueryKeys.Genres]   = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Page]       = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize]   = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Ordering]   = MapSort(specParams.Sort),
+            [RawgConstants.QueryKeys.Genres]     = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.Platforms]  = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
             // RAWG uses a single `dates` param: "YYYY-01-01,YYYY-12-31"
-            [RawgConstants.QueryKeys.Dates]    = BuildRawgDateRange(specParams.Year),
+            [RawgConstants.QueryKeys.Dates]      = BuildRawgDateRange(specParams.Year),
             // RAWG uses a single `metacritic` param: "min,max" (both bounds optional)
             [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
-        });
+        };
 
+        ApplyRawgContentSafety(queryParams, maxContentRating);
+
+        var query = BuildQuery(queryParams);
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
-    public Task<RawgPagedGameResponse?> SearchGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default)
+    public Task<RawgPagedGameResponse?> SearchGamesAsync(
+        GameSpecParams specParams,
+        string? maxContentRating = null,
+        CancellationToken cancellationToken = default)
     {
         // RAWG's games endpoint supports `search` alongside `genres`, `dates`, `metacritic`,
         // and `platforms` in the same request — unlike TMDB where search and discover are separate.
-        var query = BuildQuery(new Dictionary<string, string?>
+        var queryParams = new Dictionary<string, string?>
         {
-            [RawgConstants.QueryKeys.Search]   = specParams.Search,
-            [RawgConstants.QueryKeys.Page]     = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Search]     = specParams.Search,
+            [RawgConstants.QueryKeys.Page]       = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize]   = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
             // Carry through all remaining filters — RAWG honours them alongside search
             [RawgConstants.QueryKeys.Genres]     = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.Platforms]  = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.Dates]      = BuildRawgDateRange(specParams.Year),
             [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
-        });
+        };
 
+        ApplyRawgContentSafety(queryParams, maxContentRating);
+
+        var query = BuildQuery(queryParams);
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
@@ -248,6 +260,49 @@ public sealed class RawgService : IRawgService
         }
 
         return builder.ToString();
+    }
+
+
+    private static void ApplyRawgContentSafety(
+        Dictionary<string, string?> queryParams,
+        string? maxContentRating)
+    {
+        // ── Global Shield ── always exclude explicit tags for every user ─────
+        queryParams[RawgConstants.QueryKeys.ExcludeTags] = "nsfw,erotic,nudity";
+
+        // ── ESRB Rating Cap ──────────────────────────────────────────────────
+        // Child path:  maxContentRating is non-null (callers default to "Teen" via ??).
+        //              MapEsrbRatingIds converts it to the appropriate ID range.
+        // Adult/parent path: maxContentRating is null.
+        //              Hard-cap at Mature (IDs 1-4) platform-wide — Adults Only (ID 5)
+        //              is NEVER served to any account, regardless of age.
+        var esrbIds = string.IsNullOrWhiteSpace(maxContentRating)
+            ? "1,2,3,4"                        // adult/parent cap: max Mature, block Adults Only
+            : MapEsrbRatingIds(maxContentRating); // child cap: map their allowed max
+
+        if (!string.IsNullOrWhiteSpace(esrbIds))
+        {
+            queryParams[RawgConstants.QueryKeys.EsrbRating] = esrbIds;
+        }
+    }
+
+
+    private static string? MapEsrbRatingIds(string? maxContentRating)
+    {
+        if (string.IsNullOrWhiteSpace(maxContentRating))
+            return null;
+
+        return maxContentRating.Trim().ToLowerInvariant() switch
+        {
+            "everyone"       => "1",
+            "everyone 10+"   => "1,2",
+            "everyone10plus" => "1,2",
+            "teen"           => "1,2,3",
+            "mature"         => "1,2,3,4",
+            "adults only"    => "1,2,3,4,5",
+            "adultsonly"     => "1,2,3,4,5",
+            _                => null   // unrecognised label — no ESRB filter applied
+        };
     }
 
     private static string MapSort(string? input)
