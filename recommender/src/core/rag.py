@@ -82,8 +82,8 @@ class CrossDomainRAGIndex:
         
         print(f"Loaded index with {self.index.ntotal} items.")
 
-    def retrieve(self, query: str, top_k: int = 5) -> list:
-        """Retrieves the top_k most similar items to the user's query."""
+    def retrieve(self, query: str, top_k: int = 5, blocked_genres: list = None, allow_adult: bool = False) -> list:
+        """Retrieves the top_k most similar items to the user's query, applying local filters."""
         
         clean_query = normalize_text(query)
         
@@ -96,18 +96,40 @@ class CrossDomainRAGIndex:
         query_embedding = np.atleast_2d(query_embedding).astype(np.float32)
         faiss.normalize_L2(query_embedding)
         
-        distances, indices = self.index.search(query_embedding, top_k)
+        fetch_k = top_k * 5 if (blocked_genres or not allow_adult) else top_k
+        distances, indices = self.index.search(query_embedding, fetch_k)
+        
+        blocked_set = set(g.lower() for g in blocked_genres) if blocked_genres else set()
         
         results = []
         cursor = self.db_conn.cursor()
         for dist, idx in zip(distances[0], indices[0]):
+            if len(results) >= top_k:
+                break
+                
             if idx != -1: 
                 cursor.execute('SELECT data FROM metadata WHERE id = ?', (int(idx),))
                 row = cursor.fetchone()
                 if row:
+                    data = json.loads(row[0])
+                    
+                    is_adult_val = data.get("is_adult", False)
+                    if isinstance(is_adult_val, str):
+                        is_adult = is_adult_val.lower() == 'true'
+                    else:
+                        is_adult = bool(is_adult_val)
+                        
+                    if not allow_adult and is_adult:
+                        continue
+                        
+                    if blocked_set:
+                        item_themes = [t.strip().lower() for t in data.get('themes', '').split(',')]
+                        if not blocked_set.isdisjoint(item_themes):
+                            continue
+                    
                     results.append({
                         "score": float(dist),
-                        "data": json.loads(row[0])
+                        "data": data
                     })
                     
         return results

@@ -28,23 +28,30 @@ def normalize_text(text: str) -> str:
     clean_text = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
     return clean_text
 
-def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_profile: dict = None) -> str:
+def generate_recommendation_prompt(user_query: str, retrieved_items: list, user: dict = None, blocked_genres: list = None) -> str:
     """Constructs the prompt for the Generation Phase, incorporating user context."""
     
     context = ""
     for i, item in enumerate(retrieved_items, 1):
         data = item['data']
-        context += f"\n[{i}] Type: {data['type'].upper()} | Title: {data['title']}\n"
+        context += f"\n[{i}] Type: {data['type'].upper()} | Title: {data['title']} | Score: {item.get('score', 0):.2f}\n"
         context += f"Themes: {data['themes']}\n"
         context += f"Description: {data['narrative']}\n"
 
     profile_context = ""
-    if user_profile:
+    if user:
         profile_context = "User Background & Preferences:\n"
-        for key, value in user_profile.items():
-            if isinstance(value, list):
-                value = ", ".join(value)
-            profile_context += f"- {key.replace('_', ' ').title()}: {value}\n"
+        for key in ["age", "gender", "profession", "country"]:
+            if key in user and user[key]:
+                profile_context += f"- {key.title()}: {user[key]}\n"
+        
+        for key in ["movie_genres_fav", "movie_genres_disliked", "game_genres_fav", "game_genres_disliked"]:
+            if key in user and user[key]:
+                profile_context += f"- {key.replace('_', ' ').title()}: {user[key].replace('|', ', ')}\n"
+
+    blocked_context = ""
+    if blocked_genres:
+        blocked_context = f"CRITICAL RULE: Do NOT mention or recommend anything related to these blocked genres/themes: {', '.join(blocked_genres)}."
 
     prompt = f"""You are an expert cross-domain entertainment recommendation engine. 
     The user is looking for recommendations across both video games and movies.
@@ -53,13 +60,14 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user_
 
     Current Request: "{user_query}"
 
-    Here are the most semantically relevant items retrieved from our database:
+    Here are the most semantically relevant items retrieved from our database (ranked by personalized score):
     {context}
 
     INSTRUCTIONS:
     1. Recommend 2-3 items from the provided database context that best match the current request.
     2. Personalize your pitch based on the User Background provided above. Explain why these specific items will appeal to their specific tastes, technical background, or interests.
     3. Only recommend items from the provided context list.
+    {blocked_context}
     """
     return prompt
 
