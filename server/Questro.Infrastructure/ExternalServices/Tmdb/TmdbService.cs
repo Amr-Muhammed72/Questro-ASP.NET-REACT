@@ -63,16 +63,16 @@ public sealed class TmdbService : ITmdbService
 
     public Task<TmdbPagedMovieResponse?> SearchMoviesAsync(MovieSpecParams specParams, CancellationToken cancellationToken = default)
     {
+        // TMDB /search/movie only honours: query, page, year, language, include_adult.
+        // with_genres, vote_average.gte/.lte are discover-only params — the search endpoint silently ignores them.
+        // Genre/rating post-filtering happens in MovieCatalogService's LINQ layer.
         var query = BuildQuery(new Dictionary<string, string?>
         {
-            [TmdbConstants.QueryKeys.Query] = specParams.Search,
-            [TmdbConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.Year] = specParams.Year?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.WithGenres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.Query]          = specParams.Search,
+            [TmdbConstants.QueryKeys.Page]           = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.Year]           = specParams.Year?.ToString(CultureInfo.InvariantCulture),
             [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language,
-            [TmdbConstants.QueryKeys.VoteAverageGte] = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.VoteAverageLte] = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.IncludeAdult] = TmdbConstants.QueryValues.False
+            [TmdbConstants.QueryKeys.IncludeAdult]   = TmdbConstants.QueryValues.False
         });
 
         return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchMovie)}{query}", cancellationToken);

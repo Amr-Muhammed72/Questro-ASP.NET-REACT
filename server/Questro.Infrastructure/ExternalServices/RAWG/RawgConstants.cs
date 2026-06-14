@@ -23,8 +23,10 @@ internal static class RawgConstants
         public const string Genres = "genres";
         public const string Platforms = "platforms";
         public const string Tags = "tags";
-        public const string MetacriticGte = "metacritic_gte";
-        public const string MetacriticLte = "metacritic_lte";
+        public const string MetacriticGte = "metacritic_gte";   // kept for safety — not used
+        public const string MetacriticLte = "metacritic_lte";   // kept for safety — not used
+        public const string Metacritic = "metacritic";           // real RAWG param: "80,100"
+        public const string Dates = "dates";                     // real RAWG param: "2010-01-01,2010-12-31"
     }
 
     internal static class QueryValues
