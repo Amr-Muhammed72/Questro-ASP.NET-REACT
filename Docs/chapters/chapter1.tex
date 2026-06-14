@@ -1,0 +1,73 @@
+\chapter{Introduction}
+
+The rapid expansion of digital entertainment platforms such as Netflix, Amazon Prime Video, Steam, PlayStation Network, and Disney+ has fundamentally transformed how users access movies and games. The global subscription video-on-demand (SVoD) market is estimated to exceed \$108 billion in 2024, with over 1.4 billion users globally \cite{statista2023}. However, this growth has come with a significant cost: the sheer volume of content—reaching over 2.7 million titles in major markets by mid-2023—has created an overwhelming abundance of choices \cite{nielsen2023}. This phenomenon, often referred to as \textbf{"Information Overload,"} makes it increasingly difficult for users to discover content that matches their individual preferences.
+
+To address this challenge, \textbf{Recommendation Systems (RS)} have become a vital part of modern digital platforms. By analyzing user behavior—such as watch history, ratings, reviews, and browsing patterns—these systems generate personalized suggestions that improve satisfaction, engagement, and retention \cite{ref:rs_handbook}. Effective personalization is now a critical business differentiator, with fast-growing companies generating 40\% more revenue from personalization than their slower-growing counterparts \cite{mckinsey2023}.
+
+While Movie Recommendation Systems (MRS) and Game Recommendation Systems (GRS) have been developed independently, few platforms successfully integrate both domains into a unified solution. Yet, movies and games share overlapping patterns of engagement, such as genre affinity, narrative preferences, and community-driven interactions. Leveraging these connections offers an opportunity to build a \textbf{Cross-Domain Hybrid Recommendation System} capable of delivering richer personalization \cite{ref:cross_domain_survey}.
+
+This project introduces \textbf{Questro}, a social game-and-movie recommendation platform designed to provide accurate suggestions while fostering community engagement. Beyond recommending content, the system allows users to log activities, rate and review items, share experiences, and connect with others. By combining collaborative filtering, content-based methods, and hybrid approaches, the platform aims not only to reduce information overload but also to create an interactive, community-driven entertainment hub.
+
+This chapter presents the problem statement, motivation, a detailed overview of recommendation paradigms, key challenges such as the cold-start problem, and the main contributions of this thesis.
+
+\section{Problem Statement}
+
+The vast and ever-growing catalogs of movies and games across digital platforms have created a \textbf{"Paradox of Choice"}: users have access to more content than ever, yet struggle to find what truly fits their preferences. Research from 2023 indicates that the average streaming subscriber now spends 10.5 minutes per session just deciding what to watch \cite{nielsen2023}, while American viewers waste nearly five full days per year scrolling through content libraries \cite{usertesting2023}. Existing solutions offer partial personalization but remain domain-specific, fragmented, and often biased toward popular items.
+
+As a result, users must rely on multiple, disconnected tools—streaming services, review sites, gaming stores, and online communities—for discovery. This fragmented experience reduces personalization accuracy, weakens engagement, and often leads to \textbf{Decision Fatigue}. In fact, 20\% of viewers report abandoning a viewing session entirely when they cannot find something compelling to watch \cite{nielsen2023}.
+
+To address these gaps, this project proposes a unified recommendation system that integrates AI-driven hybrid algorithms with a dynamic social environment. Unlike traditional systems, the proposed platform will:
+\begin{itemize}
+    \item Create unified watchlists and game libraries across both domains.
+    \item Allow users to log activities, track history, and monitor preferences.
+    \item Deliver cross-domain recommendations (e.g., suggesting a fantasy game based on a user’s interest in fantasy movies).
+    \item Support child-friendly features, such as parental controls and content restrictions.
+    \item Foster social interaction by enabling friendships and reputation systems (e.g., reviewer tags, badges).
+\end{itemize}
+
+\section{Background and Motivation}
+
+\subsection{Relevance of the Project}
+The growth of digital entertainment has created both opportunities and challenges. While 92\% of businesses are now leveraging AI-driven personalization to drive growth \cite{nielsen2023}, 39\% still struggle with effective implementation. Information overload leads to decision fatigue, which in turn reduces engagement and satisfaction \cite{ref:decision_fatigue}. At the same time, personalization has become a defining expectation; 71\% of consumers expect personalized interactions, and 76\% feel frustrated when they do not receive them \cite{mckinsey2023}.
+
+\subsection{Impact of Personalization}
+Effective personalization can transform how users engage with content:
+\begin{itemize}
+    \item \textbf{Retention and Satisfaction:} Over half (56\%) of consumers report that they will become repeat buyers after a personalized experience \cite{nielsen2023}.
+    \item \textbf{Decision Support:} Tailored suggestions reduce the time spent searching, helping users quickly discover relevant movies or games.
+    \item \textbf{Social Discovery:} Human insight remains a powerful discovery tool; 88\% of consumers trust word-of-mouth recommendations from people they know more than any other form of advertising \cite{buyapowa2023}.
+    \item \textbf{Cross-Domain Insights:} By linking movie and game preferences, the system offers a richer discovery process \cite{ref:cross_domain_survey}.
+\end{itemize}
+
+\subsection{Gap in Existing Platforms}
+Despite advances in personalization, current systems remain limited:
+\begin{itemize}
+    \item \textbf{Domain Separation:} Platforms typically specialize in either movies or games, but rarely both.
+    \item \textbf{Lack of Cross-Domain Logic:} Few solutions exploit overlapping patterns in user preferences between movies and games.
+    \item \textbf{Weak Parental Tools:} Many entertainment platforms lack robust parental dashboards, leaving gaps in safety.
+\end{itemize}
+
+\section{Project Objectives}
+To address the gaps identified above, the primary objective of this project is to develop a unified recommendation system that integrates AI-driven hybrid algorithms with a dynamic social environment. The specific objectives are:
+\begin{itemize}
+    \item \textbf{Unified Discovery:} Create unified watchlists and game libraries across both domains.
+    \item \textbf{Activity Tracking:} Allow users to log activities, track history, and monitor preferences.
+    \item \textbf{Cross-Domain Logic:} Deliver cross-domain recommendations (e.g., suggesting a fantasy game based on a user’s interest in fantasy movies).
+    \item \textbf{Child Safety:} Support child-friendly features, such as parental controls and content restrictions.
+    \item \textbf{Social Ecosystem:} Foster social interaction by enabling friendships and reputation systems.
+\end{itemize}
+
+\section{Organization of the Documentation}
+
+The remainder of this documentation is organized as follows:
+
+\begin{description}
+    \item[Chapter 2:] is dedicated to the methodology and planning, ensuring that the development follows a structured SDLC approach with clear milestones and risk mitigation plans.
+    
+    \item[Chapter 3:] contextualizes the project within the current landscape, offering a comparative analysis of existing movie and game platforms to demonstrate the unique value proposition of Questro.
+    
+    \item[Chapter 4:] serves as the technical foundation, where the system's logic is formalized through requirement analysis and architectural modeling using standard UML notations.
+\end{description}
+\newpage
+\section{Chapter Summary}
+This chapter introduced the context of the project, highlighting the "Information Overload" problem and the "Paradox of Choice" in the digital entertainment landscape. We defined the issue of fragmented entertainment platforms and established the motivation for a unified, cross-domain solution. The chapter outlined the project's core objectives, emphasizing the need for both personalization and community engagement. Finally, we provided a roadmap for the subsequent chapters of this documentation.
