@@ -41,7 +41,7 @@ public sealed class RawgService : IRawgService
         var query = BuildQuery(new Dictionary<string, string?>
         {
             [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = (specParams.PageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : specParams.PageSize).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = ( RawgConstants.QueryValues.DefaultPageSize).ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.Ordering] = MapSort(specParams.Sort),
             [RawgConstants.QueryKeys.Genres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
             [RawgConstants.QueryKeys.Platforms] = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
@@ -59,7 +59,7 @@ public sealed class RawgService : IRawgService
         {
             [RawgConstants.QueryKeys.Search] = specParams.Search,
             [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = (specParams.PageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : specParams.PageSize).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize] = (RawgConstants.QueryValues.DefaultPageSize).ToString(CultureInfo.InvariantCulture),
            
         });
 
@@ -123,7 +123,7 @@ public sealed class RawgService : IRawgService
         var query = BuildQuery(new Dictionary<string, string?>
         {
             [RawgConstants.QueryKeys.Page] = (page < 1 ? 1 : page).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = (pageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : pageSize).ToString(CultureInfo.InvariantCulture)
+            [RawgConstants.QueryKeys.PageSize] = ((RawgConstants.QueryValues.DefaultPageSize).ToString(CultureInfo.InvariantCulture))
         });
 
         return GetAsync<RawgPagedGameResponse>(

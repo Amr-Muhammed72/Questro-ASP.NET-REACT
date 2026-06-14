@@ -3,12 +3,14 @@ using Microsoft.Extensions.Caching.Memory;
 using Questro.Core.Entities.Games;
 using Questro.Core.Entities.UserManagement;
 using Questro.Core.Specifications.Family;
+using Questro.Core.Specifications.Games;
 using System.Globalization;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.RAWG.Contracts;
 using Questro.Service.Abstractions.Games;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Games;
+using Questro.Shared.Contracts.Recommender;
 using Questro.Shared.ErrorHandle.Games;
 using Questro.Shared.Result;
 
@@ -24,19 +26,28 @@ namespace Questro.Service.Services.Games
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IGenericRepository<ChildRestriction> _restrictionRepo;
         private readonly IMemoryCache _memoryCache;
+        private readonly IRecommenderService _recommenderService;
+        private readonly IGenericRepository<UserGameRate> _gameRateRepo;
+        private readonly IGenericRepository<UserGameWishlist> _gameWishlistRepo;
 
         public GameCatalogServices(
             IRawgService rawgservices,
             IGenericRepository<GameGenre> gameGenreRepository,
             UserManager<ApplicationUser> userManager,
             IGenericRepository<ChildRestriction> restrictionRepo,
-            IMemoryCache memoryCache)
+            IMemoryCache memoryCache,
+            IRecommenderService recommenderService,
+            IGenericRepository<UserGameRate> gameRateRepo,
+            IGenericRepository<UserGameWishlist> gameWishlistRepo)
         {
             _rawgservices = rawgservices;
             _gameGenreRepository = gameGenreRepository;
             _userManager = userManager;
             _restrictionRepo = restrictionRepo;
             _memoryCache = memoryCache;
+            _recommenderService = recommenderService;
+            _gameRateRepo = gameRateRepo;
+            _gameWishlistRepo = gameWishlistRepo;
         }
 
         // ── Discover / Search ───────────────────────────────────────────────
@@ -150,7 +161,7 @@ namespace Questro.Service.Services.Games
         // ── Trending ────────────────────────────────────────────────────────
 
         public async Task<Result<PagedResponse<GameListItemDto>>> GetTrendingAsync(
-            int take = 30, long? userId = null, CancellationToken cancellationToken = default)
+            int take = 20, long? userId = null, CancellationToken cancellationToken = default)
         {
             var safeTake = take < 1 ? 20 : take;
 
@@ -188,9 +199,130 @@ namespace Questro.Service.Services.Games
 
         // ── Genres / Platforms / RecommendedForMe ───────────────────────────
 
-        public Task<Result<PagedResponse<GameListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 30, CancellationToken cancellationToken = default)
+        public async Task<Result<PagedResponse<GameListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 30, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var safeTake =1;
+
+            // 1. Load User Profile
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user is null)
+            {
+                return await GetTrendingAsync(safeTake, userId, cancellationToken);
+            }
+
+            // 2. Load Blocked Genres (if child)
+            var blockedGenres = new List<string>();
+            var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+            var genreMap = await GetLocalGenreMapAsync(cancellationToken);
+            if (restriction is not null && restriction.BlockedGameGenreIds.Any())
+            {
+                blockedGenres = restriction.BlockedGameGenreIds
+                    .Where(genreMap.ContainsKey)
+                    .Select(id => genreMap[id])
+                    .ToList();
+            }
+
+            // 3. Load User Signals (Rates and Wishlists)
+            var signals = new List<RecommenderRatingSignal>();
+            
+            var rateSpec = new UserGameRatesByUserSpecification(userId, 1, 50);
+            var recentRates = await _gameRateRepo.ListReadOnlyAsync(rateSpec, cancellationToken);
+            foreach (var rate in recentRates)
+            {
+                signals.Add(new RecommenderRatingSignal
+                {
+                    ItemId = $"game_{rate.Game.RAWG_Id}",
+                    Title = rate.Game.Title,
+                    Type = "game",
+                    Stars = rate.Stars,
+                    Source = "rating"
+                });
+            }
+
+            var wishlistSpec = new UserGameWishlistByUserSpecification(userId, 1, 50);
+            var recentWishlist = await _gameWishlistRepo.ListReadOnlyAsync(wishlistSpec, cancellationToken);
+            foreach (var w in recentWishlist)
+            {
+                signals.Add(new RecommenderRatingSignal
+                {
+                    ItemId = $"game_{w.Game.RAWG_Id}",
+                    Title = w.Game.Title,
+                    Type = "game",
+                    Source = "wishlist"
+                });
+            }
+
+            var recommenderReq = new RecommenderRequest
+            {
+                Domain = "game",
+                K = safeTake,
+                Offset = 0,
+                BlockedGenres = blockedGenres,
+                User = new RecommenderUserProfile
+                {
+                    Age = user.Age,
+                    Gender = user.Gender,
+                    Profession = user.Profession,
+                    Country = user.Country,
+                    MovieGenresFav = user.MovieGenresFav.Any() ? string.Join("|", user.MovieGenresFav) : null,
+                    MovieGenresDisliked = user.MovieGenresDisliked.Any() ? string.Join("|", user.MovieGenresDisliked) : null,
+                    GameGenresFav = user.GameGenresFav.Any() ? string.Join("|", user.GameGenresFav) : null,
+                    GameGenresDisliked = user.GameGenresDisliked.Any() ? string.Join("|", user.GameGenresDisliked) : null,
+                    Ratings = signals
+                }
+            };
+
+            // 4. Call Recommender Service
+            var recommenderResponse = await _recommenderService.GetRecommendationsAsync(recommenderReq, cancellationToken);
+            
+            // Fallback if Recommender fails or returns no items
+            if (recommenderResponse?.Recommendations is null || recommenderResponse.Recommendations.Count == 0)
+            {
+                return await GetTrendingAsync(safeTake, userId, cancellationToken);
+            }
+
+            // 5. Map Recommender Items to GameListItemDto
+            var resultList = new List<GameListItemDto>();
+            foreach (var item in recommenderResponse.Recommendations)
+            {
+                if (item.ExternalId <= 0) continue;
+
+                var details = await _rawgservices.GetGameDetailsAsync(item.ExternalId, cancellationToken);
+                if (details is null) continue;
+
+                var gameDto = new GameListItemDto
+                {
+                    GameId = 0,
+                    RawgId = details.Id,
+                    Title = details.Name ?? string.Empty,
+                    Rating = details.Rating,
+                    ReleaseDate = ParseDate(details.Released),
+                    PosterUrl = details.BackgroundImage,
+                    TrailerUrl = null,
+                    Genres = details.Genres
+                        .Where(g => GameGenreResponseFilter.IsVisible(new RawgGenreDto { Id = g.Id, Name = g.Name }))
+                        .Select(g => new GameGenreDto(g.Id, g.Name ?? string.Empty)),
+                    Platforms = details.Platforms?
+                        .Where(p => p.Platform is not null)
+                        .Select(p => new GamePlatformDto(p.Platform!.Id, p.Platform!.Name ?? string.Empty)) ?? Enumerable.Empty<GamePlatformDto>()
+                };
+
+                resultList.Add(gameDto);
+            }
+
+            if (resultList.Count == 0)
+            {
+                return await GetTrendingAsync(safeTake, userId, cancellationToken);
+            }
+
+            return Result.Success(new PagedResponse<GameListItemDto>
+            {
+                Data = resultList,
+                PageNumber = 1,
+                PageSize = safeTake,
+                TotalCount = resultList.Count,
+                TotalPages = 1
+            });
         }
 
         public async Task<Result<IEnumerable<GameGenreDto>>> GetGameGenresAsync(CancellationToken cancellationToken = default)

@@ -3,11 +3,13 @@ using Microsoft.Extensions.Caching.Memory;
 using Questro.Core.Entities.Movies;
 using Questro.Core.Entities.UserManagement;
 using Questro.Core.Specifications.Family;
+using Questro.Core.Specifications.Movies;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.Tmdb.Contracts;
 using Questro.Service.Abstractions.Movies;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Movies;
+using Questro.Shared.Contracts.Recommender;
 using Questro.Shared.ErrorHandle.Movies;
 using Questro.Shared.Result;
 
@@ -24,19 +26,28 @@ public sealed class MovieCatalogService : IMovieCatalogService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IGenericRepository<ChildRestriction> _restrictionRepo;
     private readonly IMemoryCache _memoryCache;
+    private readonly IRecommenderService _recommenderService;
+    private readonly IGenericRepository<UserMovieRate> _movieRateRepo;
+    private readonly IGenericRepository<UserMovieWatchlist> _movieWatchlistRepo;
 
     public MovieCatalogService(
         ITmdbService tmdbService,
         IGenericRepository<MovieGenre> movieGenreRepository,
         UserManager<ApplicationUser> userManager,
         IGenericRepository<ChildRestriction> restrictionRepo,
-        IMemoryCache memoryCache)
+        IMemoryCache memoryCache,
+        IRecommenderService recommenderService,
+        IGenericRepository<UserMovieRate> movieRateRepo,
+        IGenericRepository<UserMovieWatchlist> movieWatchlistRepo)
     {
         _tmdbService = tmdbService;
         _movieGenreRepository = movieGenreRepository;
         _userManager = userManager;
         _restrictionRepo = restrictionRepo;
         _memoryCache = memoryCache;
+        _recommenderService = recommenderService;
+        _movieRateRepo = movieRateRepo;
+        _movieWatchlistRepo = movieWatchlistRepo;
     }
 
     // ── Discover / Search ───────────────────────────────────────────────────
@@ -204,9 +215,123 @@ public sealed class MovieCatalogService : IMovieCatalogService
         return Result.Success<IEnumerable<MovieListItemDto>>(mapped);
     }
 
-    public Task<Result<IEnumerable<MovieListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 20, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<MovieListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 20, CancellationToken cancellationToken = default)
     {
-        return GetRecommendedAsync(take, userId, cancellationToken);
+        var safeTake = take < 1 ? DefaultTake : take;
+
+        // 1. Load User Profile
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return await GetRecommendedAsync(safeTake, userId, cancellationToken);
+        }
+
+        // 2. Load Blocked Genres (if child)
+        var blockedGenres = new List<string>();
+        var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+        var genreMap = await GetLocalGenreMapAsync(cancellationToken);
+        if (restriction is not null && restriction.BlockedMovieGenreIds.Any())
+        {
+            blockedGenres = restriction.BlockedMovieGenreIds
+                .Where(genreMap.ContainsKey)
+                .Select(id => genreMap[id])
+                .ToList();
+        }
+
+        // 3. Load User Signals (Rates and Watchlists)
+        var signals = new List<RecommenderRatingSignal>();
+        
+        var rateSpec = new UserMovieRatesByUserSpecification(userId, 1, 50);
+        var recentRates = await _movieRateRepo.ListReadOnlyAsync(rateSpec, cancellationToken);
+        foreach (var rate in recentRates)
+        {
+            signals.Add(new RecommenderRatingSignal
+            {
+                ItemId = $"movie_{rate.Movie.TMDB_Id}",
+                Title = rate.Movie.Title,
+                Type = "movie",
+                Stars = rate.Stars,
+                Source = "rating"
+            });
+        }
+
+        var watchlistSpec = new UserMovieWatchlistByUserSpecification(userId, 1, 50);
+        var recentWatchlist = await _movieWatchlistRepo.ListReadOnlyAsync(watchlistSpec, cancellationToken);
+        foreach (var w in recentWatchlist)
+        {
+            signals.Add(new RecommenderRatingSignal
+            {
+                ItemId = $"movie_{w.Movie.TMDB_Id}",
+                Title = w.Movie.Title,
+                Type = "movie",
+                Source = "wishlist"
+            });
+        }
+
+        var recommenderReq = new RecommenderRequest
+        {
+            Domain = "movie",
+            K = safeTake,
+            Offset = 0,
+            BlockedGenres = blockedGenres,
+            User = new RecommenderUserProfile
+            {
+                Age = user.Age,
+                Gender = user.Gender,
+                Profession = user.Profession,
+                Country = user.Country,
+                MovieGenresFav = user.MovieGenresFav.Any() ? string.Join("|", user.MovieGenresFav) : null,
+                MovieGenresDisliked = user.MovieGenresDisliked.Any() ? string.Join("|", user.MovieGenresDisliked) : null,
+                GameGenresFav = user.GameGenresFav.Any() ? string.Join("|", user.GameGenresFav) : null,
+                GameGenresDisliked = user.GameGenresDisliked.Any() ? string.Join("|", user.GameGenresDisliked) : null,
+                Ratings = signals
+            }
+        };
+
+        // 4. Call Recommender Service
+        var recommenderResponse = await _recommenderService.GetRecommendationsAsync(recommenderReq, cancellationToken);
+        
+        // Fallback if Recommender fails or returns no items
+        if (recommenderResponse?.Recommendations is null || recommenderResponse.Recommendations.Count == 0)
+        {
+            return await GetRecommendedAsync(safeTake, userId, cancellationToken);
+        }
+
+        // 5. Map Recommender Items to MovieListItemDto
+        var resultList = new List<MovieListItemDto>();
+        foreach (var item in recommenderResponse.Recommendations)
+        {
+            if (item.ExternalId <= 0) continue;
+
+            // Optional: Parallelize these calls to TMDB
+            var details = await _tmdbService.GetMovieDetailsAsync(item.ExternalId, cancellationToken);
+            if (details is null) continue;
+
+            var movieDto = new MovieListItemDto(
+                MovieId: 0, 
+                TmdbId: details.Id,
+                Title: details.Title ?? string.Empty,
+                PosterUrl: BuildImageUrl(details.PosterPath, "w500"),
+                BackdropUrl: BuildImageUrl(details.BackdropPath, "w780"),
+                ReleaseDate: ParseDate(details.ReleaseDate),
+                Language: details.OriginalLanguage,
+                MpaCertification: null,
+                Popularity: details.Popularity,
+                TmdbRating: details.VoteAverage,
+                TmdbVoteCount: details.VoteCount,
+                Genres: details.Genres.Select(g => g.Name).Where(n => !string.IsNullOrEmpty(n)).Cast<string>(),
+                StaffNames: Enumerable.Empty<string>()
+            );
+
+            resultList.Add(movieDto);
+        }
+
+        if (resultList.Count == 0)
+        {
+            return await GetRecommendedAsync(safeTake, userId, cancellationToken);
+        }
+
+        return Result.Success<IEnumerable<MovieListItemDto>>(resultList);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
