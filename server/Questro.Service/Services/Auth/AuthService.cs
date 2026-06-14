@@ -343,7 +343,8 @@ public class AuthService : IAuthService
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.UserName ?? string.Empty),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("IsChildAccount", user.IsChildAccount.ToString().ToLowerInvariant())
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
