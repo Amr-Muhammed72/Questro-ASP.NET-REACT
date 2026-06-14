@@ -156,32 +156,39 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
     // ── Genres ───────────────────────────────────────────────────────────────
 
-    public async Task<Result<IEnumerable<MovieGenreDto>>> GetGenresAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<MovieGenreDto>>> GetGenresAsync(long? userId = null, CancellationToken cancellationToken = default)
     {
+        IEnumerable<MovieGenreDto> resultGenres;
         var genreMap = await GetLocalGenreMapAsync(cancellationToken);
         if (genreMap.Count > 0)
         {
-            var mapped = genreMap
+            resultGenres = genreMap
                 .OrderBy(x => x.Value)
                 .Select(x => new MovieGenreDto(x.Key, x.Value))
                 .ToList();
-
-            return Result.Success<IEnumerable<MovieGenreDto>>(mapped);
         }
-
-        var tmdbGenres = await _tmdbService.GetMovieGenresAsync(cancellationToken);
-        if (tmdbGenres?.Genres is null || tmdbGenres.Genres.Count == 0)
+        else
         {
-            return Result.Failure<IEnumerable<MovieGenreDto>>(MovieError.GenresNotFound);
+            var tmdbGenres = await _tmdbService.GetMovieGenresAsync(cancellationToken);
+            if (tmdbGenres?.Genres is null || tmdbGenres.Genres.Count == 0)
+            {
+                return Result.Failure<IEnumerable<MovieGenreDto>>(MovieError.GenresNotFound);
+            }
+
+            resultGenres = tmdbGenres.Genres
+                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                .OrderBy(x => x.Name)
+                .Select(x => new MovieGenreDto(x.Id, x.Name))
+                .ToList();
         }
 
-        var fallback = tmdbGenres.Genres
-            .Where(x => !string.IsNullOrWhiteSpace(x.Name))
-            .OrderBy(x => x.Name)
-            .Select(x => new MovieGenreDto(x.Id, x.Name))
-            .ToList();
+        var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
+        if (restriction is not null && restriction.BlockedMovieGenreIds.Any())
+        {
+            resultGenres = resultGenres.Where(g => !restriction.BlockedMovieGenreIds.Contains(g.GenreId)).ToList();
+        }
 
-        return Result.Success<IEnumerable<MovieGenreDto>>(fallback);
+        return Result.Success(resultGenres);
     }
 
     // ── Recommended ─────────────────────────────────────────────────────────

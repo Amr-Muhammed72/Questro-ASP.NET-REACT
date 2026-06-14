@@ -82,7 +82,8 @@ public class MoviesController : ControllerBase
     [HttpGet("genres")]
     public async Task<IActionResult> GetGenres(CancellationToken cancellationToken = default)
     {
-        var result = await _movieCatalogService.GetGenresAsync(cancellationToken);
+        var userId = GetCurrentUserId();
+        var result = await _movieCatalogService.GetGenresAsync(userId, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new
