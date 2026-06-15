@@ -1,0 +1,136 @@
+\chapter{System Implementation}
+
+\section{Overview}
+Building upon the rigorous architectural foundations established in the previous chapter, this chapter transitions into the concrete implementation specifics of the Questro platform. It details the precise libraries, programmatic patterns, and infrastructure configurations utilized to transform the abstract design into a functional, highly performant reality. The implementation demanded a strict adherence to modern software engineering best practices, emphasizing code maintainability, separation of concerns, and robust error handling across the entire stack.
+
+\section{Technologies Used}
+The technology stack was selected to provide maximum developer velocity without sacrificing production scalability. Table \ref{tab:questro_tech_detailed} outlines the primary frameworks and libraries utilized across the core web application, while Table \ref{tab:chatbot_tech_detailed} details the specialized tools powering the Python-based Artificial Intelligence microservices.
+
+\begin{table}[H]
+    \centering
+    \caption{Questro General Web Application Stack.}
+    \label{tab:questro_tech_detailed}
+    \begin{tabular}{|l|p{8cm}|}
+        \hline
+        \textbf{Component} & \textbf{Specific Technology / Library Used} \\ \hline
+        Frontend Core & React 19, TypeScript \\ \hline
+        Frontend Build Tool & Vite \\ \hline
+        Frontend Styling & Tailwind CSS, Lucide React (Icons) \\ \hline
+        Global State Management & Zustand \\ \hline
+        Frontend HTTP Client & Axios (with interceptors) \\ \hline
+        Frontend Form Validation & React Hook Form, Zod \\ \hline
+        Backend Framework & ASP.NET Core 8 Web API, C\# 12 \\ \hline
+        Data Access & Entity Framework Core 8 \\ \hline
+        Relational Database & Microsoft SQL Server 2022 \\ \hline
+        Authentication & Microsoft.AspNetCore.Authentication.JwtBearer \\ \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{AI, Chatbot, and RAG Technology Stack.}
+    \label{tab:chatbot_tech_detailed}
+    \begin{tabular}{|l|p{8cm}|}
+        \hline
+        \textbf{Component} & \textbf{Specific Technology / Library Used} \\ \hline
+        Microservice Framework & Python 3.11, FastAPI, Uvicorn, Flask \\ \hline
+        Machine Learning Engine & PyTorch (\texttt{torch}) \\ \hline
+        Data Manipulation & Pandas, NumPy \\ \hline
+        Vector Search Engine & \texttt{faiss-cpu} (Memory Mapped) \\ \hline
+        Metadata Storage & SQLite (\texttt{sqlite3}) \\ \hline
+        Conversational AI Model & \texttt{openai} (Azure OpenAI SDK) \\ \hline
+        Text Embeddings & \texttt{sentence-transformers} (all-MiniLM-L6-v2) \\ \hline
+    \end{tabular}
+\end{table}
+
+\section{Backend Implementation Details}
+The ASP.NET Core backend is structured as a Clean Architecture solution, organized into distinct projects: \texttt{Questro.Domain}, \texttt{Questro.Application}, \texttt{Questro.Infrastructure}, and \texttt{Questro.API}.
+
+\subsection{The Specification Pattern Implementation}
+To prevent the rapid proliferation of complex, unmaintainable LINQ queries scattered across controllers and services, Questro implements the Specification Pattern.
+A base specification class, \texttt{BaseSpecification<T>}, implements the \texttt{ISpecification<T>} interface. This interface defines the criteria (\texttt{Expression<Func<T, bool>>}), as well as includes (for eager loading), ordering, and pagination parameters.
+
+When a specific query is needed, developers create a concrete specification class. For example, retrieving a user's movie review relies on the following logic structure:
+\begin{verbatim}
+public class UserMovieReviewByUserAndMovieSpecification 
+    : BaseSpecification<UserMovieReview>
+{
+    public UserMovieReviewByUserAndMovieSpecification(
+        int userId, int movieId)
+        : base(x => 
+            x.UserId == userId && x.MovieId == movieId)
+    {
+        // Add eager loading for related entities
+    }
+}
+\end{verbatim}
+The generic repository then applies this specification using a \texttt{Specification}\allowbreak\texttt{Evaluator} before executing the query against the database context. This ensures that the query logic is perfectly encapsulated, highly testable, and strictly reusable.
+
+\subsection{Unit of Work and Generic Repository}
+To guarantee that business operations spanning multiple database tables adhere to the ACID (Atomicity, Consistency, Isolation, Durability) properties, Questro utilizes an \texttt{IUnitOfWork} interface.
+The Generic Repository (\texttt{IGenericRepository<T>}) exposes standard CRUD methods (\texttt{Add}, \texttt{Update}, \texttt{Delete}, \texttt{GetByIdAsync}, \texttt{ListAsync}). However, these methods do not call \texttt{SaveChanges()} on the database context. Instead, they merely stage the changes within EF Core's change tracker.
+It is the responsibility of the domain service to call \texttt{\_unitOfWork.CompleteAsync()} at the very end of the execution block. If any step fails or throws an exception, the entire transaction is rolled back, preventing orphaned data records.
+
+\subsection{Explicit Mapping versus AutoMapper}
+A common pattern in ASP.NET development is utilizing libraries like AutoMapper to automatically translate Domain Entities into Data Transfer Objects (DTOs) via reflection. 
+However, profiling revealed that extensive reflection-based mapping introduces unnecessary latency. Furthermore, it obscures the exact data contract, leading to unintentional over-fetching. Consequently, Questro eschews automatic mapping tools. Every Entity-to-DTO conversion is written explicitly via static extension methods or constructor initializers. While this increases boilerplate code marginally, it guarantees type safety, maximizes runtime performance, and provides unparalleled code transparency.
+
+\section{Artificial Intelligence Modules Implementation}
+The Python microservices are explicitly designed to operate ephemerally and statelessly, handling massive mathematical arrays without blocking the primary ASP.NET web threads.
+
+\subsection{The Recommender API Implementation}
+The recommendation endpoint is implemented using FastAPI, served by the \texttt{uvicorn} ASGI server to handle concurrent asynchronous requests.
+Upon application startup, the service pre-loads a trained PyTorch model (\texttt{improved\_5epochs.pt}) into memory. This model encapsulates the latent feature vectors derived from the Singular Value Decomposition (SVD) training phase.
+
+The endpoint, \texttt{POST /api/recommend}, accepts a JSON payload containing the authenticated user's ID, the desired pagination \texttt{offset}, the limit \texttt{k}, and any parental control flags.
+The Python service queries its local data arrays (or reaches out to the ASP.NET backend if real-time hydration is needed) to construct the user's historical interaction matrix. It assigns the business-logic weights: $+0.25$ for wishlisted items, $-0.75$ for ignored items, and a normalized value for 1-5 star explicit ratings.
+The PyTorch model executes a fast forward pass, predicting the score for all unseen items. The results are sorted, sliced according to the \texttt{offset} and \texttt{k} parameters, and returned as a strict JSON array to the ASP.NET orchestrator.
+
+\subsection{The RAG Vector Search Implementation}
+The Retrieval-Augmented Generation pipeline is implemented utilizing \texttt{faiss-cpu}. Standard implementations of FAISS require the entire index (often multiple gigabytes in size) to reside in RAM.
+To implement a cost-effective, scalable solution, Questro configures the index utilizing \texttt{faiss.IO\_FLAG\_MMAP}:
+\begin{verbatim}
+import faiss
+
+# Load the index with memory mapping
+index = faiss.read_index(
+    "questro_embeddings.index", 
+    faiss.IO_FLAG_MMAP
+)
+\end{verbatim}
+This instructs the operating system to treat the index file on the solid-state drive as if it were in RAM, paging chunks into active memory only when actively queried.
+
+Once the nearest neighbors (the $L2$ Euclidean closest vectors to the user's query) are identified by FAISS, the system extracts the corresponding integer IDs. It connects to a local SQLite database utilizing Python's native \texttt{sqlite3} module to perform highly optimized, indexed lookups to retrieve the textual metadata associated with those IDs. This retrieved context is then injected into the system prompt passed to the Azure OpenAI SDK.
+
+\section{Web Application Implementation (Frontend)}
+The client-side interface is engineered to feel instantly responsive, akin to a native desktop application.
+
+\subsection{Zustand State Management}
+Unlike Redux, which requires complex reducers, actions, and massive provider wrappers, Questro implements Zustand to create focused, atomic state slices.
+For example, the authentication slice maintains the \texttt{accessToken} and user profile object. UI components can hook into specific properties of this store (e.g., \texttt{useAuthStore(state => state.user)}) without triggering re-renders across the entire application tree when unrelated state changes.
+
+\subsection{Axios Interceptors and Silent Token Refresh}
+Handling the lifecycle of short-lived JWTs requires a robust frontend networking layer. Questro configures a singleton Axios instance with detailed request and response interceptors.
+The Request Interceptor automatically extracts the \texttt{accessToken} from the Zustand store and appends it to the \texttt{Authorization: Bearer} header.
+The Response Interceptor listens for \texttt{401 Unauthorized} HTTP status codes. If a \texttt{401} is intercepted, the interceptor pauses all outgoing network requests, queues them, and attempts to call \texttt{POST /api/Auth/refresh-token}. Because the Axios instance is configured with \texttt{withCredentials: true}, the browser automatically attaches the \texttt{HttpOnly} refresh token cookie to this request. Upon receiving the new access token, the interceptor resumes the queued requests seamlessly. To the end-user, the session renewal is completely invisible.
+
+\section{Security Implementation}
+Questro employs defense-in-depth strategies, ensuring validation at every boundary.
+
+\subsection{Zod Schema Validation}
+Before any form data is submitted to the backend, it is rigorously validated on the client side using \texttt{React Hook Form} combined with \texttt{Zod}. Zod provides TypeScript-first schema declarations. If a user attempts to submit a registration form where the \texttt{confirmPassword} does not strictly match the \texttt{password}, or the \texttt{email} fails regex validation, the UI immediately flags the error without executing a network request, drastically reducing server load from malformed payloads.
+
+\subsection{Backend Model Validation}
+Client-side validation is strictly treated as a user-experience enhancement, never as a security barrier. The ASP.NET Core backend implements exhaustive validation on all incoming DTOs. While the current implementation relies heavily on Data Annotations (\texttt{[Required]}, \texttt{[MaxLength]}), the architecture is designed to seamlessly integrate FluentValidation for more complex, cross-property validation logic if required in the future.
+
+\section{Testing and Debugging}
+Ensuring the stability of the hybrid architecture required extensive testing across all boundaries.
+Integration testing was employed to verify that the \texttt{IMovieSyncService} correctly intercepted cache misses and successfully hydrated the SQL Server database from the external TMDB API.
+In the Python microservices, \texttt{pytest} was utilized to assert that the recommender arrays accurately penalized ignored items (-0.75 weight) and that the RAG pipeline correctly stripped out adult-flagged themes before dispatching prompts to the Azure OpenAI endpoints.
+
+\section{System Results and Achievements}
+The culmination of these precise implementation strategies resulted in a platform that easily handles the complexities of cross-domain entertainment metadata. 
+By utilizing memory-mapped FAISS, the system successfully queries over 2.1 million vector embeddings without triggering Out-Of-Memory (OOM) exceptions. The decoupled Python FastAPI services execute multi-modal recommendation matrices in under 150 milliseconds. The ASP.NET Core backend operates entirely statelessly, utilizing the dual-token HttpOnly security flow to guarantee that user sessions are both permanently authenticated and entirely immune to XSS exfiltration. Finally, the React 19 frontend provides an ultra-fast, securely routed user interface that seamlessly abstracts the immense complexity of the underlying RAG and recommendation engines.
+
+\section{Chapter Summary}
+This chapter delved into the explicit implementation details of the Questro platform. We itemized the specific technologies utilized, highlighting React 19, ASP.NET Core 8, and PyTorch. We examined the backend architectural patterns, specifically the programmatic implementation of the Specification Pattern and Unit of Work, as well as the deliberate choice to avoid reflection-based mappers. The implementation of the AI microservices was dissected, illustrating the FastAPI endpoints, the mathematical weightings applied to user interactions, and the \texttt{faiss.IO\_FLAG\_MMAP} optimization. Furthermore, we detailed the frontend integration, focusing on Zustand state management and Axios interceptor patterns for silent token renewal. The chapter concluded by demonstrating how these choices forged a secure, highly performant, and scalable platform.

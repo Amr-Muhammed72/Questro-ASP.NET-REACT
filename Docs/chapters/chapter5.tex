@@ -1,0 +1,184 @@
+\chapter{System Architecture}
+
+\section{Introduction to the Architectural Paradigm}
+The Questro platform represents a modern, highly scalable gateway to cinematic and gaming entertainment. The core challenge in designing such a system is harmonizing a vast, constantly updating repository of third-party metadata (such as The Movie Database or IGDB) with real-time, highly personalized machine learning recommendation engines. This chapter provides a comprehensive, deep-dive exploration into the architectural decisions, structural patterns, and data flow mechanisms that power the Questro ecosystem. The architecture strictly adheres to a decoupled, microservice-oriented paradigm, ensuring that each domain—from user interaction to vector-based semantic search—operates with high cohesion and low coupling.
+
+\section{AI-Enhanced Entertainment Architecture Overview}
+The high-level architecture of Questro is segregated into four primary tiers: the Client Presentation Layer, the Application (Backend) API Layer, the Persistence Layer, and the Artificial Intelligence Integration Layer. 
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tikzpicture}[
+            node distance=2.5cm and 3.5cm,
+            box/.style={rectangle, draw, rounded corners, minimum width=3.5cm, minimum height=1.5cm, text centered, font=\bfseries},
+            arrow/.style={thick,->,>=stealth}
+            ]
+            
+            \node (frontend) [box, fill=blue!10] {Frontend (React 19 / Vite)};
+            \node (backend) [box, right=of frontend, fill=green!10] {Backend (ASP.NET Core)};
+            \node (database) [box, below=of backend, fill=gray!10] {SQL Server Database};
+            \node (ml) [box, right=of backend, fill=orange!10] {ML / RAG APIs (Python)};
+            
+            \draw [arrow] (frontend) -- node[anchor=south] {HTTPS / REST} (backend);
+            \draw [arrow] (backend) -- (frontend);
+            \draw [arrow] (backend) -- node[anchor=west] {EF Core (TCP)} (database);
+            \draw [arrow] (database) -- (backend);
+            \draw [arrow] (backend) -- node[anchor=south] {HTTP / JSON} (ml);
+            \draw [arrow] (ml) -- (backend);
+        \end{tikzpicture}
+    }
+    \caption{Comprehensive Questro System Architecture detailing inter-layer communication protocols.}
+    \label{fig:system_architecture_detailed}
+\end{figure}
+
+\subsection{The Presentation Layer}
+The presentation layer is implemented using React 19, bundled via Vite to ensure ultra-fast Hot Module Replacement (HMR) during development and heavily optimized static asset generation during production builds. 
+To handle the complex state associated with a user's cross-domain entertainment profile, Questro utilizes Zustand for global state management. Zustand was selected over Redux due to its minimalistic boilerplate and un-opinionated approach to React hooks, allowing the application to persist session tokens and user preferences entirely independent of the component tree lifecycle.
+
+\subsection{The Application API Layer}
+Acting as the central orchestrator, the ASP.NET Core Web API layer acts as the single source of truth for business logic enforcement, authentication verification, and data mutation. The backend strictly follows Clean Architecture principles, isolating domain models from external infrastructural concerns. Communication between the frontend and backend is handled exclusively over HTTPS using strictly typed JSON REST payloads.
+
+\subsection{The Persistence Layer}
+Microsoft SQL Server is utilized as the primary relational database. It is accessed via Entity Framework (EF) Core using a Code-First migration strategy. The database schema is heavily normalized to prevent data anomalies, utilizing foreign key constraints and composite indexes to accelerate complex JOIN operations. 
+
+\subsection{The Artificial Intelligence Integration Layer}
+Recognizing that running complex mathematical matrix factorizations and high-dimensional vector searches within a C\# web server would catastrophically degrade response times, all machine learning tasks are completely offloaded to isolated Python microservices. These services are exposed via FastAPI and Flask, scaling independently from the main web application.
+
+\section{Authentication and Security Architecture}
+Security is a paramount concern for Questro, especially given the handling of personalized user data and potentially sensitive viewing habits. The authentication architecture eschews standard vulnerability-prone patterns in favor of a dual-token, OTP-gated system.
+
+\subsection{Two-Step OTP Registration and Account Verification}
+The registration lifecycle is designed to guarantee that the database only ever contains verified identities. 
+When a user submits their initial registration payload (containing their desired username, password, and email address), the backend \textbf{does not} insert a record into the \texttt{Users} table. Instead, the backend generates a cryptographically secure 6-digit One-Time Password (OTP). This OTP is temporarily cached in memory or a distributed cache (such as Redis in production environments) with a strict Time-To-Live (TTL) of 3 minutes.
+Simultaneously, a background job is queued within the \texttt{EmailService} to asynchronously dispatch an HTML-formatted email containing the OTP. 
+
+The user must then submit a secondary \texttt{POST /api/Auth/Verify} request containing the original payload alongside the OTP. Only upon successful cryptographic comparison of the OTP does the \texttt{AuthController} invoke the persistence layer to hash the password and permanently store the user record.
+
+\subsection{Dual-Token Session Strategy}
+Upon successful authentication, the server generates two distinct tokens to balance convenience with impenetrable security:
+\begin{enumerate}
+    \item \textbf{Access Token (JWT):} A short-lived JSON Web Token (typically expiring in 15 to 30 minutes) containing non-sensitive claims (such as User ID and Roles). This token is returned directly in the JSON response body. The React frontend stores this entirely in transient JavaScript memory. Because it is never stored in \texttt{localStorage}, it is completely immune to passive Cross-Site Scripting (XSS) exfiltration.
+    \item \textbf{Refresh Token:} A long-lived, cryptographically opaque string. Crucially, the server does not return this in the JSON body. Instead, it instructs the browser to store it via an \texttt{Set-Cookie} header configured with \texttt{HttpOnly=true}, \texttt{Secure=true}, and \texttt{SameSite=Lax}. This guarantees that client-side JavaScript absolutely cannot read the token, neutralizing XSS risks entirely, while still allowing the browser to automatically attach the cookie when the frontend makes a deliberate \texttt{/api/Auth/refresh-token} request.
+\end{enumerate}
+
+\subsection{Mitigating Insecure Direct Object Reference (IDOR)}
+IDOR vulnerabilities occur when a system accepts an object ID from a client and immediately operates on it without verifying ownership. Questro systematically eradicates this risk using the \textbf{Specification Pattern}.
+When a user attempts to edit or delete a movie review via an HTTP \texttt{DELETE} request to \texttt{/api/movie-reviews/}\allowbreak\texttt{\{tmdbId\}}, the controller does not merely pass the \texttt{tmdbId} to the repository. Instead, it extracts the \texttt{userId} from the validated JWT claims. It then instantiates the \texttt{UserMovieReview}\allowbreak\texttt{ByUserAndMovie}\allowbreak\texttt{Specification}\allowbreak\texttt{(userId,}\allowbreak\texttt{ tmdbId)} class. The underlying repository enforces that the SQL \texttt{WHERE} clause mandates an exact match on both the \texttt{MovieId} and the authenticated \texttt{UserId}. If the specification yields no results, the system gracefully returns a \texttt{404 Not Found} or \texttt{403 Forbidden}, completely blinding attackers.
+
+\section{Data and Sync Lifecycle Architecture}
+A critical architectural decision was how to handle metadata from external providers like TMDB (The Movie Database). Storing millions of movies locally would require massive database infrastructure and constant sync scripts. Questro solves this via a CQRS-lite (Command Query Responsibility Segregation) approach optimized for "Live-First" fetching.
+
+\subsection{Domain Service Decomposition}
+The monolithic movie service was refactored into four highly specialized domain services:
+\begin{itemize}
+    \item \texttt{IMovieCatalogService}: Dedicated strictly to discovering new content. It acts as a transparent proxy, forwarding search and discovery queries to TMDB and mapping the results to lightweight Data Transfer Objects (DTOs) without ever touching the local SQL database.
+    \item \texttt{IMovieDetailsService}: Responsible for fetching the exhaustive details of a specific title, merging live TMDB data with local, personalized user states (e.g., "Is this on my watchlist?").
+    \item \texttt{IMovieInteractionService}: A write-heavy service solely dedicated to persisting user behaviors like ratings, reviews, and watch statuses.
+    \item \texttt{IMovieSyncService}: The critical bridge responsible for local graph hydration.
+\end{itemize}
+
+\subsection{The N+1 Query Avoidance Strategy}
+In a traditional architecture, displaying a list of 20 movies might result in 20 sequential database queries to check the user's interaction status for each movie (the dreaded N+1 problem). Questro's \texttt{IMovieCatalogService} avoids this entirely. List reads are entirely synthesized from the TMDB API. Local database joins are deferred until absolutely necessary.
+
+
+\section{Recommendation System Architecture}
+The core value proposition of Questro relies on its ability to surface relevant content. This is accomplished by the standalone Python Recommender API.
+
+\subsection{Multi-Modal Interaction Signal Processing}
+Standard recommendation systems often rely solely on explicit 5-star ratings, suffering severely from data sparsity (as users rarely rate everything they watch). Questro utilizes implicit multi-modal signals to enrich the dataset. 
+The algorithm maps these disparate user actions to standardized numerical weights:
+\begin{itemize}
+    \item \textbf{Explicit Ratings:} A 1-star rating maps to $-1.0$, a 3-star rating maps to $0.0$, and a 5-star rating maps to $+1.0$.
+    \item \textbf{Watchlisted / Favorited Items:} Interpreted as strong implicit positive feedback ("I haven't consumed this yet, but I highly intend to"). Mapped to a $+0.25$ weight.
+    \item \textbf{Ignored / Dismissed Items:} Interpreted as strong implicit negative feedback. Mapped to a $-0.75$ weight.
+\end{itemize}
+These weighted signals are aggregated to form a dense User-Item interaction matrix.
+
+\subsection{Algorithmic Pipeline: Collaborative Filtering via SVD}
+The primary recommendation engine relies on Matrix Factorization, specifically Singular Value Decomposition (SVD).
+Let $R$ be the user-item interaction matrix of size $m \times n$ (where $m$ is users and $n$ is items). The SVD algorithm factorizes this matrix into three component matrices:
+\begin{equation}
+R = U \cdot \Sigma \cdot V^T
+\end{equation}
+Where $U$ represents the user latent feature space, $V^T$ represents the item latent feature space, and $\Sigma$ is a diagonal matrix of singular values representing the strength of the latent features.
+By reducing the dimensionality of the matrix to a rank $k$, the system isolates the most significant latent features (e.g., hidden preferences for "Noir Thrillers" or "Co-op Shooters"). The dot product of a user's latent vector and an item's latent vector produces a predicted rating.
+
+\subsection{Algorithmic Pipeline: Content-Based Filtering}
+To combat the "Cold Start" problem for newly released movies with zero interactions, the system employs Content-Based Filtering.
+Textual descriptions, genres, and tags are tokenized and processed using Term Frequency-Inverse Document Frequency (TF-IDF):
+\begin{equation}
+TF(t, d) = \frac{\text{Number of times term } t \text{ appears in document } d}{\text{Total number of terms in document } d}
+\end{equation}
+\begin{equation}
+IDF(t, D) = \log \left( \frac{\text{Total number of documents } |D|}{\text{Number of documents containing term } t} \right)
+\end{equation}
+The resulting vectors are compared using Cosine Similarity to identify mathematically similar items, regardless of user interaction history.
+
+\section{Retrieval-Augmented Generation (RAG) Architecture}
+Questro features an advanced conversational AI chatbot capable of answering complex semantic queries. Because Large Language Models (LLMs) like GPT-4 lack real-time proprietary data, the system utilizes a Retrieval-Augmented Generation (RAG) architecture.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tikzpicture}[
+            node distance=1.5cm and 2cm,
+            box/.style={rectangle, draw, minimum width=2.5cm, minimum height=1cm, text centered, rounded corners},
+            db/.style={cylinder, draw, shape border rotate=90, aspect=0.25, minimum height=1.5cm, text centered},
+            arrow/.style={thick,->,>=stealth}
+            ]
+            
+            \node (user) [box] {User Query};
+            \node (rag) [box, right=of user, fill=yellow!10] {RAG API};
+            \node (faiss) [db, right=of rag, fill=blue!10] {FAISS Index};
+            \node (sqlite) [db, below=of faiss, fill=gray!10] {Metadata DB};
+            \node (ml) [box, below=of rag, fill=orange!10] {ML Reranking};
+            \node (llm) [box, left=of ml, fill=green!10] {Azure GPT-4.1};
+            
+            \draw [arrow] (user) -- (rag);
+            \draw [arrow] (rag) -- (faiss);
+            \draw [arrow] (faiss) -- (rag);
+            \draw [arrow] (rag) -- (sqlite);
+            \draw [arrow] (sqlite) -- (rag);
+            \draw [arrow] (rag) -- (ml);
+            \draw [arrow] (ml) -- (rag);
+            \draw [arrow] (rag) -- (llm);
+            \draw [arrow] (llm) -- (user);
+        \end{tikzpicture}
+    }
+    \caption{Chatbot / RAG System Architecture Pipeline.}
+    \label{fig:chatbot_architecture}
+\end{figure}
+
+\subsection{Vector Embedding and Memory Mapping}
+The core challenge in RAG is efficiently searching millions of data points. Questro utilizes Sentence-Transformers to convert all movie and game synopses into high-dimensional vector embeddings. 
+To search these embeddings without requiring terabytes of RAM, the system employs Facebook AI Similarity Search (FAISS) configured with \texttt{faiss.IO\_FLAG\_MMAP}. Memory mapping allows the operating system to page the multi-gigabyte vector index directly from the SSD into RAM on an as-needed basis.
+
+\subsection{The Orchestration Pipeline}
+When a user asks, "Find me a dark detective game like Batman," the pipeline executes as follows:
+\begin{enumerate}
+    \item The query is converted into a vector embedding.
+    \item FAISS performs an L2 (Euclidean distance) nearest-neighbor search against the memory-mapped index to find the top $K$ semantic matches in less than 20 milliseconds.
+    \item The returned FAISS indices are used to perform an $O(1)$ lookup in an accompanying local SQLite metadata database to retrieve the actual titles, descriptions, and IDs.
+    \item These candidates are passed to the Recommender API. The Recommender API reranks the candidates based on the specific user's historical interaction matrix.
+    \item The personalized, reranked list is injected into a highly engineered prompt template.
+    \item The prompt is dispatched to Azure OpenAI's GPT-4.1 API, which generates a natural, conversational response grounded entirely in the retrieved data, preventing LLM hallucinations.
+\end{enumerate}
+
+\section{Business Rules and Triggers}
+To maintain state consistency without placing the burden on the frontend UI, the backend enforces automated triggers during the Unit of Work commit phase.
+
+\subsection{The Auto-Watch Resolution System}
+In many platforms, users frequently rate or review content but forget to explicitly mark the content as "Watched." Questro implements a deterministic "Auto-Watch" trigger within the \texttt{IMovieInteractionService}.
+Whenever a user submits a rating or publishes a review, the service automatically executes \texttt{EnsureWatchedAndCleanupWatchlistAsync(userId, movieId)}. 
+This function acts idempotently:
+1. It queries to see if a \texttt{UserMovieWatched} record already exists. If not, it inserts one.
+2. It queries the \texttt{UserMovieWatchlist} table. If the item is currently on the user's wishlist, it is forcefully deleted. 
+This guarantees that a user's wishlist remains clean and accurate without requiring manual maintenance from the user.
+
+\subsection{Parental Controls at the Vector Boundary}
+A unique architectural decision within the Questro RAG pipeline is the placement of Parental Controls. Relying on an LLM to self-censor adult content is notoriously unreliable. Therefore, Questro enforces child-safety directly at the FAISS vector retrieval layer.
+If a user account is flagged with \texttt{allow\_adult = false}, the SQLite metadata lookup is appended with a hardcoded SQL \texttt{WHERE} clause that aggressively filters out restricted genres or MPAA ratings \textit{before} the data is ever seen by the reranking algorithm or the LLM.
+
+\section{Chapter Summary}
+This chapter provided a rigorous analysis of Questro's underlying architecture. We explored the decoupled communication between the React 19 frontend, the ASP.NET Core API, and the Python-based Machine Learning microservices. We dissected the multi-layered security protocols, emphasizing the mitigation of XSS and IDOR vulnerabilities via HttpOnly cookies and the Specification Pattern. The chapter further detailed the CQRS-lite Live-First data fetching strategy designed to eradicate N+1 queries. Finally, we explored the complex mathematical pipelines powering the hybrid recommendation engine (SVD and TF-IDF) and the memory-mapped FAISS RAG architecture, concluding with an analysis of the backend business rules that guarantee data integrity.
