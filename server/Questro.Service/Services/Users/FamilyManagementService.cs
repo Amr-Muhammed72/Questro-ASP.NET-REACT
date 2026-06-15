@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Questro.Core.Entities.UserManagement;
 using Questro.Core.Specifications.Family;
 using Questro.Infrastructure.Abstractions;
@@ -15,15 +14,21 @@ public class FamilyManagementService : IFamilyManagementService
 {
 	private readonly UserManager<ApplicationUser> _userManager;
 	private readonly IGenericRepository<ChildRestriction> _restrictionRepo;
+	private readonly IUserCleanupRepository _cleanupRepo;
+	private readonly IFamilyRepository _familyRepo;
 	private readonly IUnitOfWork _unitOfWork;
 
 	public FamilyManagementService(
 		UserManager<ApplicationUser> userManager,
 		IGenericRepository<ChildRestriction> restrictionRepo,
+		IUserCleanupRepository cleanupRepo,
+		IFamilyRepository familyRepo,
 		IUnitOfWork unitOfWork)
 	{
 		_userManager = userManager;
 		_restrictionRepo = restrictionRepo;
+		_cleanupRepo = cleanupRepo;
+		_familyRepo = familyRepo;
 		_unitOfWork = unitOfWork;
 	}
 
@@ -94,10 +99,8 @@ public class FamilyManagementService : IFamilyManagementService
 		if (parent is null)
 			return Result.Failure<IEnumerable<ChildAccountResponseDto>>(UserError.UserNotFound);
 
-		// Query children via UserManager.Users IQueryable
-		var children = await _userManager.Users
-			.Where(u => u.ParentId == parentId)
-			.ToListAsync(cancellationToken);
+		// Query children via IFamilyRepository
+		var children = await _familyRepo.GetChildrenByParentIdAsync(parentId, cancellationToken);
 
 		// Load each child's restrictions
 		var results = new List<ChildAccountResponseDto>(children.Count);
@@ -167,6 +170,51 @@ public class FamilyManagementService : IFamilyManagementService
 
 		return Result.Success<ChildRestrictionDto?>(
 			restriction is not null ? MapToRestrictionDto(restriction) : null);
+	}
+
+	public async Task<Result> ChangeChildPasswordAsync(
+		long parentId, long childId, ChangeChildPasswordRequestDto request, CancellationToken cancellationToken = default)
+	{
+		var child = await _userManager.FindByIdAsync(childId.ToString());
+		if (child is null)
+			return Result.Failure(FamilyError.ChildNotFound);
+
+		if (child.ParentId != parentId)
+			return Result.Failure(FamilyError.ChildNotOwned);
+
+		var token = await _userManager.GeneratePasswordResetTokenAsync(child);
+		var resetResult = await _userManager.ResetPasswordAsync(child, token, request.NewPassword);
+
+		if (!resetResult.Succeeded)
+		{
+			var errors = resetResult.Errors.Select(e => e.Description).ToList();
+			return Result.Failure(FamilyError.ChangePasswordFailed, errors);
+		}
+
+		return Result.Success();
+	}
+
+	public async Task<Result> DeleteChildAsync(
+		long parentId, long childId, CancellationToken cancellationToken = default)
+	{
+		var child = await _userManager.FindByIdAsync(childId.ToString());
+		if (child is null)
+			return Result.Failure(FamilyError.ChildNotFound);
+
+		if (child.ParentId != parentId)
+			return Result.Failure(FamilyError.ChildNotOwned);
+
+		// Wipe all interactions and restrictions using the high-performance cleanup repo
+		await _cleanupRepo.WipeUserFootprintAsync(childId, cancellationToken);
+
+		var deleteResult = await _userManager.DeleteAsync(child);
+		if (!deleteResult.Succeeded)
+		{
+			var errors = deleteResult.Errors.Select(e => e.Description).ToList();
+			return Result.Failure(FamilyError.DeleteChildFailed, errors);
+		}
+
+		return Result.Success();
 	}
 
 	private static ChildAccountResponseDto MapToResponse(ApplicationUser child, ChildRestriction? restriction)

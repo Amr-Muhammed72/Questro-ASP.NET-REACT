@@ -1,6 +1,6 @@
-﻿using Hangfire;
+using Hangfire;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+
 using Microsoft.Extensions.Caching.Memory;
 using Questro.Core.Entities.UserManagement;
 using Questro.Service.Abstractions.Auth;

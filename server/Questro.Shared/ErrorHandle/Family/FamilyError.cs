@@ -21,4 +21,10 @@ public static class FamilyError
 
 	public static readonly Errors RestrictionsNotFound =
 		new("Family.RestrictionsNotFound", "Restrictions record not found for this child.", 404);
+
+	public static readonly Errors ChangePasswordFailed =
+		new("Family.ChangePasswordFailed", "Failed to change child password.", 500);
+
+	public static readonly Errors DeleteChildFailed =
+		new("Family.DeleteChildFailed", "Failed to delete child account.", 500);
 }

@@ -50,4 +50,29 @@ public class FamilyController : ApiControllerBase
 		var result = await _familyManagementService.UpdateChildRestrictionsAsync(parentId.Value, childId, request, cancellationToken);
 		return HandleResult(result);
 	}
+
+	[HttpPut("children/{childId:long}/password")]
+	public async Task<IActionResult> ChangeChildPassword(
+		[FromRoute] long childId,
+		[FromBody] ChangeChildPasswordRequestDto request,
+		CancellationToken cancellationToken = default)
+	{
+		var parentId = GetCurrentUserId();
+		if (!parentId.HasValue) return Unauthorized();
+
+		var result = await _familyManagementService.ChangeChildPasswordAsync(parentId.Value, childId, request, cancellationToken);
+		return HandleResult(result);
+	}
+
+	[HttpDelete("children/{childId:long}")]
+	public async Task<IActionResult> DeleteChild(
+		[FromRoute] long childId,
+		CancellationToken cancellationToken = default)
+	{
+		var parentId = GetCurrentUserId();
+		if (!parentId.HasValue) return Unauthorized();
+
+		var result = await _familyManagementService.DeleteChildAsync(parentId.Value, childId, cancellationToken);
+		return HandleResult(result);
+	}
 }
