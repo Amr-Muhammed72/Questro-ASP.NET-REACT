@@ -82,41 +82,53 @@ The monolithic movie service was refactored into four highly specialized domain 
 In a traditional architecture, displaying a list of 20 movies might result in 20 sequential database queries to check the user's interaction status for each movie (the dreaded N+1 problem). Questro's \texttt{IMovieCatalogService} avoids this entirely. List reads are entirely synthesized from the TMDB API. Local database joins are deferred until absolutely necessary.
 
 
+\section{Facial Verification Module}
+To ensure platform safety and strictly regulate access to mature content, Questro integrates an AI-powered Facial Verification Module. This module acts as a mandatory verification gate used exclusively when a user attempts to create an adult account or disable child-safety restrictions.
+
+\subsection{Age and Identity Verification Workflow}
+To prevent children from accessing restricted cinematic and gaming content, the system enforces a strict verification process during adult account registration:
+\begin{itemize}
+    \item Capturing a live image (selfie) from the user's webcam or mobile device camera.
+    \item Analyzing the live facial features to estimate biological age and verify the user's identity.
+    \item Granting the "Adult" role only if the system confidently verifies that the user meets the required age threshold.
+\end{itemize}
+
+% \subsection{Implementation Details}
+% The facial verification pipeline utilizes advanced computer vision techniques:
+% \begin{itemize}
+%     \item \textbf{Image Preprocessing:} The captured image is immediately normalized, cropped, and aligned to isolate the face.
+%     \item \textbf{Feature Extraction:} A deep learning model extracts facial landmarks and generates a high-dimensional embedding for age estimation and liveness detection.
+%     \item \textbf{Access Control Validation:} The system evaluates the confidence score. If verified as an adult, the system permanently updates the account's \texttt{allow\_adult} flag in the persistence layer.
+% \end{itemize}
+
 \section{Recommendation System Architecture}
-The core value proposition of Questro relies on its ability to surface relevant content. This is accomplished by the standalone Python Recommender API.
+The core value proposition of Questro relies on its ability to surface highly relevant and personalized content. This is accomplished by a standalone, highly optimized Python Recommender API built with FastAPI and PyTorch.
+
+\subsection{Hybrid Recommendation Engine}
+The recommendation system employs a hybrid approach that combines user-item interaction signals with deep semantic content analysis. 
+\begin{itemize}
+    \item \textbf{Collaborative Filtering:} Analyzes the user's historical ratings and interactions (e.g., watchlisted items, ignored items) to learn latent user preferences.
+    \item \textbf{Content-Based Filtering:} Utilizes text embeddings generated from movie and game descriptions to suggest semantically similar content, effectively mitigating the cold-start problem for newly added items.
+\end{itemize}
 
 \subsection{Multi-Modal Interaction Signal Processing}
-Standard recommendation systems often rely solely on explicit 5-star ratings, suffering severely from data sparsity (as users rarely rate everything they watch). Questro utilizes implicit multi-modal signals to enrich the dataset. 
-The algorithm maps these disparate user actions to standardized numerical weights:
+The system maps disparate user actions to standardized numerical weights to form a dense interaction matrix:
 \begin{itemize}
-    \item \textbf{Explicit Ratings:} A 1-star rating maps to $-1.0$, a 3-star rating maps to $0.0$, and a 5-star rating maps to $+1.0$.
-    \item \textbf{Watchlisted / Favorited Items:} Interpreted as strong implicit positive feedback ("I haven't consumed this yet, but I highly intend to"). Mapped to a $+0.25$ weight.
-    \item \textbf{Ignored / Dismissed Items:} Interpreted as strong implicit negative feedback. Mapped to a $-0.75$ weight.
+    \item \textbf{Explicit Ratings:} Direct 1.0 to 5.0 star ratings are heavily weighted.
+    \item \textbf{Wishlisted Items:} Interpreted as strong implicit positive feedback.
+    \item \textbf{Ignored Items:} Interpreted as strong implicit negative feedback.
 \end{itemize}
-These weighted signals are aggregated to form a dense User-Item interaction matrix.
 
-\subsection{Algorithmic Pipeline: Collaborative Filtering via SVD}
-The primary recommendation engine relies on Matrix Factorization, specifically Singular Value Decomposition (SVD).
-Let $R$ be the user-item interaction matrix of size $m \times n$ (where $m$ is users and $n$ is items). The SVD algorithm factorizes this matrix into three component matrices:
-\begin{equation}
-R = U \cdot \Sigma \cdot V^T
-\end{equation}
-Where $U$ represents the user latent feature space, $V^T$ represents the item latent feature space, and $\Sigma$ is a diagonal matrix of singular values representing the strength of the latent features.
-By reducing the dimensionality of the matrix to a rank $k$, the system isolates the most significant latent features (e.g., hidden preferences for "Noir Thrillers" or "Co-op Shooters"). The dot product of a user's latent vector and an item's latent vector produces a predicted rating.
+\subsection{System Integration and Reranking}
+The Recommender API operates as a decoupled microservice (typically hosted on port 7749). It provides several critical endpoints:
+\begin{itemize}
+    \item \textbf{\texttt{/recommend}:} Generates a paginated list of personalized recommendations for a user, enforcing strict genre blocking (e.g., filtering out "Horror" or "War") directly at the algorithm level.
+    \item \textbf{\texttt{/recommend/rerank}:} Acts as a utility for the RAG pipeline. It takes a broad list of candidate items and reranks them based on the specific user's personalized taste profile.
+    \item \textbf{\texttt{/catalog/add}:} Allows dynamic hot-adding of new items into the running catalog. The model instantly computes text embeddings (0-shot) so that newly released movies or games can be recommended immediately without requiring a full model retrain.
+\end{itemize}
 
-\subsection{Algorithmic Pipeline: Content-Based Filtering}
-To combat the "Cold Start" problem for newly released movies with zero interactions, the system employs Content-Based Filtering.
-Textual descriptions, genres, and tags are tokenized and processed using Term Frequency-Inverse Document Frequency (TF-IDF):
-\begin{equation}
-TF(t, d) = \frac{\text{Number of times term } t \text{ appears in document } d}{\text{Total number of terms in document } d}
-\end{equation}
-\begin{equation}
-IDF(t, D) = \log \left( \frac{\text{Total number of documents } |D|}{\text{Number of documents containing term } t} \right)
-\end{equation}
-The resulting vectors are compared using Cosine Similarity to identify mathematically similar items, regardless of user interaction history.
-
-\section{Retrieval-Augmented Generation (RAG) Architecture}
-Questro features an advanced conversational AI chatbot capable of answering complex semantic queries. Because Large Language Models (LLMs) like GPT-4 lack real-time proprietary data, the system utilizes a Retrieval-Augmented Generation (RAG) architecture.
+\section{Chatbot Module (Retrieval-Augmented Generation)}
+Questro features an advanced conversational AI chatbot capable of answering complex semantic queries and serving as an intelligent gateway to the entertainment catalog. Because Large Language Models (LLMs) like Gemini 3.5 Flash lack real-time proprietary data, the system utilizes a Retrieval-Augmented Generation (RAG) architecture hosted via a Flask microservice.
 
 \begin{figure}[H]
     \centering
@@ -133,7 +145,7 @@ Questro features an advanced conversational AI chatbot capable of answering comp
             \node (faiss) [db, right=of rag, fill=blue!10] {FAISS Index};
             \node (sqlite) [db, below=of faiss, fill=gray!10] {Metadata DB};
             \node (ml) [box, below=of rag, fill=orange!10] {ML Reranking};
-            \node (llm) [box, left=of ml, fill=green!10] {Azure GPT-4.1};
+            \node (llm) [box, left=of ml, fill=green!10] {Gemini 3.5 Flash};
             
             \draw [arrow] (user) -- (rag);
             \draw [arrow] (rag) -- (faiss);
@@ -151,18 +163,17 @@ Questro features an advanced conversational AI chatbot capable of answering comp
 \end{figure}
 
 \subsection{Vector Embedding and Memory Mapping}
-The core challenge in RAG is efficiently searching millions of data points. Questro utilizes Sentence-Transformers to convert all movie and game synopses into high-dimensional vector embeddings. 
-To search these embeddings without requiring terabytes of RAM, the system employs Facebook AI Similarity Search (FAISS) configured with \texttt{faiss.IO\_FLAG\_MMAP}. Memory mapping allows the operating system to page the multi-gigabyte vector index directly from the SSD into RAM on an as-needed basis.
+The RAG pipeline utilizes \texttt{sentence-transformers} to convert all movie and game synopses into high-dimensional vector embeddings. To search these millions of embeddings efficiently, the system employs Facebook AI Similarity Search (FAISS) configured with \texttt{faiss.IO\_FLAG\_MMAP}. This memory-mapping allows the operating system to page the multi-gigabyte vector index directly from the SSD into RAM, ensuring fast server boot times and low memory overhead. Metadata is stored alongside in an SQLite database for $O(1)$ disk lookups.
 
 \subsection{The Orchestration Pipeline}
-When a user asks, "Find me a dark detective game like Batman," the pipeline executes as follows:
+When a user interacts with the chatbot (e.g., asking "Find me a dark detective game like Batman"), the pipeline executes as follows:
 \begin{enumerate}
     \item The query is converted into a vector embedding.
-    \item FAISS performs an L2 (Euclidean distance) nearest-neighbor search against the memory-mapped index to find the top $K$ semantic matches in less than 20 milliseconds.
-    \item The returned FAISS indices are used to perform an $O(1)$ lookup in an accompanying local SQLite metadata database to retrieve the actual titles, descriptions, and IDs.
-    \item These candidates are passed to the Recommender API. The Recommender API reranks the candidates based on the specific user's historical interaction matrix.
+    \item FAISS performs an L2 nearest-neighbor search against the memory-mapped index to find semantic matches in milliseconds.
+    \item The retrieved candidates are filtered locally against \texttt{blocked\_genres} and \texttt{allow\_adult} rules to enforce parental controls.
+    \item The filtered candidates are passed to the Recommender API (\texttt{/recommend/rerank}), which scores and re-orders them based on the user's historical profile.
     \item The personalized, reranked list is injected into a highly engineered prompt template.
-    \item The prompt is dispatched to Azure OpenAI's GPT-4.1 API, which generates a natural, conversational response grounded entirely in the retrieved data, preventing LLM hallucinations.
+    \item The prompt is dispatched to the Gemini 3.5 Flash API, which generates a natural, conversational response grounded entirely in the retrieved data, preventing LLM hallucinations.
 \end{enumerate}
 
 \section{Business Rules and Triggers}
