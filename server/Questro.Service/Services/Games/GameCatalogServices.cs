@@ -73,8 +73,8 @@ namespace Questro.Service.Services.Games
             // Standard discovery path
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
             RawgPagedGameResponse? rawgResponse = string.IsNullOrWhiteSpace(parameters.Search)
-                ? await _rawgservices.DiscoverGamesAsync(parameters, maxContentRating: null, cancellationToken)
-                : await _rawgservices.SearchGamesAsync(parameters, maxContentRating: null, cancellationToken);
+                ? await _rawgservices.DiscoverGamesAsync(parameters, isChildAccount: restriction != null, cancellationToken)
+                : await _rawgservices.SearchGamesAsync(parameters, isChildAccount: restriction != null, cancellationToken);
             
             if (rawgResponse is null || !rawgResponse.Results.Any())
             {
@@ -127,7 +127,7 @@ namespace Questro.Service.Services.Games
                     Sort = "latest"
                 };
 
-                var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, maxContentRating: null, cancellationToken);
+                var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, isChildAccount: restriction != null, cancellationToken);
                 if (rawgResponse is null || !rawgResponse.Results.Any())
                     break;
 
@@ -403,8 +403,8 @@ namespace Questro.Service.Services.Games
                     };
 
                     tasks.Add(isSearch
-                        ? _rawgservices.SearchGamesAsync(fetchParams, maxContentRating: null, cancellationToken)
-                        : _rawgservices.DiscoverGamesAsync(fetchParams, maxContentRating: null, cancellationToken));
+                        ? _rawgservices.SearchGamesAsync(fetchParams, isChildAccount: true, cancellationToken)
+                        : _rawgservices.DiscoverGamesAsync(fetchParams, isChildAccount: true, cancellationToken));
                 }
 
                 var responses = await Task.WhenAll(tasks);
@@ -471,7 +471,7 @@ namespace Questro.Service.Services.Games
                             PageSize = 40,
                             Sort = "latest"
                         };
-                        return _rawgservices.DiscoverGamesAsync(fetchParams, maxContentRating: null, cancellationToken);
+                        return _rawgservices.DiscoverGamesAsync(fetchParams, isChildAccount: true, cancellationToken);
                     })
                     .ToList();
 
@@ -492,13 +492,7 @@ namespace Questro.Service.Services.Games
                     .Where(g => !string.IsNullOrWhiteSpace(g.BackgroundImage))
                     .ToList();
 
-                // Apply metacritic cap if set
-                if (restriction.MaxMetacriticRating.HasValue)
-                {
-                    cachedGames = cachedGames
-                        .Where(g => (g.Rating ?? 0) <= restriction.MaxMetacriticRating.Value)
-                        .ToList();
-                }
+                // Removed metacritic cap
 
                 _memoryCache.Set(cacheKey, cachedGames, SafeCacheExpiration);
             }
@@ -538,13 +532,7 @@ namespace Questro.Service.Services.Games
                 .Where(g => !g.Genres.Any(genre => blockedSet.Contains(genre.Id)))
                 .ToList();
 
-            // Apply metacritic cap if set
-            if (restriction.MaxMetacriticRating.HasValue)
-            {
-                result = result
-                    .Where(g => (g.Rating ?? 0) <= restriction.MaxMetacriticRating.Value)
-                    .ToList();
-            }
+            // Removed metacritic cap
 
             return result;
         }
@@ -573,7 +561,7 @@ namespace Questro.Service.Services.Games
         }
 
         private static bool HasActiveGameRestrictions(ChildRestriction r) =>
-            r.BlockedGameGenreIds.Count > 0 || r.MaxMetacriticRating.HasValue;
+            r.BlockedGameGenreIds.Count > 0;
 
         private async Task<ChildRestriction?> GetChildRestrictionAsync(long? userId, CancellationToken cancellationToken)
         {
@@ -591,7 +579,7 @@ namespace Questro.Service.Services.Games
         private static string BuildSafeCacheKey(string prefix, long userId, ChildRestriction restriction)
         {
             var genreHash = string.Join(",", restriction.BlockedGameGenreIds.OrderBy(x => x));
-            var ratingHash = restriction.MaxMetacriticRating?.ToString(CultureInfo.InvariantCulture) ?? "none";
+            var ratingHash = "none";
             return $"{prefix}_{userId}_{genreHash}_{ratingHash}";
         }
 
