@@ -67,6 +67,7 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user:
     1. Recommend 2-3 items from the provided database context that best match the current request.
     2. Personalize your pitch based on the User Background provided above. Explain why these specific items will appeal to their specific tastes, technical background, or interests.
     3. Only recommend items from the provided context list.
+    4. IMPORTANT: Format your response directly as the final message to the user. Speak directly to them. Do not include your internal reasoning, scratchpads, or repeat these instructions.
     {blocked_context}
     """
     return prompt
