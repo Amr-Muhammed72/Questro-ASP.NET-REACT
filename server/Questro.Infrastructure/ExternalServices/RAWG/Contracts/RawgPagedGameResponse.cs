@@ -48,4 +48,16 @@ public sealed class RawgGameSummaryDto
 
     [JsonPropertyName("tags")]
     public List<RawgTagDto> Tags { get; set; } = new();
+
+    [JsonPropertyName("esrb_rating")]
+    public RawgEsrbRatingDto? EsrbRating { get; set; }
+}
+
+public sealed class RawgEsrbRatingDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
 }
