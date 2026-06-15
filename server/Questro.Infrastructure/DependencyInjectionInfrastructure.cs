@@ -83,6 +83,7 @@ public static class DependencyInjectionInfrastructure
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUserCleanupRepository, UserCleanupRepository>();
         services.AddScoped<IFamilyRepository, FamilyRepository>();
+        services.AddScoped<IUserInteractionQueryRepository, UserInteractionQueryRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // File service - requires WebRootPath, resolved at runtime

@@ -6,20 +6,23 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Questro.Service.Abstractions.Auth;
 using Questro.Service.Abstractions.Email;
-using Questro.Service.Abstractions.Movies;
 using Questro.Service.Abstractions.Games;
+using Questro.Service.Abstractions.Interactions;
+using Questro.Service.Abstractions.Movies;
 using Questro.Service.Abstractions.Notifications;
 using Questro.Service.Abstractions.Social;
 using Questro.Service.Abstractions.Users;
 using Questro.Service.Services.Auth;
 using Questro.Service.Services.Email;
+using Questro.Service.Services.Games;
+using Questro.Service.Services.Interactions;
 using Questro.Service.Services.Movies;
 using Questro.Service.Services.Notifications;
 using Questro.Service.Services.Social;
 using Questro.Service.Services.Users;
 
 using Questro.Shared.Contracts.Email;
-using Questro.Service.Services.Games;
+
 
 namespace Questro.Service;
 
@@ -47,6 +50,7 @@ public static class DependencyInjectionService
         services.AddScoped<IGameSyncService, GameSyncService>();
         services.AddScoped<IGameDetailsService, GameDetailsService>();
         services.AddScoped<IGameInteractionService, GameInteractionService>();
+        services.AddScoped<IUserInteractionService, UserInteractionService>();
 
         // Phase 2: Profile, Library, Social, Notifications
         services.AddScoped<IUserProfileService, UserProfileService>();

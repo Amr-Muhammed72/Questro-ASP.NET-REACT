@@ -7,8 +7,8 @@ public interface ITmdbService
 {
     Task<TmdbPagedMovieResponse?> GetTrendingMoviesWeekAsync(int page = 1, CancellationToken cancellationToken = default);
     Task<TmdbPagedMovieResponse?> GetNowPlayingMoviesAsync(int page = 1, CancellationToken cancellationToken = default);
-    Task<TmdbPagedMovieResponse?> DiscoverMoviesAsync(MovieSpecParams specParams, string? maxContentRating = null, CancellationToken cancellationToken = default);
-    Task<TmdbPagedMovieResponse?> SearchMoviesAsync(MovieSpecParams specParams, string? maxContentRating = null, CancellationToken cancellationToken = default);
+    Task<TmdbPagedMovieResponse?> DiscoverMoviesAsync(MovieSpecParams specParams, bool isChildAccount = false, CancellationToken cancellationToken = default);
+    Task<TmdbPagedMovieResponse?> SearchMoviesAsync(MovieSpecParams specParams, bool isChildAccount = false, CancellationToken cancellationToken = default);
     Task<TmdbGenreListResponse?> GetMovieGenresAsync(CancellationToken cancellationToken = default);
     Task<TmdbMovieDetailsResponse?> GetMovieDetailsAsync(int tmdbId, CancellationToken cancellationToken = default);
     Task<TmdbMovieCreditsResponse?> GetMovieCreditsAsync(int tmdbId, CancellationToken cancellationToken = default);

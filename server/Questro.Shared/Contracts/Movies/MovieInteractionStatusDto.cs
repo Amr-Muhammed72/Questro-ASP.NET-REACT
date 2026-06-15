@@ -5,4 +5,5 @@ public sealed record MovieInteractionStatusDto(
     int? TmdbId,
     bool IsLiked,
     bool IsInWatchlist,
+    bool IsWatched,
     int? UserRating);

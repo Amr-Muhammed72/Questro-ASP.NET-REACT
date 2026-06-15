@@ -19,6 +19,7 @@ public sealed class MovieDetailsService : IMovieDetailsService
     private readonly IGenericRepository<UserMovieLike> _userMovieLikeRepository;
     private readonly IGenericRepository<UserMovieRate> _userMovieRateRepository;
     private readonly IGenericRepository<UserMovieWatchlist> _userMovieWatchlistRepository;
+    private readonly IGenericRepository<UserMovieWatched> _userMovieWatchedRepository;
     private readonly ITmdbService _tmdbService;
     private readonly IMovieSyncService _movieSyncService;
 
@@ -29,6 +30,7 @@ public sealed class MovieDetailsService : IMovieDetailsService
         IGenericRepository<UserMovieLike> userMovieLikeRepository,
         IGenericRepository<UserMovieRate> userMovieRateRepository,
         IGenericRepository<UserMovieWatchlist> userMovieWatchlistRepository,
+        IGenericRepository<UserMovieWatched> userMovieWatchedRepository,
         ITmdbService tmdbService,
         IMovieSyncService movieSyncService)
     {
@@ -38,6 +40,7 @@ public sealed class MovieDetailsService : IMovieDetailsService
         _userMovieLikeRepository = userMovieLikeRepository;
         _userMovieRateRepository = userMovieRateRepository;
         _userMovieWatchlistRepository = userMovieWatchlistRepository;
+        _userMovieWatchedRepository = userMovieWatchedRepository;
         _tmdbService = tmdbService;
         _movieSyncService = movieSyncService;
     }
@@ -159,9 +162,14 @@ public sealed class MovieDetailsService : IMovieDetailsService
             new UserMovieWatchlistByUserAndMovieSpecification(userId, movieId),
             cancellationToken);
 
+        var watched = await _userMovieWatchedRepository.GetEntityWithSpecAsync(
+            new UserMovieWatchedByUserAndMovieSpecification(userId, movieId),
+            cancellationToken);
+
         return new MovieUserStatusDto(
             like is not null,
             watchlist is not null,
+            watched is not null,
             rate?.Stars);
     }
 

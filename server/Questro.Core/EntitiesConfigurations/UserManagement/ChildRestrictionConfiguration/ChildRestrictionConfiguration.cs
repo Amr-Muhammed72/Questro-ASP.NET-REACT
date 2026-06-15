@@ -28,9 +28,6 @@ public class ChildRestrictionConfiguration : IEntityTypeConfiguration<ChildRestr
 				v => JsonSerializer.Deserialize<List<int>>(v, JsonOptions) ?? new List<int>())
 			.HasColumnType("nvarchar(max)");
 
-		builder.Property(x => x.MaxContentRating)
-			.HasMaxLength(20);
-
 		builder.HasOne(x => x.User)
 			.WithOne(u => u.ChildRestriction)
 			.HasForeignKey<ChildRestriction>(x => x.UserId)
