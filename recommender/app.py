@@ -102,16 +102,16 @@ def recommend():
                 ml_candidates.append({"item_id": ml_id, "title": item_data['title']})
                 candidate_map[ml_id] = item
 
-            ml_api_url = os.getenv("ML_API_URL", "http://localhost:8000")
+            ml_api_url = os.getenv("ML_API_URL", "http://localhost:7749")
             rerank_request = {
                 "user": user,
-                "candidate_items": ml_candidates,
-                "blocked_genres": blocked_genres,
-                "k": k
+                "candidate_items": ml_candidates
             }
-
+            model_result = {}
             try:
+                print(rerank_request)
                 response = requests.post(f"{ml_api_url}/recommend/rerank", json=rerank_request, timeout=10)
+                print(response.json())
                 response.raise_for_status()
                 rerank_data = response.json()
                 
