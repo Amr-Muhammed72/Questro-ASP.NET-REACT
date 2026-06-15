@@ -23,7 +23,12 @@ const BrowseView = memo(({ recentlyAdded, trending, genresWithGames, onGenreSear
           games={g.games} 
           onTitleClick={() => {
             onGenreSearch({ genreId: String(g.genreId) });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const grid = document.getElementById('results-grid');
+            if (grid) {
+              grid.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
           }}
         />
       ))}

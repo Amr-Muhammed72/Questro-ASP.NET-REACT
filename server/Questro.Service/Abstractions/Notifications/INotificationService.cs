@@ -10,5 +10,5 @@ public interface INotificationService
     Task<Result<bool>> MarkAsReadAsync(long userId, int notificationId, CancellationToken cancellationToken = default);
     Task<Result<bool>> MarkAllAsReadAsync(long userId, CancellationToken cancellationToken = default);
     Task<Result<int>> GetUnreadCountAsync(long userId, CancellationToken cancellationToken = default);
-    Task CreateNotificationForAllUsersAsync(string title, string body, Core.Entities.Notifications.NotificationType type, int? referenceId, CancellationToken cancellationToken = default);
+    Task CreateNotificationForAllUsersAsync(string title, string body, Core.Entities.Notifications.NotificationType type, int? referenceId, string? referenceName = null, string? imageUrl = null, CancellationToken cancellationToken = default);
 }

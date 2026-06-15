@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -7,7 +8,12 @@ const EditorialPosterGrid = ({
   label = "Editorial Selection", 
   title = "Curated for Discovery" 
 }) => {
-  items = items ? [...items].sort(() => 0.5 - Math.random()) : [];
+  items = items.map(item => ({
+    ...item,
+    imageUrl: item.poster_path 
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}` 
+      : item.imageUrl || 'https://via.placeholder.com/500x750?text=No+Image',
+  }));
   const scrollContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setScrollRight] = useState(true);
@@ -97,7 +103,7 @@ const EditorialPosterGrid = ({
               >
                 <div className="group relative h-52 rounded-xl overflow-hidden transition-transform duration-300 ease-out shadow-lg">
                   <img
-                    src={item.imageUrl || item.poster_path}
+                    src={item.imageUrl}
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                   />

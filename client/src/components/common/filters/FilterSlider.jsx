@@ -32,7 +32,8 @@ export const FilterSlider = ({
             background: `linear-gradient(to right, #d4d4d8 0%, #d4d4d8 ${(displayValue - min) / (max - min) * 100}%, #27272a ${(displayValue - min) / (max - min) * 100}%, #27272a 100%)`
           }}
         />
-        <style dangerouslySetContent={{
+        {/* 👇 Here is the fixed line 👇 */}
+        <style dangerouslySetInnerHTML={{
           __html: `
             input[type=range]::-webkit-slider-thumb {
               appearance: none;

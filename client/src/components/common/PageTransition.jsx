@@ -15,7 +15,7 @@ const pageVariants = {
 const pageTransition = {
   type: 'tween',
   ease: 'easeInOut',
-  duration: 0.2,
+  duration: 0.3,
 };
 
 export default function PageTransition({ children }) {
@@ -26,7 +26,7 @@ export default function PageTransition({ children }) {
       exit="out"
       variants={pageVariants}
       transition={pageTransition}
-      className="w-full min-h-screen bg-black"
+      className="w-full min-h-screen"
     >
       {children}
     </motion.div>

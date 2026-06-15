@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+
 using Microsoft.Extensions.Logging;
 using Questro.Core.Entities.Movies;
 using Questro.Core.Specifications.Movies;
@@ -177,13 +177,10 @@ public sealed class MovieSyncService : IMovieSyncService
 
         if (hasUpdates)
         {
-            try
+            var success = await _unitOfWork.TryCompleteWithConflictHandlingAsync(cancellationToken);
+            if (!success)
             {
-                await _unitOfWork.CompleteAsync(cancellationToken);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogWarning(ex, "Concurrent genre upsert conflict detected — clearing tracker and re-fetching.");
+                _logger.LogWarning("Concurrent genre upsert conflict detected — clearing tracker and re-fetching.");
                 _unitOfWork.ClearTracking();
             }
 
@@ -266,13 +263,10 @@ public sealed class MovieSyncService : IMovieSyncService
 
         if (hasUpdates)
         {
-            try
+            var success = await _unitOfWork.TryCompleteWithConflictHandlingAsync(cancellationToken);
+            if (!success)
             {
-                await _unitOfWork.CompleteAsync(cancellationToken);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogWarning(ex, "Concurrent staff upsert conflict detected — clearing tracker and re-fetching.");
+                _logger.LogWarning("Concurrent staff upsert conflict detected — clearing tracker and re-fetching.");
                 _unitOfWork.ClearTracking();
             }
 

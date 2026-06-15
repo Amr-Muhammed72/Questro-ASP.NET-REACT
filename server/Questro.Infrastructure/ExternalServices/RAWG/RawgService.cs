@@ -7,6 +7,7 @@ using Questro.Shared.Options.Rawg;
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Questro.Infrastructure.ExternalServices.RAWG;
 
@@ -35,31 +36,52 @@ public sealed class RawgService : IRawgService
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
-    public Task<RawgPagedGameResponse?> DiscoverGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default)
+    public Task<RawgPagedGameResponse?> DiscoverGamesAsync(
+        GameSpecParams specParams,
+        string? maxContentRating = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = BuildQuery(new Dictionary<string, string?>
+        var queryParams = new Dictionary<string, string?>
         {
-            [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = (specParams.PageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : specParams.PageSize).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.Ordering] = MapSort(specParams.Sort),
-            [RawgConstants.QueryKeys.Genres] = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.Platforms] = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.MetacriticGte] = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.MetacriticLte] = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture)
-        });
+            [RawgConstants.QueryKeys.Page]       = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize]   = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Ordering]   = MapSort(specParams.Sort),
+            [RawgConstants.QueryKeys.Genres]     = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Platforms]  = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
+            // RAWG uses a single `dates` param: "YYYY-01-01,YYYY-12-31"
+            [RawgConstants.QueryKeys.Dates]      = BuildRawgDateRange(specParams.Year),
+            // RAWG uses a single `metacritic` param: "min,max" (both bounds optional)
+            [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
+        };
 
+        ApplyRawgContentSafety(queryParams, maxContentRating);
+
+        var query = BuildQuery(queryParams);
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
-    public Task<RawgPagedGameResponse?> SearchGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default)
+    public Task<RawgPagedGameResponse?> SearchGamesAsync(
+        GameSpecParams specParams,
+        string? maxContentRating = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = BuildQuery(new Dictionary<string, string?>
+        // RAWG's games endpoint supports `search` alongside `genres`, `dates`, `metacritic`,
+        // and `platforms` in the same request — unlike TMDB where search and discover are separate.
+        var queryParams = new Dictionary<string, string?>
         {
-            [RawgConstants.QueryKeys.Search] = specParams.Search,
-            [RawgConstants.QueryKeys.Page] = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = (specParams.PageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : specParams.PageSize).ToString(CultureInfo.InvariantCulture)
-        });
+            [RawgConstants.QueryKeys.Search]     = specParams.Search,
+            [RawgConstants.QueryKeys.Page]       = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.PageSize]   = RawgConstants.QueryValues.DefaultPageSize.ToString(CultureInfo.InvariantCulture),
+            // Carry through all remaining filters — RAWG honours them alongside search
+            [RawgConstants.QueryKeys.Genres]     = specParams.GenreId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Platforms]  = specParams.PlatformId?.ToString(CultureInfo.InvariantCulture),
+            [RawgConstants.QueryKeys.Dates]      = BuildRawgDateRange(specParams.Year),
+            [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
+        };
 
+        ApplyRawgContentSafety(queryParams, maxContentRating);
+
+        var query = BuildQuery(queryParams);
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
@@ -120,7 +142,7 @@ public sealed class RawgService : IRawgService
         var query = BuildQuery(new Dictionary<string, string?>
         {
             [RawgConstants.QueryKeys.Page] = (page < 1 ? 1 : page).ToString(CultureInfo.InvariantCulture),
-            [RawgConstants.QueryKeys.PageSize] = (pageSize < 1 ? RawgConstants.QueryValues.DefaultPageSize : pageSize).ToString(CultureInfo.InvariantCulture)
+            [RawgConstants.QueryKeys.PageSize] = ((RawgConstants.QueryValues.DefaultPageSize).ToString(CultureInfo.InvariantCulture))
         });
 
         return GetAsync<RawgPagedGameResponse>(
@@ -160,15 +182,42 @@ public sealed class RawgService : IRawgService
 
             return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
         }
-        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (HttpRequestException ex)
         {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "RAWG API request failed for {Path}", pathAndQuery);
+            _logger.LogError(ex, "RAWG API request failed for {Path}. Error: {ErrorMessage}", pathAndQuery, BuildExceptionMessage(ex));
             return default;
         }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "RAWG API request timed out for {Path}. Error: {ErrorMessage}", pathAndQuery, BuildExceptionMessage(ex));
+            return default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "RAWG API response parsing failed for {Path}. Error: {ErrorMessage}", pathAndQuery, BuildExceptionMessage(ex));
+            return default;
+        }
+    }
+
+    private static string BuildExceptionMessage(Exception exception)
+    {
+        var builder = new StringBuilder();
+        var current = exception;
+        var isFirst = true;
+
+        while (current is not null)
+        {
+            if (!isFirst)
+            {
+                builder.Append(" | Inner: ");
+            }
+
+            builder.Append(current.Message);
+            current = current.InnerException;
+            isFirst = false;
+        }
+
+        return builder.ToString();
     }
 
     private string BuildQuery(Dictionary<string, string?>? additionalQuery)
@@ -213,6 +262,40 @@ public sealed class RawgService : IRawgService
         return builder.ToString();
     }
 
+
+    private static void ApplyRawgContentSafety(
+        Dictionary<string, string?> queryParams,
+        string? maxContentRating)
+    {
+        // ── Global Shield ── always exclude explicit tags for every user ─────
+        queryParams[RawgConstants.QueryKeys.ExcludeTags] = "nsfw,erotic,nudity";
+
+       
+        if (string.IsNullOrWhiteSpace(maxContentRating))
+        {
+            queryParams[RawgConstants.QueryKeys.EsrbRating] = "1,2,3,4"; 
+        }
+    }
+
+
+    private static string? MapEsrbRatingIds(string? maxContentRating)
+    {
+        if (string.IsNullOrWhiteSpace(maxContentRating))
+            return null;
+
+        return maxContentRating.Trim().ToLowerInvariant() switch
+        {
+            "everyone"       => "1",
+            "everyone 10+"   => "1,2",
+            "everyone10plus" => "1,2",
+            "teen"           => "1,2,3",
+            "mature"         => "1,2,3,4",
+            "adults only"    => "1,2,3,4,5",
+            "adultsonly"     => "1,2,3,4,5",
+            _                => null   // unrecognised label — no ESRB filter applied
+        };
+    }
+
     private static string MapSort(string? input)
     {
         return input?.Trim().ToLowerInvariant() switch
@@ -225,6 +308,49 @@ public sealed class RawgService : IRawgService
             "trendingasc" => RawgConstants.SortValues.TrendingAsc,
             _ => RawgConstants.SortValues.PopularityDesc
         };
+    }
+
+    private static string? NormalizeTags(string? tags)
+    {
+        if (string.IsNullOrWhiteSpace(tags))
+        {
+            return null;
+        }
+
+        var normalizedTags = tags
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return normalizedTags.Length == 0 ? null : string.Join(",", normalizedTags);
+    }
+
+    /// <summary>
+    /// Builds the RAWG `dates` query parameter from a year filter.
+    /// RAWG expects: "YYYY-01-01,YYYY-12-31"
+    /// </summary>
+    private static string? BuildRawgDateRange(int? year)
+    {
+        if (!year.HasValue)
+            return null;
+
+        return $"{year.Value}-01-01,{year.Value}-12-31";
+    }
+
+    /// <summary>
+    /// Builds the RAWG `metacritic` query parameter from min/max rating bounds.
+    /// RAWG expects a single comma-separated range: "80,100".
+    /// Either bound can be omitted: "80," means "at least 80"; ",90" means "at most 90".
+    /// </summary>
+    private static string? BuildRawgMetacriticRange(double? min, double? max)
+    {
+        if (!min.HasValue && !max.HasValue)
+            return null;
+
+        var minStr = min.HasValue ? ((int)Math.Round(min.Value)).ToString(CultureInfo.InvariantCulture) : string.Empty;
+        var maxStr = max.HasValue ? ((int)Math.Round(max.Value)).ToString(CultureInfo.InvariantCulture) : string.Empty;
+
+        return $"{minStr},{maxStr}";
     }
 
     private string BuildEndpoint(string endpoint)

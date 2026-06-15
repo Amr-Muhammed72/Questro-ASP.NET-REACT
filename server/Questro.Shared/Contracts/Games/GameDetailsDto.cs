@@ -15,6 +15,7 @@ public class GameDetailsDto
     public int? NumberOfImages { get; set; }
     public IEnumerable<GameScreenshotDto> Screenshots { get; set; } = new List<GameScreenshotDto>();
     public IEnumerable<GameGenreDto> Genres { get; set; } = new List<GameGenreDto>();
+    public IEnumerable<GameTagDto> Tags { get; set; } = new List<GameTagDto>();
     public IEnumerable<GamePlatformDto> Platforms { get; set; } = new List<GamePlatformDto>();
    
     public IEnumerable<GameDeveloperDto> Developers { get; set; } = new List<GameDeveloperDto>();
@@ -43,3 +44,5 @@ public class GamePublisherDto
     public string Name { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
 }
+
+public sealed record GameTagDto(int Id, string Name);

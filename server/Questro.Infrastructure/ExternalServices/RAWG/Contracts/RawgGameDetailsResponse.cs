@@ -48,6 +48,9 @@ public sealed class RawgGameDetailsResponse
 
     [JsonPropertyName("publishers")]
     public List<RawgPublisherDto> Publishers { get; set; } = new();
+
+    [JsonPropertyName("tags")]
+    public List<RawgTagDto> Tags { get; set; } = new();
 }
 
 public sealed class RawgDeveloperDto
@@ -72,4 +75,16 @@ public sealed class RawgPublisherDto
 
     [JsonPropertyName("image_background")]
     public string? ImageBackground { get; set; }
+}
+
+public sealed class RawgTagDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("slug")]
+    public string? Slug { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
 }

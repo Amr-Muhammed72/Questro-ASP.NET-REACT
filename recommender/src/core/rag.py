@@ -96,7 +96,7 @@ class CrossDomainRAGIndex:
         query_embedding = np.atleast_2d(query_embedding).astype(np.float32)
         faiss.normalize_L2(query_embedding)
         
-        fetch_k = top_k * 5 if (blocked_genres or not allow_adult) else top_k
+        fetch_k = top_k * 50 if (blocked_genres or not allow_adult) else top_k
         distances, indices = self.index.search(query_embedding, fetch_k)
         
         blocked_set = set(g.lower() for g in blocked_genres) if blocked_genres else set()

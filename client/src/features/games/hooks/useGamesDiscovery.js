@@ -1,70 +1,108 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useGameStore } from '../store/useGameStore';
 import { gameService } from '../api/gameService';
 
+/**
+ * useGamesDiscovery — page-based pagination for the game search/filter view.
+ *
+ * Public API
+ * ──────────
+ * games        – current page's items (always replaced, never appended)
+ * loading      – true while a fetch is in-flight
+ * error        – string | null
+ * currentPage  – the active 1-based page number
+ * totalPages   – total number of pages from the last successful response
+ * totalCount   – total number of matching items
+ * updateFilters(obj) – apply new filters, reset to page 1, fire fetch
+ * goToPage(n)        – navigate to an arbitrary page, respecting active filters
+ */
 export const useGamesDiscovery = () => {
-  const [games, setGames] = useState([]);
-  const [pageIndex, setPageIndex] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState(null);
-  
-  const filters = useGameStore(state => state.filters);
-  const setFilters = useGameStore(state => state.setFilters);
+  const [games,       setGames]       = useState([]);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages,  setTotalPages]  = useState(1);
+  const [totalCount,  setTotalCount]  = useState(0);
 
+  const paramsRef          = useRef({ filters: {}, pageIndex: 1 });
+  const requestIdRef       = useRef(0);
   const abortControllerRef = useRef(null);
 
+  // ── Core fetch ─────────────────────────────────────────────────────────────
+  const fetchGames = useCallback(async () => {
+    const currentRequestId = ++requestIdRef.current;
+    const { filters, pageIndex } = paramsRef.current;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await gameService.discoverGames(
+        filters,
+        pageIndex,
+        18,
+        abortControllerRef.current.signal,
+      );
+
+      if (currentRequestId !== requestIdRef.current) return;
+
+      const rawItems = Array.isArray(data) ? data : (data.data || []);
+      const items = rawItems.slice(0, 18);
+
+      if (items.length === 0 && pageIndex > 1) {
+        paramsRef.current = { ...paramsRef.current, pageIndex: 1 };
+        fetchGames();
+        return;
       }
-      abortControllerRef.current = new AbortController();
 
-      try {
-        const data = await gameService.discoverGames(
-          filters,
-          pageIndex,
-          18,
-          abortControllerRef.current.signal
-        );
-        const newGames = Array.isArray(data) ? data : (data.data || []);
-        
-        setGames(prevGames => 
-          pageIndex === 1 ? newGames : [...prevGames, ...newGames]
-        );
-        const currentTotalPages = data.totalPages || 1;
-        setHasMore(pageIndex < currentTotalPages && newGames.length > 0);
-      } catch (error) {
-        if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
-          console.error('Failed to fetch games:', error);
-        }
-      } finally {
-        setLoading(false);  
+      setGames(items);
+      setCurrentPage(data.pageNumber  ?? pageIndex);
+      setTotalPages(data.totalPages   ?? 1);
+      setTotalCount(data.totalCount   ?? items.length);
+    } catch (err) {
+      if (currentRequestId !== requestIdRef.current) return;
+      if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+        console.error('Failed to fetch games:', err);
+        setError(err.message);
       }
-    };
-
-    fetchData();
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+    } finally {
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
       }
-    };
-  }, [filters, pageIndex]);
-  const loadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      setPageIndex(prev => prev + 1);
-    } 
-  }, [loading, hasMore]);
+    }
+  }, []);
+
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
   const updateFilters = useCallback((newFilters) => {
-    setFilters(newFilters);
-    setPageIndex(1);
-  }, [setFilters]);
-  return { games, pageIndex, loading, hasMore, error, updateFilters, loadMore };
+    paramsRef.current = { filters: newFilters, pageIndex: 1 };
+    setGames([]);
+    fetchGames();
+  }, [fetchGames]);
+
+  const goToPage = useCallback((page) => {
+    const clamped = Math.max(1, Math.min(page, totalPages));
+    if (clamped === paramsRef.current.pageIndex) return;
+
+    paramsRef.current = { ...paramsRef.current, pageIndex: clamped };
+    setGames([]);
+    fetchGames();
+  }, [totalPages, fetchGames]);
+
+  return {
+    games,
+    loading,
+    error,
+    currentPage,
+    totalPages,
+    totalCount,
+    updateFilters,
+    goToPage,
+  };
 };
+
 export default useGamesDiscovery;

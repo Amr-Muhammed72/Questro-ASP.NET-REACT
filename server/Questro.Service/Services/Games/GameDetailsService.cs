@@ -165,7 +165,7 @@ public sealed class GameDetailsService : IGameDetailsService
                 continue;
             }
 
-            var response = await _rawgService.DiscoverGamesAsync(specParams, cancellationToken);
+            var response = await _rawgService.DiscoverGamesAsync(specParams, maxContentRating: null, cancellationToken);
             if (response?.Results.Any(x => x.Id != rawgId) == true)
             {
                 return response;
@@ -226,6 +226,7 @@ public sealed class GameDetailsService : IGameDetailsService
             NumberOfImages = screenshots?.Count ?? localGame?.Photos.Count,
             Screenshots = ExtractPhotos(localGame, screenshots),
             Genres = ExtractGenres(localGame, rawgDetails),
+            Tags = ExtractTags(rawgDetails),
             Platforms = ExtractPlatforms(localGame, rawgDetails),
             Developers = ExtractDevelopers(rawgDetails),
             Publishers = ExtractPublishers(rawgDetails),
@@ -273,6 +274,14 @@ public sealed class GameDetailsService : IGameDetailsService
             .Select(x => new GameGenreDto(x.Genre.RAWG_Id ?? x.GenreId, x.Genre.Name))
             .Where(GameGenreResponseFilter.IsVisible)
             .ToList() ?? Enumerable.Empty<GameGenreDto>();
+    }
+
+    private static IEnumerable<GameTagDto> ExtractTags(RawgGameDetailsResponse? rawgDetails)
+    {
+        return rawgDetails?.Tags
+            .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+            .Select(x => new GameTagDto(x.Id, x.Name ?? string.Empty))
+            .ToList() ?? Enumerable.Empty<GameTagDto>();
     }
 
     private static IEnumerable<GamePlatformDto> ExtractPlatforms(Game? localGame, RawgGameDetailsResponse? rawgDetails)

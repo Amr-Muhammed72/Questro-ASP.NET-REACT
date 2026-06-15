@@ -111,7 +111,13 @@ public class UserGameLibraryService : IUserGameLibraryService
             return Result.Failure<PagedResponse<UserLibraryGameItemDto>>(UserError.UserNotFound);
 
         if (!targetUser.IsHistoryPublic)
+        {
+            // Parents can always view their child's library
+            if (requesterId.HasValue && targetUser.ParentId == requesterId.Value)
+                return null;
+
             return Result.Failure<PagedResponse<UserLibraryGameItemDto>>(SocialError.HistoryIsPrivate);
+        }
 
         return null;
     }

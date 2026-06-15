@@ -4,6 +4,7 @@ import MovieCard from '../components/MovieCard';
 import CategoryHeader from './CategoryHeader';
 
 export default function MovieRow({ title = 'Featured', movies = [], onTitleClick }) {
+  const displayMovies = movies.slice(0, 10);
   const rowRef = useRef(null);
   const [isAtStart, setIsAtStart] = useState(true);
   const [isAtEnd, setIsAtEnd] = useState(false);
@@ -55,7 +56,7 @@ export default function MovieRow({ title = 'Featured', movies = [], onTitleClick
           onScroll={syncScrollState}
           className="flex-1 flex flex-nowrap overflow-x-auto overflow-y-visible gap-3 sm:gap-4 md:gap-5 scroll-smooth snap-x snap-mandatory py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {movies.map((movie, index) => (
+          {displayMovies.map((movie, index) => (
             <div key={movie.tmdbId || movie.id || index} className="snap-start shrink-0">
                <MovieCard movie={movie} isRowItem={true} />
             </div>
