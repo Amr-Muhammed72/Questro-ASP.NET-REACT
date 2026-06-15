@@ -44,8 +44,9 @@ curl -X POST http://localhost:5000/api/recommend  -H "Content-Type: application/
 #### Workflow
 1. RAG retrieves an over-fetched pool of candidates matching the natural language `query`.
 2. Candidates are filtered locally against `blocked_genres` and `allow_adult` rules.
-3. RAG calls the Machine Learning API (`POST /recommend/rerank`) to score and re-order candidates based on the `user` profile.
-4. RAG formats the top `k` candidates and the user profile into a dense LLM generation prompt.
+3. RAG dynamically registers any missing candidates into the ML catalog via `POST /catalog/add` (Hot-Add).
+4. RAG calls the Machine Learning API (`POST /recommend/rerank`) to score and re-order candidates based on the `user` profile.
+5. RAG formats the top `k` candidates and the user profile into a dense LLM generation prompt for Google Gemini.
 
 #### Request Body
 
@@ -99,7 +100,8 @@ curl -X POST http://localhost:5000/api/recommend  -H "Content-Type: application/
       }
     }
   ],
-  "generated_prompt": "You are an expert cross-domain entertainment recommendation engine...\n\nUser Background & Preferences:\n- Age: 21\n\nCurrent Request: \"street level superhero\"\n\nHere are the most semantically relevant items..."
+  "generated_prompt": "You are an expert cross-domain entertainment recommendation engine...\n\nUser Background & Preferences:\n- Age: 21\n\nCurrent Request: \"street level superhero\"\n\nHere are the most semantically relevant items...",
+  "llm_response": "Based on your interest in action and superhero themes, I highly recommend..."
 }
 ```
 
@@ -110,9 +112,9 @@ curl -X POST http://localhost:5000/api/recommend  -H "Content-Type: application/
 To ensure production-grade stability and fast server boot times, the system architecture uses a decoupled data layer with strict memory mapping:
 
 0. **Data Cleansing & Preprocessing (`src/pipeline/preprocess.py`):** Before building the index, the pipeline automatically cleanses the raw datasets. It removes low-quality entries (e.g., games with < 5 reviews), drops noise (e.g., itch.io self-published prototypes), and computes an enhanced `is_adult` flag using regex across descriptions and themes to catch mislabeled explicit content.
-1. **Vector Storage (`faiss_index.bin`):** Uses FAISS Memory Mapping (`faiss.IO_FLAG_MMAP`) to allow the 2.1+ million vector embeddings to stream directly from the SSD rather than loading into RAM.
+1. **Vector Storage (`faiss_index.bin`):** Uses FAISS Memory Mapping (`faiss.IO_FLAG_MMAP`) to allow the cleansed vector embeddings to stream directly from the SSD rather than loading into RAM.
 2. **Metadata Storage (`metadata.db`):** Uses SQLite to store the large text payloads indexed by FAISS IDs. Performs $O(1)$ disk lookups to retrieve item data without holding massive JSON arrays in RAM.
-3. **ML Integration:** RAG acts as the orchestrator. It executes the vector search, filters out unwanted content *locally*, maps its internal domain IDs (`steam_123`, `tmdb_456`) to the ML API formats (`game_123`, `movie_456`), and fetches personalized scores from the ML microservice (`http://<ML_HOST>:8000/recommend/rerank`).
+3. **ML Integration:** RAG acts as the orchestrator. It executes the vector search, filters out unwanted content *locally*, and maps its internal domain IDs (`steam_123`, `tmdb_456`) to the ML API formats (`game_123`, `movie_456`). It dynamically expands the ML model's tensors by injecting unknown items via `POST /catalog/add`, then fetches personalized scores from the ML microservice (`http://<ML_HOST>:7749/recommend/rerank`).
 
 ---
 
@@ -121,7 +123,7 @@ To ensure production-grade stability and fast server boot times, the system arch
 | Item | Value |
 |------|-------|
 | **Server start** | `waitress-serve --listen=0.0.0.0:5000 app:app` (Windows) or `gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app` (Linux) |
-| **Environment Variables** | `ML_API_URL` (default: `http://localhost:8000`), `PORT` (default: `5000`), `CLIENT_URL` |
+| **Environment Variables** | `ML_API_URL` (default: `http://localhost:8000`), `PORT` (default: `5000`), `CLIENT_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL` |
 | **Artifacts dir** | `./vector_store/` containing: `faiss_index.bin`, `metadata.db` |
 | **Dependencies** | `pip install -r requirements.txt` (requires downloading FAISS, sentence-transformers, spacy) |
 | **RAM Requirements** | Serving: ~1GB RAM. Building Index: Minimum 8GB RAM + Optional CUDA GPU. |

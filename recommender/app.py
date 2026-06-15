@@ -92,6 +92,7 @@ def recommend():
         
         if user and retrieved_results:
             ml_candidates = []
+            catalog_add_items = []
             candidate_map = {}
             for item in retrieved_results:
                 item_data = item['data']
@@ -100,9 +101,28 @@ def recommend():
                 
                 ml_id = f"movie_{actual_id}" if item_data['type'] == 'movie' else f"game_{actual_id}"
                 ml_candidates.append({"item_id": ml_id, "title": item_data['title']})
+                
+                catalog_add_items.append({
+                    "item_id": ml_id,
+                    "title": item_data.get('title', 'Unknown'),
+                    "domain": item_data.get('type', 'game'),
+                    "description": item_data.get('narrative', ''),
+                    "genres": item_data.get('themes', ''),
+                    "tags": ""
+                })
+                
                 candidate_map[ml_id] = item
 
             ml_api_url = os.getenv("ML_API_URL", "http://localhost:7749")
+            
+            # Dynamically hot-add items to the ML model catalog so it can score them
+            try:
+                print(f"Hot-adding {len(catalog_add_items)} candidates to ML catalog...")
+                add_res = requests.post(f"{ml_api_url}/catalog/add", json={"items": catalog_add_items}, timeout=30)
+                add_res.raise_for_status()
+            except Exception as e:
+                print(f"Warning: Failed to hot-add catalog items: {e}")
+            
             rerank_request = {
                 "user": user,
                 "candidate_items": ml_candidates
@@ -135,11 +155,44 @@ def recommend():
             blocked_genres=blocked_genres
         )
         
+        # --- LLM Generation via Google Gemini ---
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        llm_response_text = None
+        
+        if gemini_api_key:
+            try:
+                gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={gemini_api_key}"
+                headers = {
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "systemInstruction": {
+                        "parts": [{"text": "You are a friendly, expert entertainment recommendation engine. Your task is to output a beautifully formatted pitch to the user based on the retrieved items. Speak directly to the user. Do not output internal reasoning."}]
+                    },
+                    "contents": [{
+                        "parts": [{"text": llm_prompt}]
+                    }]
+                }
+                
+                print(f"Calling Gemini API ({gemini_model})...")
+                r = requests.post(url, headers=headers, json=payload, timeout=60)
+                r.raise_for_status()
+                response_data = r.json()
+                llm_response_text = response_data["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception as e:
+                print(f"Warning: LLM generation failed. Error: {e}")
+                llm_response_text = f"Error generating response: {str(e)}"
+        else:
+            print("Warning: GEMINI_API_KEY is not set. Skipping LLM generation.")
+            llm_response_text = "GEMINI_API_KEY not configured on the server."
+        
         return jsonify({
             "status": "success",
             "query": query,
             "retrieved_items": retrieved_results,
-            "generated_prompt": llm_prompt
+            "generated_prompt": llm_prompt,
+            "llm_response": llm_response_text
         }), 200
 
     except Exception as e:
