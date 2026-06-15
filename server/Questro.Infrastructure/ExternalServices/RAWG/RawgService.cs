@@ -270,19 +270,10 @@ public sealed class RawgService : IRawgService
         // ── Global Shield ── always exclude explicit tags for every user ─────
         queryParams[RawgConstants.QueryKeys.ExcludeTags] = "nsfw,erotic,nudity";
 
-        // ── ESRB Rating Cap ──────────────────────────────────────────────────
-        // Child path:  maxContentRating is non-null (callers default to "Teen" via ??).
-        //              MapEsrbRatingIds converts it to the appropriate ID range.
-        // Adult/parent path: maxContentRating is null.
-        //              Hard-cap at Mature (IDs 1-4) platform-wide — Adults Only (ID 5)
-        //              is NEVER served to any account, regardless of age.
-        var esrbIds = string.IsNullOrWhiteSpace(maxContentRating)
-            ? "1,2,3,4"                        // adult/parent cap: max Mature, block Adults Only
-            : MapEsrbRatingIds(maxContentRating); // child cap: map their allowed max
-
-        if (!string.IsNullOrWhiteSpace(esrbIds))
+       
+        if (string.IsNullOrWhiteSpace(maxContentRating))
         {
-            queryParams[RawgConstants.QueryKeys.EsrbRating] = esrbIds;
+            queryParams[RawgConstants.QueryKeys.EsrbRating] = "1,2,3,4"; 
         }
     }
 

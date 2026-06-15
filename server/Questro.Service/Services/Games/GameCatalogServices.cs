@@ -403,8 +403,8 @@ namespace Questro.Service.Services.Games
                     };
 
                     tasks.Add(isSearch
-                        ? _rawgservices.SearchGamesAsync(fetchParams, restriction.MaxContentRating ?? "Teen", cancellationToken)
-                        : _rawgservices.DiscoverGamesAsync(fetchParams, restriction.MaxContentRating ?? "Teen", cancellationToken));
+                        ? _rawgservices.SearchGamesAsync(fetchParams, maxContentRating: null, cancellationToken)
+                        : _rawgservices.DiscoverGamesAsync(fetchParams, maxContentRating: null, cancellationToken));
                 }
 
                 var responses = await Task.WhenAll(tasks);
@@ -471,7 +471,7 @@ namespace Questro.Service.Services.Games
                             PageSize = 40,
                             Sort = "latest"
                         };
-                        return _rawgservices.DiscoverGamesAsync(fetchParams, maxContentRating: restriction.MaxContentRating ?? "Teen", cancellationToken);
+                        return _rawgservices.DiscoverGamesAsync(fetchParams, maxContentRating: null, cancellationToken);
                     })
                     .ToList();
 
@@ -485,9 +485,10 @@ namespace Questro.Service.Services.Games
                     .Where(r => r?.Results is not null)
                     .SelectMany(r => r!.Results)
                     .Where(GameGenreResponseFilter.IsGameVisible)
+                    .Where(g => g.EsrbRating == null || g.EsrbRating.Id <= 3)
                     .Where(g => !g.Genres.Any(genre => blockedSet.Contains(genre.Id)))
-                    .Where(g => ParseDate(g.Released) is DateTime rd &&
-                                rd.Date >= oneMonthAgo && rd.Date <= DateTime.UtcNow.Date)
+                    .Where(g => ParseDate(g.Released) is DateTime releaseDate &&
+                                releaseDate.Date >= oneMonthAgo && releaseDate.Date <= DateTime.UtcNow.Date)
                     .Where(g => !string.IsNullOrWhiteSpace(g.BackgroundImage))
                     .ToList();
 
@@ -533,6 +534,7 @@ namespace Questro.Service.Services.Games
                 .Where(r => r?.Results is not null)
                 .SelectMany(r => r!.Results)
                 .Where(GameGenreResponseFilter.IsGameVisible)
+                .Where(g => g.EsrbRating == null || g.EsrbRating.Id <= 3)
                 .Where(g => !g.Genres.Any(genre => blockedSet.Contains(genre.Id)))
                 .ToList();
 
