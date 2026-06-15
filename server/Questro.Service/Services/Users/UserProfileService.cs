@@ -119,6 +119,35 @@ public class UserProfileService : IUserProfileService
         return Result.Success(relativePath);
     }
 
+    public async Task<Result<UserProfileDto>> SubmitSurveyAsync(long userId, SubmitSurveyRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return Result.Failure<UserProfileDto>(UserError.UserNotFound);
+
+        if (!string.IsNullOrWhiteSpace(request.Country))
+            user.Country = request.Country.Trim();
+
+        if (request.LikedMovieGenres is not null)
+            user.MovieGenresFav = request.LikedMovieGenres.Take(3).ToList();
+
+        if (request.DislikedMovieGenres is not null)
+            user.MovieGenresDisliked = request.DislikedMovieGenres.Take(3).ToList();
+
+        if (request.LikedGameGenres is not null)
+            user.GameGenresFav = request.LikedGameGenres.Take(3).ToList();
+
+        if (request.DislikedGameGenres is not null)
+            user.GameGenresDisliked = request.DislikedGameGenres.Take(3).ToList();
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return Result.Failure<UserProfileDto>(UserError.RegistrationFailed,
+                result.Errors.Select(e => e.Description).ToList());
+
+        return await GetProfileAsync(userId, userId, cancellationToken);
+    }
+
     private static int CalculateAge(DateTime birthDate)
     {
         var today = DateTime.UtcNow.Date;
