@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useProfileStore } from '../features/profile/store/useProfileStore';
+import { useFamilyStore } from '../features/family/store/useFamilyStore';
 import {
   getUserProfile,
   getFollowStats,
@@ -19,6 +20,7 @@ import EditProfileForm from '../features/profile/components/EditProfileForm';
 import NavBar from '../components/layout/NavBar';
 import { AlertCircle } from 'lucide-react';
 import NotificationsTab from '../features/notifications/components/NotificationsTab';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProfilePage() {
   const { userId } = useParams();
@@ -32,6 +34,7 @@ export default function ProfilePage() {
     isLoading,
     error,
     setCurrentProfile,
+    setMyProfile,
     setFollowStats,
     setIsLoading,
     setError,
@@ -149,6 +152,10 @@ export default function ProfilePage() {
       }
       const updatedProfile = await getUserProfile(currentProfile?.userId || userId);
       setCurrentProfile(updatedProfile);
+      
+      if (isOwnProfile) {
+        setMyProfile(updatedProfile);
+      }
       setShowEditModal(false);
     } catch (err) {
       setError(err.message);
@@ -210,27 +217,33 @@ export default function ProfilePage() {
                 activeTab={activeTab}
               />
 
-              <div>
-                {activeTab === 'notifications' && isOwnProfile ? (
-                  <NotificationsTab />
-                ) : activeTab === 'followers' || activeTab === 'following' ? (
-                  <FollowersFollowing
-                    userId={currentProfile?.userId}
-                    isOwnProfile={isOwnProfile}
-                    activeTab={activeTab}
-                  />
-                ) : isOwnProfile || currentProfile.isHistoryPublic ? (
-                  <UserLibraries
-                    userId={currentProfile?.userId}
-                    isOwnProfile={isOwnProfile}
-                    activeTab={activeTab === 'library' ? 'movie-watchlist' : activeTab}
-                    onTabChange={(tab) => setSearchParams({ tab })}
-                  />
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-zinc-400">This user&apos;s history is private</p>
-                  </div>
-                )}
+              <div className="mt-8">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={['notifications', 'followers', 'following'].includes(activeTab) ? activeTab : 'library'}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  >
+                    {activeTab === 'notifications' && isOwnProfile ? (
+                      <NotificationsTab />
+                    ) : activeTab === 'followers' || activeTab === 'following' ? (
+                      <FollowersFollowing
+                        userId={currentProfile?.userId}
+                        isOwnProfile={isOwnProfile}
+                        activeTab={activeTab}
+                      />
+                    ) : (
+                      <UserLibraries
+                        userId={currentProfile?.userId}
+                        isOwnProfile={isOwnProfile}
+                        activeTab={activeTab === 'library' ? 'movie-watchlist' : activeTab}
+                        onTabChange={(tab) => setSearchParams({ tab })}
+                      />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
               </div>
 
               {showEditModal && isOwnProfile && (

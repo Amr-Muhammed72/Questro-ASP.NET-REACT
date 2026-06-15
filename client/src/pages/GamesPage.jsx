@@ -124,8 +124,8 @@ const GamesPage = () => {
               mode="games"
             />
 
-            <div className="w-full min-w-0">
-              <AnimatePresence mode="sync">
+            <div id="results-grid" className="w-full min-w-0" style={{ scrollMarginTop: '100px', minHeight: '600px' }}>
+              <AnimatePresence mode="popLayout">
                 {isBrowsing ? (
                   <motion.div
                     key="browsing"
