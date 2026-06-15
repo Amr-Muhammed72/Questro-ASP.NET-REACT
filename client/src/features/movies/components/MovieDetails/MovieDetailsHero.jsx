@@ -1,0 +1,247 @@
+import { memo, useState, useEffect } from 'react';
+import { Star, Play, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import MovieDetailsActions from './MovieDetailsActions';
+
+const CircularProgress = ({ score, label, color }) => {
+  const percentage = (score / 10) * 100;
+  const strokeColor = color === 'yellow' ? '#EAB308' : '#22C55E';
+  
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative w-20 h-20 lg:w-24 lg:h-24 flex items-center justify-center">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-zinc-800" />
+          <circle 
+            cx="32" cy="32" r="28" 
+            stroke={strokeColor} 
+            strokeWidth="4" 
+            fill="transparent" 
+            strokeDasharray="175.93" 
+            strokeDashoffset={175.93 - (175.93 * percentage) / 100}
+            className="transition-all duration-1000 ease-out" 
+            strokeLinecap="round" 
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-white font-bold text-xl lg:text-2xl flex items-center gap-1">
+            {color === 'yellow' && <Star className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-500 fill-yellow-500" />}
+            {score.toFixed(1)}
+          </span>
+        </div>
+      </div>
+      <span className="text-xs lg:text-sm text-zinc-400 font-bold uppercase tracking-wider">{label}</span>
+    </div>
+  );
+};
+
+const getYoutubeEmbed = (url) => {
+  if (!url) return null;
+
+  let videoId = "";
+  if (url.includes("watch?v=")) {
+    videoId = url.split("v=")[1]?.split("&")[0];
+  } else if (url.includes("youtu.be/")) {
+    videoId = url.split("youtu.be/")[1];
+  } else {
+    videoId = url;
+  }
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&playsinline=1&rel=0`;
+};
+
+const MovieDetailsHero = memo(({ movie }) => {
+  const {
+    title,
+    backdropUrl,
+    posterUrl,
+    releaseDate,
+    runtime,
+    tmdbRating,
+    ratingSummary,
+    genres,
+    overview,
+    trailerUrl,
+  } = movie;
+
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const embedUrl = getYoutubeEmbed(trailerUrl);
+
+  // Close modal on escape key
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setIsTrailerOpen(false);
+    };
+    if (isTrailerOpen) window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isTrailerOpen]);
+
+  const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
+  const hours = runtime ? Math.floor(runtime / 60) : 0;
+  const minutes = runtime ? runtime % 60 : 0;
+  const formattedRuntime = runtime ? `${hours}h ${minutes}m` : 'N/A';
+
+  const tmdb = tmdbRating || 0;
+  const userAvg = ratingSummary?.average || 0;
+  let finalScore = tmdb;
+  if (tmdb > 0 && userAvg > 0) {
+    finalScore = (tmdb + userAvg) / 2;
+  } else if (userAvg > 0) {
+    finalScore = userAvg;
+  }
+
+  return (
+    <div className="relative w-full min-h-[75vh] bg-[#0B0F19] flex items-center pt-24 pb-16">
+      {/* Background Image & Overlays */}
+      <div className="absolute inset-0 overflow-hidden bg-[#0B0F19]">
+        {backdropUrl && (
+          <motion.img
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 0.5, scale: 1 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            src={backdropUrl}
+            alt={title}
+            className="w-full h-full object-cover object-top"
+            loading="lazy"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F19] via-[#0B0F19]/80 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0B0F19] via-[#0B0F19]/60 to-transparent z-10" />
+      </div>
+
+      <div className="w-full max-w-screen-2xl relative z-20 mx-auto px-4 md:px-8 lg:px-12 xl:px-16">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-10 md:gap-14 lg:gap-20">
+          
+          {/* Floating Poster */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            onClick={() => {
+              if (embedUrl) {
+                setIsTrailerOpen(true);
+              } else {
+                toast.error("No trailer available for this movie.");
+              }
+            }}
+            className="w-64 md:w-80 lg:w-96 xl:w-[420px] aspect-[2/3] flex-shrink-0 relative z-30 bg-zinc-900 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group border border-white/10 cursor-pointer"
+          >
+            {posterUrl ? (
+              <img
+                src={posterUrl}
+                alt={`${title} Poster`}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                loading="lazy"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center opacity-20">
+                <span className="text-6xl">🎬</span>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Text Content */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="flex-1 w-full flex flex-col pt-4 md:pt-10 lg:pl-8"
+          >
+            <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight text-white mb-6 drop-shadow-2xl">
+              {title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-4 text-zinc-300 font-semibold mb-8">
+              <span className="bg-white/10 px-4 py-1.5 lg:px-5 lg:py-2 rounded-lg text-sm lg:text-base border border-white/10 shadow-sm">
+                {year}
+              </span>
+              <span>•</span>
+              <span className="bg-white/10 px-4 py-1.5 lg:px-5 lg:py-2 rounded-lg text-sm lg:text-base border border-white/10 shadow-sm">
+                {formattedRuntime}
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-2 bg-white/10 px-4 py-1.5 lg:px-5 lg:py-2 rounded-lg text-sm lg:text-base border border-white/10 shadow-sm text-yellow-500">
+                <Star className="w-5 h-5 fill-yellow-500" />
+                {tmdbRating ? tmdbRating.toFixed(1) : 'N/A'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-3 mb-10">
+              {genres?.map((genre) => (
+                <span
+                  key={genre}
+                  className="px-4 py-1.5 lg:px-5 lg:py-2 bg-white/5 border border-white/10 text-zinc-200 rounded-lg text-sm lg:text-base font-bold tracking-wide shadow-sm hover:bg-white/10 transition-colors"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-10 mb-10">
+              <CircularProgress score={finalScore} label="Global Score" color="green" />
+            </div>
+
+            {overview && (
+              <p className="text-zinc-300 text-base md:text-lg lg:text-xl leading-relaxed max-w-4xl mb-12 drop-shadow-md">
+                {overview}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-6">
+              {embedUrl && (
+                <button
+                  onClick={() => setIsTrailerOpen(true)}
+                  className="flex items-center gap-3 px-8 py-4 lg:px-10 lg:py-5 bg-white text-black text-lg lg:text-xl font-black rounded-2xl hover:bg-zinc-200 transition-transform shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:scale-105 cursor-pointer"
+                >
+                  <Play className="w-6 h-6 lg:w-7 lg:h-7 fill-black" />
+                  Watch Trailer
+                </button>
+              )}
+              <MovieDetailsActions movieId={movie.tmdbId} userStatus={movie.userStatus} />
+            </div>
+          </motion.div>
+
+        </div>
+      </div>
+
+      {/* Trailer Modal Overlay */}
+      <AnimatePresence>
+        {isTrailerOpen && embedUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm p-4 md:p-8"
+            onClick={() => setIsTrailerOpen(false)}
+          >
+            <div className="w-full max-w-5xl flex justify-end mb-4">
+              <button 
+                onClick={() => setIsTrailerOpen(false)}
+                className="w-12 h-12 bg-white/10 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-all hover:scale-110 shadow-lg cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div 
+              className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
+              onClick={e => e.stopPropagation()}
+            >
+              <iframe
+                className="w-full h-full"
+                src={embedUrl}
+                title={`${title} Trailer`}
+                allow="autoplay; encrypted-media; fullscreen"
+                allowFullScreen
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
+
+MovieDetailsHero.displayName = 'MovieDetailsHero';
+export default MovieDetailsHero;

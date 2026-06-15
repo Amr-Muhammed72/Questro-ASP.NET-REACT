@@ -21,9 +21,7 @@ import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 // Heavy feature pages — downloaded only when the user navigates to them.
 // Vite will create separate JS chunks for each, keeping the initial bundle small.
 const MoviesPage  = lazy(() => import('../pages/MoviesPage'));
-const MovieDetailsPage  = lazy(() => import('../pages/MovieDetailsPage'));
-const GameDetailsPage  = lazy(() => import('../pages/GameDetailsPage'));
-const ActorDetailsPage = lazy(() => import('../pages/ActorDetailsPage'));
+const MovieDetailsPage = lazy(() => import('../pages/MovieDetailsPage'));
 const GamesPage   = lazy(() => import('../pages/GamesPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const FamilyDashboard = lazy(() => import('../features/family/components/FamilyDashboard').then(module => ({ default: module.FamilyDashboard })));
@@ -71,7 +69,7 @@ export default function AnimatedRoutes() {
             element={<ProtectedRoute><PageTransition><MoviesPage /></PageTransition></ProtectedRoute>}
           />
           <Route
-            path="/movies/:id"
+            path="/movies/:tmdbId"
             element={<ProtectedRoute><PageTransition><MovieDetailsPage /></PageTransition></ProtectedRoute>}
           />
           <Route

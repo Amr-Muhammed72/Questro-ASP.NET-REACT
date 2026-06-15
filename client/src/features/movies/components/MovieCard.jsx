@@ -1,12 +1,9 @@
-import { memo, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Star, Calendar, Globe2, Users, Trash2, Bookmark, BookmarkCheck } from 'lucide-react';
+import { memo, useState } from 'react';
+import { Star, Calendar, Globe2, Users, Trash2 } from 'lucide-react';
 import OptimizedImage from '../../../components/common/OptimizedImage';
 
 const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
   const [isRemoving, setIsRemoving] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isWishlisting, setIsWishlisting] = useState(false);
 
   if (!movie) return null;
 
@@ -53,7 +50,7 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
   }, [isWishlisting, movie.tmdbId, movie.id]);
 
   return (
-    <Link to={`/movies/${movie.tmdbId || movie.id}`} className="flex flex-col group/card cursor-pointer items-center w-full no-underline text-inherit">
+    <div className="flex flex-col group/card cursor-pointer items-center w-full">
       <div className={`relative flex-shrink-0 transition-all duration-500 ease-out hover:scale-105 hover:z-30 hover:shadow-2xl hover:shadow-rose-500/40 rounded-xl overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900 ${containerWidthClass} aspect-[2/3] border border-zinc-700/50 hover:border-rose-500/50`}>
 
         {displayImage ? (
