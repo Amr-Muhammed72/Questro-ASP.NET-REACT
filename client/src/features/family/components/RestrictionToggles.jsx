@@ -82,11 +82,11 @@ export const RestrictionToggles = ({
             {isLoadingGenres && <span className="text-sm text-zinc-500">Loading...</span>}
             {movieGenres.map((genre) => (
               <button
-                key={genre.id}
+                key={genre.genreId}
                 type="button"
-                onClick={() => toggleMovieGenre(genre.id)}
+                onClick={() => toggleMovieGenre(genre.genreId)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border ${
-                  blockedMovieGenreIds.includes(genre.id)
+                  blockedMovieGenreIds.includes(genre.genreId)
                     ? 'bg-purple-600/30 border-purple-500 text-white shadow-[0_0_10px_rgba(138,43,226,0.3)]'
                     : 'bg-zinc-900/60 border-zinc-700/50 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
                 }`}

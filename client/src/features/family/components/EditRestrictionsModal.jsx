@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Loader2, Save, AlertCircle } from 'lucide-react';
 import { useUpdateChildRestrictions } from '../hooks/useFamily';
 import { RestrictionToggles } from './RestrictionToggles';
@@ -17,10 +17,10 @@ export const EditRestrictionsModal = ({ child, onClose }) => {
   const handleSave = () => {
     setApiError('');
     const payload = {
-      blockedMovieGenreIds: blockedMovieGenreIds.length > 0 ? blockedMovieGenreIds : [],
-      blockedGameGenreIds: blockedGameGenreIds.length > 0 ? blockedGameGenreIds : [],
-      maxContentRating,
-      maxMetacriticRating,
+      blockedMovieGenreIds: Array.isArray(blockedMovieGenreIds) ? blockedMovieGenreIds.filter(id => id != null) : [],
+      blockedGameGenreIds: Array.isArray(blockedGameGenreIds) ? blockedGameGenreIds.filter(id => id != null) : [],
+      maxContentRating: maxContentRating || null,
+      maxMetacriticRating: maxMetacriticRating || null,
     };
 
     updateMutation.mutate(
@@ -35,7 +35,18 @@ export const EditRestrictionsModal = ({ child, onClose }) => {
       }
     );
   };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
 
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-900/90 border border-zinc-700/50 rounded-3xl shadow-2xl shadow-purple-900/20">

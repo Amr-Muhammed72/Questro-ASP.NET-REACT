@@ -39,7 +39,7 @@ export default function AnimatedRoutes() {
     // Suspense must wrap AnimatePresence so lazy chunks have a fallback
     // while they are being fetched.
     <Suspense fallback={<PageLoader />}>
-      <AnimatePresence mode="sync">
+      <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
 
           {/* Public */}

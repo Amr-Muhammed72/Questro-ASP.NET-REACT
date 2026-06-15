@@ -8,19 +8,19 @@ import {authService} from '../../features/auth/api/authService';
 const UserActions = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { currentProfile, imageUpdateStamp, setCurrentProfile } = useProfileStore();
+  const { myProfile, imageUpdateStamp, setMyProfile } = useProfileStore();
   const [userId, setUserId] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    if (currentProfile?.userId) {
-      setUserId(currentProfile.userId);
+    if (myProfile?.userId) {
+      setUserId(myProfile.userId);
     } else {
       const fetchUserId = async () => {
         try {
           const profile = await getMyProfile();
-          setCurrentProfile(profile);
+          setMyProfile(profile);
           setUserId(profile.userId);
         } catch (error) {
           console.error('Failed to fetch user ID:', error);
@@ -28,7 +28,7 @@ const UserActions = () => {
       };
       fetchUserId();
     }
-  }, [currentProfile, setCurrentProfile]);
+  }, [myProfile, setMyProfile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -68,15 +68,15 @@ const UserActions = () => {
         aria-expanded={isDropdownOpen}
       >
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden ring-1 ring-indigo-500/30">
-          {currentProfile?.profilePicUrl ? (
+          {myProfile?.profilePicUrl ? (
             <img 
-              src={`http://localhost:5222${currentProfile.profilePicUrl}?t=${imageUpdateStamp}`} 
+              src={`http://localhost:5222${myProfile.profilePicUrl}?t=${imageUpdateStamp}`} 
               alt="Profile" 
               className="w-full h-full object-cover" 
             />
           ) : (
             <span className="text-white text-sm font-bold">
-              {currentProfile?.firstName ? currentProfile.firstName.charAt(0).toUpperCase() : '?'}
+              {myProfile?.firstName ? myProfile.firstName.charAt(0).toUpperCase() : '?'}
             </span>
           )}
         </div>

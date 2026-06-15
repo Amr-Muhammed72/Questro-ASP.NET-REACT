@@ -123,8 +123,8 @@ const MoviesPage = () => {
               mode="movies"
             />
 
-            <div className="w-full min-w-0">
-              <AnimatePresence mode="wait">
+            <div id="results-grid" className="w-full min-w-0" style={{ scrollMarginTop: '100px', minHeight: '600px' }}>
+              <AnimatePresence mode="popLayout">
                 {isBrowsing ? (
                   <motion.div
                     key="browsing"

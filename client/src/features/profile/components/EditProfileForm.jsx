@@ -58,16 +58,17 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-      <div className="bg-zinc-900/60 border border-zinc-700/50 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto backdrop-blur-md">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-zinc-900/60 border border-zinc-700/50 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto backdrop-blur-md animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-zinc-900/60 border-b border-zinc-700/50 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">Edit Profile</h2>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            className="p-3 hover:bg-white/10 rounded-xl transition-colors cursor-pointer relative z-50 group"
+            aria-label="Close"
           >
-            <X className="w-5 h-5 text-zinc-400" />
+            <X className="w-6 h-6 text-zinc-400 group-hover:text-white transition-colors" />
           </button>
         </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, Plus, ShieldAlert, Loader2, Calendar } from 'lucide-react';
 import { useChildren } from '../hooks/useFamily';
 import { useFamilyStore } from '../store/useFamilyStore';
@@ -34,7 +35,7 @@ export const FamilyDashboard = () => {
 
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-medium shadow-[0_0_20px_rgba(138,43,226,0.3)] hover:shadow-[0_0_25px_rgba(138,43,226,0.5)] transition-all group shrink-0"
+          className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-medium shadow-[0_0_20px_rgba(138,43,226,0.3)] hover:shadow-[0_0_25px_rgba(138,43,226,0.5)] transition-all group shrink-0 cursor-pointer"
         >
           <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
           Add Child Account
@@ -75,19 +76,22 @@ export const FamilyDashboard = () => {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-bl-full -z-10 group-hover:bg-purple-500/10 transition-colors" />
                 
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700/50 flex items-center justify-center shadow-inner shrink-0">
-                    <span className="text-2xl font-bold text-zinc-300 uppercase">
+                <Link 
+                  to={`/users/${child.userId}`}
+                  className="flex items-center gap-4 mb-6 group/profile cursor-pointer"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700/50 flex items-center justify-center shadow-inner shrink-0 group-hover/profile:border-indigo-500/50 transition-colors">
+                    <span className="text-2xl font-bold text-zinc-300 uppercase group-hover/profile:text-white transition-colors">
                       {child.firstName ? child.firstName.charAt(0) : child.userName?.charAt(0)}
                     </span>
                   </div>
                   <div className="overflow-hidden">
-                    <h3 className="text-lg font-bold text-white truncate">
+                    <h3 className="text-lg font-bold text-white truncate group-hover/profile:text-indigo-300 transition-colors">
                       {child.firstName ? `${child.firstName} ${child.lastName || ''}` : child.userName}
                     </h3>
-                    <p className="text-sm text-zinc-400 truncate">@{child.userName}</p>
+                    <p className="text-sm text-zinc-400 truncate group-hover/profile:text-zinc-300 transition-colors">@{child.userName}</p>
                   </div>
-                </div>
+                </Link>
 
                 <div className="space-y-3 pt-4 border-t border-zinc-800/80 flex-grow">
                   {child.birthDate && (
@@ -128,7 +132,7 @@ export const FamilyDashboard = () => {
                 
                 <button 
                   onClick={() => setEditingChild(child)}
-                  className="w-full mt-6 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 hover:text-white text-sm font-medium rounded-xl border border-zinc-700/50 transition-colors shrink-0"
+                  className="w-full mt-6 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 hover:text-white text-sm font-medium rounded-xl border border-zinc-700/50 transition-colors shrink-0 cursor-pointer"
                 >
                   Edit Restrictions
                 </button>

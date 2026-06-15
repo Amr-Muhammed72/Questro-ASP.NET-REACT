@@ -109,7 +109,7 @@ export const ChildForm = ({ onClose }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-400 ml-1">Username *</label>
+                <label className="text-sm font-medium text-zinc-400 ml-1">  rname *</label>
                 <input
                   {...register('userName')}
                   className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"

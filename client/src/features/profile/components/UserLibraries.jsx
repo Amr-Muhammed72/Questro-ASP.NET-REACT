@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { Sparkles, Gamepad2, Film, Search, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import MovieGrid from '../../../features/movies/components/MovieGrid';
 import GameGrid from '../../../features/games/components/GameGrid';
 import {
@@ -202,90 +203,105 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
       </div>
 
       {/* Content */}
-      {error ? (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 mb-4">
-            <AlertCircle className="w-8 h-8 text-red-400" />
-          </div>
-          <p className="text-red-400 mb-2 font-medium text-lg">Failed to load library</p>
-          <p className="text-zinc-400 text-sm">{error}</p>
-        </div>
-      ) : isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500" />
-        </div>
-      ) : items.length === 0 ? (
-        isOwnProfile ? (
-          <div className="py-16">
-            <div className="bg-gradient-to-br from-zinc-900/80 via-purple-900/20 to-zinc-900/80 backdrop-blur-sm border border-zinc-700/40 rounded-2xl p-8 md:p-16">
-              <div className="flex flex-col items-center text-center space-y-8">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/30 via-purple-600/30 to-indigo-600/30 rounded-full blur-3xl" />
-                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    {isMovieTab ? (
-                      <Film className="w-10 h-10 text-white" />
-                    ) : (
-                      <Gamepad2 className="w-10 h-10 text-white" />
-                    )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="w-full"
+        >
+          {error ? (
+            <div className="text-center py-16">
+              {error === "This user's history is private" ? (
+                <p className="text-zinc-400 text-lg">This user&apos;s history is private</p>
+              ) : (
+                <>
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 mb-4">
+                    <AlertCircle className="w-8 h-8 text-red-400" />
+                  </div>
+                  <p className="text-red-400 mb-2 font-medium text-lg">Failed to load library</p>
+                  <p className="text-zinc-400 text-sm">{error}</p>
+                </>
+              )}
+            </div>
+          ) : (isLoading || items.length > 0) ? (
+            <>
+              {isMovieTab ? (
+                <MovieGrid
+                  movies={items}
+                  loading={isLoading}
+                  isOwnProfile={isOwnProfile}
+                  onRemoveItem={handleRemoveItem}
+                  currentPage={pagination.pageNumber}
+                  onPageChange={handlePageChange}
+                />
+              ) : (
+                <GameGrid
+                  games={items}
+                  loading={isLoading}
+                  isOwnProfile={isOwnProfile}
+                  onRemoveItem={handleRemoveItem}
+                  currentPage={pagination.pageNumber}
+                  onPageChange={handlePageChange}
+                />
+              )}
+            </>
+          ) : (
+            isOwnProfile ? (
+              <div className="py-16">
+                <div className="bg-gradient-to-br from-zinc-900/80 via-purple-900/20 to-zinc-900/80 backdrop-blur-sm border border-zinc-700/40 rounded-2xl p-8 md:p-16">
+                  <div className="flex flex-col items-center text-center space-y-8">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/30 via-purple-600/30 to-indigo-600/30 rounded-full blur-3xl" />
+                      <div className="relative w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        {isMovieTab ? (
+                          <Film className="w-10 h-10 text-white" />
+                        ) : (
+                          <Gamepad2 className="w-10 h-10 text-white" />
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                        Start exploring {isMovieTab ? 'movies' : 'games'}!
+                      </h3>
+                      <p className="text-zinc-400 max-w-xl text-base">
+                        {isMovieTab
+                          ? 'Add movies to your collections, rate them, and organize your viewing experience.'
+                          : 'Build your collection, track games you want to play, and share your gaming journey.'}
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center pt-4">
+                      <Link
+                        to={isMovieTab ? '/movies' : '/games'}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60"
+                      >
+                        <Search className="w-4 h-4" />
+                        Discover {isMovieTab ? 'Movies' : 'Games'}
+                      </Link>
+                      <Link
+                        to={isMovieTab ? '/games' : '/movies'}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-zinc-800/60 hover:bg-zinc-700/60 border border-zinc-600/50 hover:border-indigo-500/50 text-zinc-100 font-semibold rounded-xl transition-all duration-200"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        {isMovieTab ? 'Explore Games' : 'Explore Movies'}
+                      </Link>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                    Start exploring {isMovieTab ? 'movies' : 'games'}!
-                  </h3>
-                  <p className="text-zinc-400 max-w-xl text-base">
-                    {isMovieTab
-                      ? 'Add movies to your collections, rate them, and organize your viewing experience.'
-                      : 'Build your collection, track games you want to play, and share your gaming journey.'}
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center pt-4">
-                  <Link
-                    to={isMovieTab ? '/movies' : '/games'}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60"
-                  >
-                    <Search className="w-4 h-4" />
-                    Discover {isMovieTab ? 'Movies' : 'Games'}
-                  </Link>
-                  <Link
-                    to={isMovieTab ? '/games' : '/movies'}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-zinc-800/60 hover:bg-zinc-700/60 border border-zinc-600/50 hover:border-indigo-500/50 text-zinc-100 font-semibold rounded-xl transition-all duration-200"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    {isMovieTab ? 'Explore Games' : 'Explore Movies'}
-                  </Link>
-                </div>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <p className="text-zinc-400 text-lg">
-              This user hasn&apos;t added any {isMovieTab ? 'movies' : 'games'} yet
-            </p>
-          </div>
-        )
-      ) : (
-        <>
-          {isMovieTab ? (
-            <MovieGrid
-              movies={items}
-              isOwnProfile={isOwnProfile}
-              onRemoveItem={handleRemoveItem}
-              currentPage={pagination.pageNumber}
-              onPageChange={handlePageChange}
-            />
-          ) : (
-            <GameGrid
-              games={items}
-              isOwnProfile={isOwnProfile}
-              onRemoveItem={handleRemoveItem}
-              currentPage={pagination.pageNumber}
-              onPageChange={handlePageChange}
-            />
+            ) : (
+              <div className="text-center py-16">
+                <p className="text-zinc-400 text-lg">
+                  This user hasn&apos;t added any {isMovieTab ? 'movies' : 'games'} yet
+                </p>
+              </div>
+            )
           )}
-        </>
-      )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 });
