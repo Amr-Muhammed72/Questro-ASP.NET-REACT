@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
+import { setToken } from '../../../lib/apiClient';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -36,6 +37,7 @@ const LoginForm = () => {
       }
 
       const data = await response.json();
+      setToken(data.accessToken);
       login(data.accessToken);
       navigate('/movies');
     } catch (error) {

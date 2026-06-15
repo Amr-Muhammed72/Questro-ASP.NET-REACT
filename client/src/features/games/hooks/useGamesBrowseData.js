@@ -5,6 +5,7 @@ export default function useGamesBrowseData() {
   const [recentlyAdded, setRecentlyAdded] = useState([]);
   const [trending, setTrending] = useState([]);
   const [genresWithGames, setGenresWithGames] = useState([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const fetchedGenres = useRef(new Set());
   const allGenresRef = useRef([]);
   const currentIndexRef = useRef(0);
@@ -25,7 +26,7 @@ export default function useGamesBrowseData() {
         if (fetchedGenres.current.has(genreId)) return;
         fetchedGenres.current.add(genreId);
         try {
-          const res = await gameService.getGames({ genreId, pageSize: 18, pageIndex: 1 });
+          const res = await gameService.getGames({ genreId, pageSize: 10, pageIndex: 1 });
           const games = res?.data ?? (Array.isArray(res) ? res : []);
           if (games.length > 0) {
             newItems.push({ ...genre, genreId, games });
@@ -52,6 +53,7 @@ export default function useGamesBrowseData() {
     if (currentIndexRef.current >= allGenres.length) return;
 
     isFetchingRef.current = true;
+    setIsLoadingMore(true);
     const nextChunk = allGenres.slice(
       currentIndexRef.current,
       currentIndexRef.current + CHUNK_SIZE
@@ -62,6 +64,7 @@ export default function useGamesBrowseData() {
     );
     await fetchGamesForGenres(nextChunk);
     isFetchingRef.current = false;
+    setIsLoadingMore(false);
   }, [fetchGamesForGenres]);
 
   useEffect(() => {
@@ -70,8 +73,8 @@ export default function useGamesBrowseData() {
     const loadData = async () => {
       try {
         const results = await Promise.allSettled([
-          gameService.getTrending({ take: 18 }),
-          gameService.getRecentlyAdded({ take: 18 }),
+          gameService.getTrending({ take: 10 }),
+          gameService.getRecentlyAdded({ take: 10 }),
           gameService.getGenres()
         ]);
 
@@ -119,5 +122,5 @@ export default function useGamesBrowseData() {
     };
   }, [fetchGamesForGenres, loadNextChunk]);
 
-  return { recentlyAdded, trending, genresWithGames, sentinelRef };
+  return { recentlyAdded, trending, genresWithGames, sentinelRef, isLoadingMore };
 }

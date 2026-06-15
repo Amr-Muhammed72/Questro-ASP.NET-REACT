@@ -13,11 +13,13 @@ const RegisterPage = () => {
   const { register, isLoading, error } = useRegister();
   const [showOtp, setShowOtp] = useState(false);
   const [email, setEmail] = useState('');
+  const [registrationData, setRegistrationData] = useState(null);
 
   const handleRegister = async (userData) => {
     try {
       await register(userData);
       setEmail(userData.email);
+      setRegistrationData(userData);
       setShowOtp(true);
     } catch (exception) {
     }
@@ -75,7 +77,7 @@ const RegisterPage = () => {
               {!showOtp ? (
                 <RegisterForm handleRegister={handleRegister} isLoading={isLoading} />
               ) : (
-                <OtpForm email={email} onSuccess={() => navigate('/login')} />
+                <OtpForm email={email} registrationData={registrationData} onSuccess={() => navigate('/login')} />
               )}
               
               {!showOtp && (

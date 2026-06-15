@@ -1,78 +1,108 @@
-const BASE_URL = 'http://localhost:5222';
+import { apiClient } from '../../../lib/apiClient';
 
+/**
+ * Fetch all available movie genres.
+ * @returns {Promise<Array>} GenreDto[]
+ */
 export const getGenres = async () => {
-  const response = await fetch(`${BASE_URL}/api/movies/genres`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch genres');
-  }
-  return response.json();
+  const response = await apiClient.get('/movies/genres');
+  return response.data;
 };
 
+/**
+ * Discover / search movies with optional filters and pagination.
+ * Handles both the paginated /movies endpoint and the named-list
+ * endpoints (trending, recently-added, recommended, recommended-for-me).
+ *
+ * @param {Object} filters         - Active filter values
+ * @param {number} pageIndex       - 1-based page number
+ * @param {number} pageSize        - Items per page (default 18)
+ * @param {AbortSignal} [signal]   - Optional cancellation signal
+ * @returns {Promise<Object>} PagedResponse<MovieListItemDto> or array
+ */
 export const discoverMovies = async (filters, pageIndex, pageSize = 18, signal) => {
-  const params = new URLSearchParams();
   const isListEndpoint = !!filters.list;
-  console.log('Discovering movies with filters:', filters, 'pageIndex:', pageIndex, 'pageSize:', pageSize, 'isListEndpoint:', isListEndpoint  );
+
+  // ── Named-list endpoints (trending, recently-added, etc.) ──────────────────
   if (isListEndpoint) {
-    console.log('Using list endpoint, applying take parameter', pageSize * pageIndex);
-    params.append('take', (pageSize * pageIndex).toString());
-  } else {
-    params.append('pageIndex', pageIndex.toString());
-    params.append('pageSize', pageSize.toString());
+    const listRouteMap = {
+      'recommended':        '/movies/recommended',
+      'trending':           '/movies/trending',
+      'recently-added':     '/movies/recently-added',
+      'recommended-for-me': '/movies/recommended-for-me',
+    };
+
+    const endpoint = listRouteMap[filters.list] ?? '/movies';
+    // List endpoints use `take` (cumulative), not pagination
+    const params = { take: pageSize * pageIndex };
+    const response = await apiClient.get(endpoint, { params, signal });
+    return response.data;
   }
-  
-  if (!isListEndpoint) {
-    const validFilters = ['search', 'genreId', 'language', 'year', 'minRating', 'maxRating', 'quality', 'sort'];
-    
-    validFilters.forEach(key => {
-      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
-        params.append(key, filters[key].toString());
-      }
-    });
-  }
-  console.log('Constructed query params:', params.toString());
-  let endpoint = `${BASE_URL}/api/movies`;
-  if (isListEndpoint) {
-    if (filters.list === 'recommended') endpoint = `${BASE_URL}/api/movies/recommended`;
-    else if (filters.list === 'trending') endpoint = `${BASE_URL}/api/movies/trending`;
-    else if (filters.list === 'recently-added') endpoint = `${BASE_URL}/api/movies/recently-added`;
-    else if (filters.list === 'recommended-for-me') endpoint = `${BASE_URL}/api/movies/recommended-for-me`;
-  }
-  console.log(`Lol movies from ${endpoint}?${params.toString()}`);
-  console.log('page index:', pageIndex, 'page size:', pageSize);
-  const response = await fetch(`${endpoint}?${params.toString()}`, { signal });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch movies');
-  }
-  console.log(`Fetched movies for ${endpoint} with filters:`, filters);
-  console.log('Response data:', await response.clone().json());
-  return response.json(); 
+
+  // ── Paginated discover endpoint ────────────────────────────────────────────
+  const params = { pageIndex, pageSize };
+  const validFilters = ['search', 'genreId', 'language', 'year', 'minRating', 'maxRating', 'quality', 'sort'];
+  validFilters.forEach(key => {
+    if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+      params[key] = filters[key];
+    }
+  });
+
+  const response = await apiClient.get('/movies', { params, signal });
+  return response.data;
 };
 
-export const getRecentlyAdded = async (take = 18) => {
-  const response = await fetch(`${BASE_URL}/api/movies/recently-added?take=${take}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch recently added movies');
-  }
-  return response.json();
+/**
+ * Fetch trending movies.
+ * @param {number} take            - Number of results to return
+ * @param {AbortSignal} [signal]   - Optional cancellation signal
+ * @returns {Promise<Object>}
+ */
+export const getTrendingMovies = async (take = 18, signal) => {
+  const response = await apiClient.get('/movies/trending', { params: { take }, signal });
+  return response.data;
 };
 
-export const getTrendingMovies = async (take = 18) => {
-  const response = await fetch(`${BASE_URL}/api/movies/trending?take=${take}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch trending movies');
-  }
-  return response.json();
+/**
+ * Fetch recently added movies.
+ * @param {number} take            - Number of results to return
+ * @param {AbortSignal} [signal]   - Optional cancellation signal
+ * @returns {Promise<Object>}
+ */
+export const getRecentlyAdded = async (take = 18, signal) => {
+  const response = await apiClient.get('/movies/recently-added', { params: { take }, signal });
+  return response.data;
 };
 
-export const getRecommended = async (take = 18) => {
-  const response = await fetch(`${BASE_URL}/api/movies/recommended?take=${take}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.en || 'Failed to fetch recommended movies');
-  }
-  console.log('Recommended movies response:', await response.clone().json());
-  return response.json();
+/**
+ * Fetch recommended movies (general / editorial).
+ * @param {number} take            - Number of results to return
+ * @param {AbortSignal} [signal]   - Optional cancellation signal
+ * @returns {Promise<Object>}
+ */
+export const getRecommended = async (take = 18, signal) => {
+  const response = await apiClient.get('/movies/recommended', { params: { take }, signal });
+  return response.data;
 };
+
+/**
+ * Fetch personalised recommendations for the authenticated user.
+ * @param {number} take            - Number of results to return
+ * @param {AbortSignal} [signal]   - Optional cancellation signal
+ * @returns {Promise<Object>}
+ */
+export const getRecommendedForMe = async (take = 18, signal) => {
+  const response = await apiClient.get('/movies/recommended-for-me', { params: { take }, signal });
+  return response.data;
+};
+
+const movieService = {
+  getGenres,
+  discoverMovies,
+  getTrendingMovies,
+  getRecentlyAdded,
+  getRecommended,
+  getRecommendedForMe,
+};
+
+export default movieService;

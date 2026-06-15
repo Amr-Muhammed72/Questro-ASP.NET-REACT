@@ -29,16 +29,19 @@ public class NewContentNotificationJob
         var moviesResult = await _movieCatalogService.GetRecentlyAddedAsync(20);
         if (moviesResult.IsSuccess && moviesResult.Value is not null)
         {
-            var newMoviesCount = moviesResult.Value
-                .Count(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value >= cutoff);
+            var newMovies = moviesResult.Value
+                .Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value >= cutoff)
+                .ToList();
 
-            if (newMoviesCount > 0)
+            foreach (var movie in newMovies)
             {
                 await _notificationService.CreateNotificationForAllUsersAsync(
-                    "New Movies Available!",
-                    $"{newMoviesCount} new movie(s) have been released recently. Check them out!",
+                    "New Movie Added",
+                    $"{movie.Title} is now available to track!",
                     NotificationType.NewMovie,
-                    null);
+                    movie.TmdbId, // Routes the user to /movies/{id}
+                    movie.Title,   // Appears separated in frontend
+                    movie.PosterUrl); // Mapped to our new ImageUrl property
             }
         }
 
@@ -46,16 +49,19 @@ public class NewContentNotificationJob
         var gamesResult = await _gameCatalogService.GetRecentlyAddedAsync(20);
         if (gamesResult.IsSuccess && gamesResult.Value?.Data is not null)
         {
-            var newGamesCount = gamesResult.Value.Data
-                .Count(g => g.ReleaseDate.HasValue && g.ReleaseDate.Value >= cutoff);
+            var newGames = gamesResult.Value.Data
+                .Where(g => g.ReleaseDate.HasValue && g.ReleaseDate.Value >= cutoff)
+                .ToList();
 
-            if (newGamesCount > 0)
+            foreach (var game in newGames)
             {
                 await _notificationService.CreateNotificationForAllUsersAsync(
-                    "New Games Available!",
-                    $"{newGamesCount} new game(s) have been released recently. Check them out!",
+                    "New Game Added",
+                    $"{game.Title} is now available to track!",
                     NotificationType.NewGame,
-                    null);
+                    game.RawgId, // Routes the user to /games/{id}
+                    game.Title,  // Appears separated in frontend
+                    game.PosterUrl); // Mapped to our new ImageUrl property
             }
         }
     }

@@ -15,7 +15,6 @@ try:
     def run_retrieval():
         INDEX_FILE = "../../vector_store/faiss_index.bin"
         META_FILE = "../../vector_store/metadata.db"
-
         if not (os.path.exists(INDEX_FILE) and os.path.exists(META_FILE)):
             print("Missing index or db files.")
             return

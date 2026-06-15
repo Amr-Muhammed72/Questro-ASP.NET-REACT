@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTrendingMovies, getRecentlyAdded, getRecommended, getGenres, discoverMovies } from '../api/movieService';
 
 export const useBrowseData = () => {
@@ -6,93 +6,150 @@ export const useBrowseData = () => {
   const [recentlyAdded, setRecentlyAdded] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [genresWithMovies, setGenresWithMovies] = useState([]);
-  const fetchedGenres = useRef(new Set());
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    let allGenres = [];
-    let currentIndex = 0;
-    const CHUNK_SIZE = 3;
+  // Refs — no re-renders on mutation
+  const fetchedGenres   = useRef(new Set());
+  const allGenresRef    = useRef([]);
+  const currentIndexRef = useRef(0);
+  const isMountedRef    = useRef(true);
+  const isFetchingRef   = useRef(false);
+  const sentinelRef     = useRef(null);   // ← DOM node watched by IntersectionObserver
 
-    const fetchMoviesForGenres = async (genresChunk) => {
-      await Promise.allSettled(
-        genresChunk.map(async (genre) => {
-          if (fetchedGenres.current.has(genre.genreId)) return;
-          fetchedGenres.current.add(genre.genreId);
-          try {
-            const res = await discoverMovies({ genreId: genre.genreId }, 1, 18);
-            if (res && res.data && res.data.length > 0 && isMounted) {
-              setGenresWithMovies(prev => {
-                if (prev.some(g => g.genreId === genre.genreId)) return prev;
-                return [...prev, { ...genre, movies: res.data }];
-              });
-            }
-          } catch (error) {
-            console.error(`Failed to load movies for genre ${genre.name}`, error);
+  const CHUNK_SIZE = 3;
+  const getGenreId = (genre) => genre.genreId ?? genre.id;
+
+  // ── Fetch movies for a batch of genres ────────────────────────────────────
+  const fetchMoviesForGenres = useCallback(async (genresChunk) => {
+    const newItems = [];
+
+    await Promise.allSettled(
+      genresChunk.map(async (genre) => {
+        const genreId = getGenreId(genre);
+        if (genreId == null) return;
+        if (fetchedGenres.current.has(genreId)) return;
+        fetchedGenres.current.add(genreId);
+
+        try {
+          const res = await discoverMovies({ genreId }, 1, 10);
+          const movies = res?.data ?? (Array.isArray(res) ? res : []);
+          if (movies.length > 0) {
+            newItems.push({ ...genre, genreId, movies });
           }
-        })
-      );
-    };
+        } catch (error) {
+          console.error(`Failed to load movies for genre ${genre.name}`, error);
+        }
+      })
+    );
 
-    const handleScroll = async () => {
-      if (
-        window.innerHeight + window.scrollY >= document.body.offsetHeight - 1500 &&
-        currentIndex < allGenres.length
-      ) {
-        const nextChunk = allGenres.slice(currentIndex, currentIndex + CHUNK_SIZE);
-        currentIndex += CHUNK_SIZE;
-        currentIndex = Math.min(currentIndex, allGenres.length);
-        await fetchMoviesForGenres(nextChunk);
-      }
-    };
+    if (!isMountedRef.current || newItems.length === 0) return;
+
+    setGenresWithMovies(prev => {
+      const existing = new Set(prev.map(g => getGenreId(g)));
+      const deduped = newItems.filter(item => !existing.has(getGenreId(item)));
+      return deduped.length > 0 ? [...prev, ...deduped] : prev;
+    });
+  }, []);
+
+  // ── Load the next CHUNK_SIZE genres ───────────────────────────────────────
+  const loadNextChunk = useCallback(async () => {
+    if (isFetchingRef.current) return;
+
+    const allGenres = allGenresRef.current;
+    if (currentIndexRef.current >= allGenres.length) return;
+
+    isFetchingRef.current = true;
+    setIsLoadingMore(true);
+
+    const nextChunk = allGenres.slice(
+      currentIndexRef.current,
+      currentIndexRef.current + CHUNK_SIZE
+    );
+    currentIndexRef.current = Math.min(
+      currentIndexRef.current + CHUNK_SIZE,
+      allGenres.length
+    );
+
+    await fetchMoviesForGenres(nextChunk);
+
+    isFetchingRef.current = false;
+    setIsLoadingMore(false);
+  }, [fetchMoviesForGenres]);
+
+  // ── Main data loader ───────────────────────────────────────────────────────
+  useEffect(() => {
+    isMountedRef.current = true;
 
     const loadData = async () => {
       try {
         const results = await Promise.allSettled([
-          getTrendingMovies(),
-          getRecentlyAdded(),
-          getRecommended(),
+          getTrendingMovies(10),
+          getRecentlyAdded(10),
+          getRecommended(10),
           getGenres(),
         ]);
-        
-        if (!isMounted) return;
 
-        const trendingData = results[0].status === 'fulfilled' ? results[0].value : null;
-        const recentlyData = results[1].status === 'fulfilled' ? results[1].value : null;
+        if (!isMountedRef.current) return;
+
+        const trendingData    = results[0].status === 'fulfilled' ? results[0].value : null;
+        const recentlyData    = results[1].status === 'fulfilled' ? results[1].value : null;
         const recommendedData = results[2].status === 'fulfilled' ? results[2].value : null;
-        const genresRes = results[3].status === 'fulfilled' ? results[3].value : null;
+        const genresRes       = results[3].status === 'fulfilled' ? results[3].value : null;
 
-        if (trendingData?.data) setTrending(trendingData.data);
+        if (trendingData?.data)         setTrending(trendingData.data);
         else if (Array.isArray(trendingData)) setTrending(trendingData);
 
-        if (recentlyData?.data) setRecentlyAdded(recentlyData.data);
+        if (recentlyData?.data)         setRecentlyAdded(recentlyData.data);
         else if (Array.isArray(recentlyData)) setRecentlyAdded(recentlyData);
 
-        if (recommendedData?.data) setRecommended(recommendedData.data);
+        if (recommendedData?.data)      setRecommended(recommendedData.data);
         else if (Array.isArray(recommendedData)) setRecommended(recommendedData);
 
         let genresList = genresRes?.data || genresRes || [];
-        
         genresList.sort((a, b) => a.name.localeCompare(b.name));
-        allGenres = genresList;
-        
-        currentIndex = Math.min(4, allGenres.length);
-        const initialChunk = allGenres.slice(0, currentIndex);
-        await fetchMoviesForGenres(initialChunk);
+        allGenresRef.current = genresList;
 
-        window.addEventListener('scroll', handleScroll);
+        // Load the first chunk immediately (fire-and-forget — no await blocking render)
+        const INITIAL_CHUNK_SIZE = 4;
+        currentIndexRef.current = Math.min(INITIAL_CHUNK_SIZE, allGenresRef.current.length);
+        const initialChunk = allGenresRef.current.slice(0, currentIndexRef.current);
+        fetchMoviesForGenres(initialChunk);
 
       } catch (err) {
-        console.error("Failed to load row movies", err);
+        console.error('Failed to load browse data', err);
       }
     };
-    
-    loadData();
-    return () => {
-      isMounted = false;
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
-  return { trending, recentlyAdded, recommended, genresWithMovies };
+    loadData();
+
+    // ── IntersectionObserver for lazy genre rows (replaces scroll listener) ─
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          loadNextChunk();
+        }
+      },
+      { rootMargin: '800px 0px' } // start loading 800 px before sentinel enters viewport
+    );
+
+    // Observe sentinel if it is already in the DOM; otherwise a MutationObserver
+    // will pick it up once BrowseViewWrapper renders the sentinel node.
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current);
+    }
+
+    return () => {
+      isMountedRef.current = false;
+      observer.disconnect();
+    };
+  }, [fetchMoviesForGenres, loadNextChunk]);
+
+  return {
+    trending,
+    recentlyAdded,
+    recommended,
+    genresWithMovies,
+    isLoadingMore,
+    sentinelRef,  // ← expose so BrowseViewWrapper can attach the sentinel <div>
+  };
 };

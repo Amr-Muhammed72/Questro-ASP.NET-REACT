@@ -6,8 +6,8 @@ namespace Questro.Infrastructure.Abstractions;
 public interface IRawgService
 {
     Task<RawgPagedGameResponse?> GetTrendingGamesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
-    Task<RawgPagedGameResponse?> DiscoverGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default);
-    Task<RawgPagedGameResponse?> SearchGamesAsync(GameSpecParams specParams, CancellationToken cancellationToken = default);
+    Task<RawgPagedGameResponse?> DiscoverGamesAsync(GameSpecParams specParams, string? maxContentRating = null, CancellationToken cancellationToken = default);
+    Task<RawgPagedGameResponse?> SearchGamesAsync(GameSpecParams specParams, string? maxContentRating = null, CancellationToken cancellationToken = default);
     Task<RawgGenreListResponse?> GetGameGenresAsync(CancellationToken cancellationToken = default);
     Task<RawgPlatformListResponse?> GetGamePlatformsAsync(CancellationToken cancellationToken = default);
     Task<RawgGameDetailsResponse?> GetGameDetailsAsync(int rawgId, CancellationToken cancellationToken = default);

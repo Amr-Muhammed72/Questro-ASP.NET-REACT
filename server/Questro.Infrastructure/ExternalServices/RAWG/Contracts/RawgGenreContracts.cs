@@ -20,6 +20,18 @@ public sealed class RawgGenreDto
     public string? ImageBackground { get; set; }
 }
 
+public sealed class RawgTagListResponse
+{
+    [JsonPropertyName("count")]
+    public int Count { get; set; }
+
+    [JsonPropertyName("next")]
+    public string? Next { get; set; }
+
+    [JsonPropertyName("results")]
+    public List<RawgTagDto> Results { get; set; } = new();
+}
+
 public sealed class RawgPlatformListResponse
 {
     [JsonPropertyName("count")]

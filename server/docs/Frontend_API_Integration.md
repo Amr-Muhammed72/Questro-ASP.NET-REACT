@@ -12,6 +12,7 @@ This guide covers all backend endpoints the frontend needs to integrate against.
 - [Part C — User Libraries (Movies & Games)](#part-c--user-libraries-movies--games)
 - [Part D — Social Network (Follow System)](#part-d--social-network-follow-system)
 - [Part E — Notifications](#part-e--notifications)
+- [Part F — Family Management & Parental Controls (Blacklist)](#part-f--family-management--parental-controls-blacklist)
 - [Consolidated Frontend Guidelines](#consolidated-frontend-guidelines)
 
 ---
@@ -73,6 +74,17 @@ All paginated endpoints return a `PagedResponse<T>`:
 - `GET /api/movies/recommended-for-me?take=20` (auth)
 - `GET /api/movies/{tmdbId}`
 
+### Games routes
+
+- `GET /api/Games`
+- `GET /api/Games/trending?take=30`
+- `GET /api/Games/recently-added?take=20`
+- `GET /api/Games/genres`
+- `GET /api/Games/tags` (returns one non-paginated array)
+- `GET /api/Games/platforms`
+- `GET /api/Games/recommended-for-me?take=20` (auth)
+- `GET /api/Games/{rawgId}`
+
 ### Interaction routes (auth required)
 
 - `POST /api/movie-interactions/{tmdbId}/like`
@@ -123,6 +135,13 @@ All paginated endpoints return a `PagedResponse<T>`:
 - `POST /api/notifications/read-all`
 - `GET /api/notifications/unread-count`
 
+### Family management routes (auth required)
+
+- `POST /api/family/children` (create child account)
+- `GET /api/family/children` (list parent's children)
+- `PUT /api/family/children/{childId}/restrictions` (update child restrictions)
+- `GET /api/users/me/restrictions` (get current user's own restrictions)
+
 ---
 
 # Part A — Movies Domain
@@ -144,12 +163,12 @@ Because movie and game data is sourced from TMDB and RAWG, there is a strict sep
 
 1) The limitation
 
-- TMDB and RAWG text search endpoints do not honor filters like rating, year, or genre.
-- TMDB and RAWG discover endpoints support filters (rating, year, genre, language), but they do not support free-text search.
+- TMDB and RAWG text search endpoints do not honor filters like rating, year, genre, or tags.
+- TMDB and RAWG discover endpoints support filters (rating, year, genre, tags, language), but they do not support free-text search.
 
 2) Frontend rule (must follow)
 
-- Do NOT send `search` together with `minRating`, `maxRating`, `genreId`, or `year`.
+- Do NOT send `search` together with `minRating`, `maxRating`, `genreId`, `tags`, or `year`.
 
 3) UI/UX recommendation
 
@@ -863,6 +882,307 @@ setInterval(updateBadge, 60_000); // Poll every 60 seconds
 
 ---
 
+# Part F — Family Management & Parental Controls (Blacklist)
+
+The family management system uses a **Blacklist** architecture: parents select genres to **block** (hide from their child). Everything not in the blocklist is allowed.
+
+---
+
+## 20) Create Child Account
+
+- Method: `POST`
+- URL: `/api/family/children`
+- Auth: Yes (parent only)
+
+Request — `CreateChildAccountRequestDto`:
+
+```json
+{
+  "userName": "ali_jr",
+  "email": "parent+ali@example.com",
+  "password": "SecurePass123!",
+  "confirmPassword": "SecurePass123!",
+  "firstName": "Ali",
+  "lastName": "Hassan",
+  "birthDate": "2015-03-20T00:00:00Z",
+  "blockedMovieGenreIds": [27, 53],
+  "blockedGameGenreIds": [59],
+  "maxContentRating": "PG-13",
+  "maxMetacriticRating": 3
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `userName` | `string` | ✅ | Unique username for the child |
+| `email` | `string` | ✅ | Email address (can be a `parent+alias@domain.com` alias) |
+| `password` | `string` | ✅ | Must satisfy Identity password rules |
+| `confirmPassword` | `string` | ✅ | Must match `password` |
+| `firstName` | `string?` | ❌ | Child's first name |
+| `lastName` | `string?` | ❌ | Child's last name |
+| `birthDate` | `DateTime?` | ❌ | Child's date of birth |
+| `blockedMovieGenreIds` | `int[]?` | ❌ | TMDB genre IDs to **block** (e.g., `27` = Horror, `53` = Thriller) |
+| `blockedGameGenreIds` | `int[]?` | ❌ | RAWG genre IDs to **block** (e.g., `59` = Massively Multiplayer) |
+| `maxContentRating` | `string?` | ❌ | Maximum TMDB certification allowed (e.g., `"G"`, `"PG"`, `"PG-13"`, `"R"`) |
+| `maxMetacriticRating` | `int?` | ❌ | Maximum RAWG rating cap (0–5 scale) |
+
+> **Tip:** If the parent doesn't have a real email for the child, use a plus-alias pattern: `parentemail+childname@gmail.com`.
+
+Response on success — `ChildAccountResponseDto`:
+
+```json
+{
+  "userId": 42,
+  "userName": "ali_jr",
+  "firstName": "Ali",
+  "lastName": "Hassan",
+  "birthDate": "2015-03-20T00:00:00Z",
+  "restrictions": {
+    "blockedMovieGenreIds": [27, 53],
+    "blockedGameGenreIds": [59],
+    "maxContentRating": "PG-13",
+    "maxMetacriticRating": 3
+  }
+}
+```
+
+### Error Codes
+
+| Code | Status | Meaning |
+|---|---|---|
+| `Family.ChildCannotHaveChildren` | 403 | Caller is a child account, not a parent |
+| `User.UserNameAlreadyExists` | 409 | Username already taken |
+| `User.EmailAlreadyExists` | 409 | Email already registered |
+| `Family.CreateChildFailed` | 500 | Unexpected Identity error (check `Details`) |
+
+---
+
+## 21) List Children
+
+- Method: `GET`
+- URL: `/api/family/children`
+- Auth: Yes (parent only)
+
+Response — `ChildAccountResponseDto[]`:
+
+```json
+[
+  {
+    "userId": 42,
+    "userName": "ali_jr",
+    "firstName": "Ali",
+    "lastName": "Hassan",
+    "birthDate": "2015-03-20T00:00:00Z",
+    "restrictions": {
+      "blockedMovieGenreIds": [27, 53],
+      "blockedGameGenreIds": [59],
+      "maxContentRating": "PG-13",
+      "maxMetacriticRating": 3
+    }
+  }
+]
+```
+
+> **Note:** Each child object includes their full `restrictions` sub-object. If a child has no restrictions configured, `restrictions` will be `null`.
+
+---
+
+## 22) Update Child Restrictions
+
+- Method: `PUT`
+- URL: `/api/family/children/{childId}/restrictions`
+- Auth: Yes (parent only)
+- Path param: `childId` — the `userId` of the child to update
+
+Request — `ChildRestrictionDto`:
+
+```json
+{
+  "blockedMovieGenreIds": [27, 53, 80],
+  "blockedGameGenreIds": [59, 2],
+  "maxContentRating": "PG",
+  "maxMetacriticRating": 2
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `blockedMovieGenreIds` | `int[]` | Complete list of TMDB genre IDs to block (**replaces** previous list) |
+| `blockedGameGenreIds` | `int[]` | Complete list of RAWG genre IDs to block (**replaces** previous list) |
+| `maxContentRating` | `string?` | TMDB certification cap (e.g., `"PG-13"`) |
+| `maxMetacriticRating` | `int?` | RAWG rating cap (0–5 scale) |
+
+> **⚠️ This is a full replacement, not a partial patch.** Always send the complete restriction object. Sending `blockedMovieGenreIds: []` will **clear** all movie genre restrictions.
+
+Response on success — the updated `ChildRestrictionDto` (same shape as request).
+
+### Error Codes
+
+| Code | Status | Meaning |
+|---|---|---|
+| `Family.ChildNotFound` | 404 | No user with this `childId` exists |
+| `Family.ChildNotOwned` | 403 | This child doesn't belong to the authenticated parent |
+
+---
+
+## 23) Get Current User's Restrictions
+
+- Method: `GET`
+- URL: `/api/users/me/restrictions`
+- Auth: Yes
+
+This endpoint tells the frontend whether the logged-in user is a child account and what restrictions apply.
+
+Response when the user is an **adult** (not a child account):
+
+```json
+null
+```
+
+Response when the user is a **child** account:
+
+```json
+{
+  "blockedMovieGenreIds": [27, 53],
+  "blockedGameGenreIds": [59],
+  "maxContentRating": "PG-13",
+  "maxMetacriticRating": 3
+}
+```
+
+### Frontend UI Rules — The Blacklist Approach
+
+On app startup or login, the React client should:
+
+1. **Call `GET /api/users/me/restrictions`** and store the result in global state (e.g., React Context, Zustand, Redux).
+2. **If the response is `null`** → the user is an adult. Render the full UI with no restrictions.
+3. **If the response contains a `ChildRestrictionDto`** → the user is a child. Apply these UI rules:
+
+**Genre Dropdowns & Filters:**
+
+```javascript
+// Filter out blocked genres from a movie genre selector
+const visibleGenres = allGenres.filter(
+  genre => !restrictions.blockedMovieGenreIds.includes(genre.id)
+);
+```
+
+Remove blocked genre IDs from all genre dropdowns, filter chips, and sidebar navigation for both Movies and Games.
+
+**Rating Filters:** If `maxContentRating` is set (e.g., `"PG-13"`), hide the rating filter or limit its range. Same applies to `maxMetacriticRating` for game rating filters.
+
+---
+
+## 24) Safe Discovery — Transparent to Frontend
+
+**No frontend changes are required for safe content discovery.** The backend handles all filtering automatically.
+
+When a child account is logged in and calls any standard content endpoint, the backend automatically applies the **Blacklist filter** server-side. The child only receives results that do **not** contain any of their blocked genres.
+
+### Affected Endpoints
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/movies` | Discover & Search movies |
+| `GET /api/movies/trending` | Trending movies |
+| `GET /api/movies/recently-added` | Recently added movies |
+| `GET /api/movies/recommended` | Recommended movies |
+| `GET /api/games` | Discover & Search games |
+| `GET /api/games/trending` | Trending games |
+| `GET /api/games/recently-added` | Recently added games |
+
+### Key Points
+
+- **No new query parameters** are needed. Existing endpoints work exactly as before.
+- **Authentication is optional** on these endpoints. If no token is sent, standard unfiltered results are returned. If a child's token is sent, results are automatically filtered.
+- **Pagination works normally.** The `totalCount` and `totalPages` values in the response reflect the **filtered** totals.
+- **Cache behavior:** Filtered results are cached server-side for **30 minutes** per child. The cache automatically invalidates when a parent updates the child's restrictions. The child does **not** need to log out and back in.
+
+---
+
+## 25) Privacy Bypass for Parents
+
+When a parent requests their child's movie or game library, the backend **automatically bypasses** the child's privacy settings — even if `isHistoryPublic` is `false`.
+
+| Scenario | `isHistoryPublic` | Result |
+|---|---|---|
+| Random user requests child's library | `false` | ❌ 403 Forbidden |
+| Random user requests child's library | `true` | ✅ Allowed |
+| **Parent** requests their **own child's** library | `false` | ✅ **Allowed (bypass)** |
+| **Parent** requests their **own child's** library | `true` | ✅ Allowed |
+
+Affected endpoints:
+
+- `GET /api/users/{childId}/movies/watchlist`
+- `GET /api/users/{childId}/movies/liked`
+- `GET /api/users/{childId}/movies/rated`
+- `GET /api/users/{childId}/movies/watched`
+- `GET /api/users/{childId}/games/wishlist`
+- `GET /api/users/{childId}/games/liked`
+- `GET /api/users/{childId}/games/rated`
+
+**Frontend note:** When the parent navigates to a child's profile from the Parent Dashboard, simply pass the child's `userId` in the URL. No special headers or flags are needed.
+
+```javascript
+// Parent viewing their child's movie watchlist
+const res = await fetch(`${BASE_URL}/api/users/${child.userId}/movies/watchlist`, {
+  headers: { Authorization: `Bearer ${parentToken}` }
+});
+// Works even if child.isHistoryPublic === false
+```
+
+---
+
+## 26) Change Child Password
+
+- Method: `PUT`
+- URL: `/api/family/children/{childId}/password`
+- Auth: Yes (parent only)
+
+Request — `ChangeChildPasswordRequestDto`:
+
+```json
+{
+  "newPassword": "NewSecurePass123!",
+  "confirmNewPassword": "NewSecurePass123!"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `newPassword` | `string` | ✅ | Must satisfy Identity password rules |
+| `confirmNewPassword` | `string` | ✅ | Must match `newPassword` |
+
+Response on success: HTTP 200 OK
+
+### Error Codes
+
+| Code | Status | Meaning |
+|---|---|---|
+| `Family.ChildNotFound` | 404 | No user with this `childId` exists |
+| `Family.ChildNotOwned` | 403 | This child doesn't belong to the authenticated parent |
+| `Family.ChangePasswordFailed` | 500 | Identity failed to change password (check `Details`) |
+
+---
+
+## 27) Delete Child Account
+
+- Method: `DELETE`
+- URL: `/api/family/children/{childId}`
+- Auth: Yes (parent only)
+
+Response on success: HTTP 200 OK
+
+### Error Codes
+
+| Code | Status | Meaning |
+|---|---|---|
+| `Family.ChildNotFound` | 404 | No user with this `childId` exists |
+| `Family.ChildNotOwned` | 403 | This child doesn't belong to the authenticated parent |
+| `Family.DeleteChildFailed` | 500 | Identity failed to delete account (check `Details`) |
+
+---
+
 # Consolidated Frontend Guidelines
 
 ## Authentication
@@ -901,6 +1221,19 @@ Endpoints marked "Auth: Optional" will function without a token but return addit
 |---|---|---|
 | `Notification.NotFound` | 404 | Notification does not exist or does not belong to the user |
 | `Notification.Unauthorized` | 403 | Not authorized to access this notification |
+
+### Family Errors
+
+| Code | Status | Description |
+|---|---|---|
+| `Family.NotAParent` | 403 | Only parent accounts can manage children |
+| `Family.ChildNotFound` | 404 | Child account not found |
+| `Family.ChildNotOwned` | 403 | This child does not belong to your account |
+| `Family.ChildCannotHaveChildren` | 403 | Child accounts cannot create sub-accounts |
+| `Family.CreateChildFailed` | 500 | Unexpected error during child creation (check `Details`) |
+| `Family.ChangePasswordFailed` | 500 | Unexpected error during password change (check `Details`) |
+| `Family.DeleteChildFailed` | 500 | Unexpected error during child deletion (check `Details`) |
+| `Family.RestrictionsNotFound` | 404 | Restrictions record not found for this child |
 
 ## Profile Picture Handling
 
@@ -944,3 +1277,6 @@ function renderProfilePage(profile, isOwnProfile) {
 8. Use `DELETE` (not `POST`) for the unfollow action.
 9. Use `multipart/form-data` for picture upload — do not set `Content-Type` header manually.
 10. Poll `/api/notifications/unread-count` on app mount and periodically for the notification badge.
+11. Call `GET /api/users/me/restrictions` on login and store in global state to detect child accounts.
+12. Hide blocked genres from all genre dropdowns and filter UIs when restrictions are active.
+13. Content endpoints auto-filter for child accounts — no extra query params needed.

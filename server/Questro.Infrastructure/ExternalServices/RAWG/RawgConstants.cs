@@ -6,6 +6,7 @@ internal static class RawgConstants
     {
         public const string Games = "games";
         public const string Genres = "genres";
+        public const string Tags = "tags";
         public const string Platforms = "platforms";
         public const string Suggested = "suggested";
         public const string Movies = "movies";
@@ -21,13 +22,20 @@ internal static class RawgConstants
         public const string Ordering = "ordering";
         public const string Genres = "genres";
         public const string Platforms = "platforms";
-        public const string MetacriticGte = "metacritic_gte";
-        public const string MetacriticLte = "metacritic_lte";
+        public const string Tags = "tags";
+        public const string MetacriticGte = "metacritic_gte";   // kept for safety — not used
+        public const string MetacriticLte = "metacritic_lte";   // kept for safety — not used
+        public const string Metacritic = "metacritic";           // real RAWG param: "80,100"
+        public const string Dates = "dates";                     // real RAWG param: "2010-01-01,2010-12-31"
+        // Global Shield — always exclude explicit tags
+        public const string ExcludeTags = "exclude_tags";
+        // Child Shield — ESRB rating cap
+        public const string EsrbRating = "esrb_rating";
     }
 
     internal static class QueryValues
     {
-        public const int DefaultPageSize = 20;
+        public const int DefaultPageSize = 40;
     }
 
     internal static class SortValues
