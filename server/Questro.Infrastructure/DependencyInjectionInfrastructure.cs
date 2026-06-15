@@ -38,6 +38,7 @@ public static class DependencyInjectionInfrastructure
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.AllowedForNewUsers = true;
+                options.User.RequireUniqueEmail = true;
             }
             )
             .AddRoles<ApplicationRole>()
@@ -80,6 +81,8 @@ public static class DependencyInjectionInfrastructure
             });
 
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddScoped<IUserCleanupRepository, UserCleanupRepository>();
+        services.AddScoped<IFamilyRepository, FamilyRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // File service - requires WebRootPath, resolved at runtime

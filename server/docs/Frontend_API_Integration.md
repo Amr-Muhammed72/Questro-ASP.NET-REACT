@@ -1133,6 +1133,56 @@ const res = await fetch(`${BASE_URL}/api/users/${child.userId}/movies/watchlist`
 
 ---
 
+## 26) Change Child Password
+
+- Method: `PUT`
+- URL: `/api/family/children/{childId}/password`
+- Auth: Yes (parent only)
+
+Request — `ChangeChildPasswordRequestDto`:
+
+```json
+{
+  "newPassword": "NewSecurePass123!",
+  "confirmNewPassword": "NewSecurePass123!"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `newPassword` | `string` | ✅ | Must satisfy Identity password rules |
+| `confirmNewPassword` | `string` | ✅ | Must match `newPassword` |
+
+Response on success: HTTP 200 OK
+
+### Error Codes
+
+| Code | Status | Meaning |
+|---|---|---|
+| `Family.ChildNotFound` | 404 | No user with this `childId` exists |
+| `Family.ChildNotOwned` | 403 | This child doesn't belong to the authenticated parent |
+| `Family.ChangePasswordFailed` | 500 | Identity failed to change password (check `Details`) |
+
+---
+
+## 27) Delete Child Account
+
+- Method: `DELETE`
+- URL: `/api/family/children/{childId}`
+- Auth: Yes (parent only)
+
+Response on success: HTTP 200 OK
+
+### Error Codes
+
+| Code | Status | Meaning |
+|---|---|---|
+| `Family.ChildNotFound` | 404 | No user with this `childId` exists |
+| `Family.ChildNotOwned` | 403 | This child doesn't belong to the authenticated parent |
+| `Family.DeleteChildFailed` | 500 | Identity failed to delete account (check `Details`) |
+
+---
+
 # Consolidated Frontend Guidelines
 
 ## Authentication
@@ -1181,6 +1231,8 @@ Endpoints marked "Auth: Optional" will function without a token but return addit
 | `Family.ChildNotOwned` | 403 | This child does not belong to your account |
 | `Family.ChildCannotHaveChildren` | 403 | Child accounts cannot create sub-accounts |
 | `Family.CreateChildFailed` | 500 | Unexpected error during child creation (check `Details`) |
+| `Family.ChangePasswordFailed` | 500 | Unexpected error during password change (check `Details`) |
+| `Family.DeleteChildFailed` | 500 | Unexpected error during child deletion (check `Details`) |
 | `Family.RestrictionsNotFound` | 404 | Restrictions record not found for this child |
 
 ## Profile Picture Handling

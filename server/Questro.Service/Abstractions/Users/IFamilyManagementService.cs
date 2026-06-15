@@ -16,4 +16,10 @@ public interface IFamilyManagementService
 
 	Task<Result<ChildRestrictionDto?>> GetMyRestrictionsAsync(
 		long userId, CancellationToken cancellationToken = default);
+
+	Task<Result> ChangeChildPasswordAsync(
+		long parentId, long childId, ChangeChildPasswordRequestDto request, CancellationToken cancellationToken = default);
+
+	Task<Result> DeleteChildAsync(
+		long parentId, long childId, CancellationToken cancellationToken = default);
 }
