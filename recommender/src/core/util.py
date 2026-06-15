@@ -1,4 +1,5 @@
 import re
+import sys
 from tqdm.auto import tqdm
 import spacy
 import shutil
@@ -6,16 +7,19 @@ import glob
 import os
 
 nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "tagger", "parser", "ner"])
+
+
+
 def batch_normalize_text(texts_list, column_name="Text"):
     """Batch normalizes text using spaCy lemmatization."""
     cleaned_texts = []
-    
+
     pipe = nlp.pipe(texts_list, batch_size=256, n_process=4)
-    
-    for doc in tqdm(pipe, total=len(texts_list), desc=f"Processing {column_name}"): 
+
+    for doc in tqdm(pipe, total=len(texts_list), desc=f"Processing {column_name}"):
         clean_string = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
         cleaned_texts.append(clean_string)
-        
+
     return cleaned_texts
         
 
@@ -33,8 +37,12 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user:
     
     context = ""
     for i, item in enumerate(retrieved_items, 1):
-        data = item['data']
-        context += f"\n[{i}] Type: {data['type'].upper()} | Title: {data['title']} | Score: {item.get('score', 0):.2f}\n"
+        data      = item['data']
+        year_str  = f" ({data['year']})"              if data.get('year')  else ''
+        score_str = f" | Quality: {data['score']}/10" if data.get('score') else ''
+        reviews   = data.get('review_count', 0)
+        rev_str   = f" ({reviews:,} reviews)"         if reviews           else ''
+        context += f"\n[{i}] {data['type'].upper()} | {data['title']}{year_str}{score_str}{rev_str}\n"
         context += f"Themes: {data['themes']}\n"
         context += f"Description: {data['narrative']}\n"
 
@@ -73,7 +81,7 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user:
 
 def clean_disk():
     """Cleans up temporary disk caches if needed."""
-    parquet_files = glob.glob("./data_cache/*.parquet")
+    parquet_files = glob.glob("../../data_cache/*.parquet")
     for file_path in parquet_files:
         try:
             os.remove(file_path)
@@ -81,7 +89,7 @@ def clean_disk():
         except Exception as e:
             print(f"Failed to delete {file_path}: {e}")
 
-    hf_cache_dir = "./hf_cache"
+    hf_cache_dir = "../../hf_cache"
     if os.path.exists(hf_cache_dir):
         try:
             shutil.rmtree(hf_cache_dir)

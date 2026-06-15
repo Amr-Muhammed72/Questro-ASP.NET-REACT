@@ -7,7 +7,7 @@ import pandas as pd
 
 from src.pipeline.dataset_downloader import get_all_datasets
 from src.core.rag import CrossDomainRAGIndex
-from src.core.util import generate_recommendation_prompt, batch_normalize_text, clean_disk
+from src.core.util import generate_recommendation_prompt, clean_disk
 from src.pipeline.preprocess import unify_and_format_domain
 
 INDEX_FILE = "./vector_store/faiss_index.bin"
@@ -21,21 +21,12 @@ def get_unified_records(datasets: dict) -> list:
     
     unified_df = pd.concat([steam_clean, tmdb_clean, rawg_clean], ignore_index=True)
     
-    print(f"Applying text normalization to {len(unified_df)} records...")
-    
-    unified_df['norm_title'] = batch_normalize_text(unified_df['title'].astype(str), column_name="title")
-    unified_df['norm_creators'] = batch_normalize_text(unified_df['creators'].astype(str), column_name="creators")
-    unified_df['norm_themes'] = batch_normalize_text(unified_df['themes'].astype(str), column_name="themes")
-    unified_df['norm_narrative'] = batch_normalize_text(unified_df['narrative'].astype(str), column_name="narrative")
-
     print("Building final embedding strings...")
-    
+
+    # Natural prose format — sentence transformers encode natural text better than labelled fields
     unified_df['embedding_text'] = (
-        "Type: " + unified_df['type'] + ". " +
-        "Title: " + unified_df['norm_title'] + ". " +
-        "Creators: " + unified_df['norm_creators'] + ". " +
-        "Themes: " + unified_df['norm_themes'] + ". " +
-        "Narrative: " + unified_df['norm_narrative'] + "."
+        unified_df['title'].astype(str) + " is a " + unified_df['type'].astype(str) + ". " +
+        unified_df['narrative'].astype(str) + " Themes and tags: " + unified_df['themes'].astype(str) + "."
     )
     
     columns_to_keep = ['id', 'type', 'title', 'creators', 'themes', 'narrative', 'domain', 'embedding_text', 'is_adult']
@@ -46,9 +37,7 @@ def get_unified_records(datasets: dict) -> list:
     return final_df.to_dict(orient='records')
 
 if __name__ == "__main__":
-    if os.path.exists("./vector_store"):
-        pass
-    else:
+    if not os.path.exists("./vector_store"):
         os.makedirs("./vector_store", exist_ok=True)
         
     rag_system = CrossDomainRAGIndex()

@@ -1,46 +1,45 @@
+import json
 import os
-import re
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
+
 def parse_test_results(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    pattern = r'\[(\d+)\] Score: ([\d\.]+) \| Type: (\w+)'
-    matches = re.findall(pattern, content)
-    
-    data = []
-    for match in matches:
-        rank = int(match[0])
-        score = float(match[1])
-        item_type = match[2]
-        cosine_sim = 1.0 - (score / 2.0)
-        
-        data.append({
-            'Rank': rank,
-            'Distance Score': score,
-            'Cosine Similarity': cosine_sim,
-            'Type': item_type
-        })
-        
-    return pd.DataFrame(data)
+        results = json.load(f)
+
+    rows = []
+    latencies = []
+
+    for entry in results:
+        latencies.append(entry['latency_sec'])
+        for item in entry['retrieved']:
+            cosine_sim = 1.0 - (item['score'] / 2.0)
+            rows.append({
+                'Rank': item['rank'],
+                'Distance Score': item['score'],
+                'Cosine Similarity': cosine_sim,
+                'Type': item['type'],
+            })
+
+    return pd.DataFrame(rows), pd.DataFrame({'Latency (s)': latencies})
+
 
 def generate_charts():
-    filepath = './evaluation/100_realistic_tests.txt'
+    filepath = '../../evaluation/test_results.json'
     if not os.path.exists(filepath):
         print(f"Cannot find {filepath}")
         return
-        
-    df = parse_test_results(filepath)
+
+    df, latency_df = parse_test_results(filepath)
     if df.empty:
         print("No data parsed.")
         return
-        
-    print(f"Parsed {len(df)} results from test output.")
+
+    print(f"Parsed {len(df)} retrieved items across {len(latency_df)} queries.")
     sns.set_theme(style="whitegrid")
-    
+
     # 1. Histogram of Top-1 Cosine Similarities
     plt.figure(figsize=(10, 6))
     top1_df = df[df['Rank'] == 1]
@@ -49,10 +48,9 @@ def generate_charts():
     plt.xlabel('Cosine Similarity (1.0 = Perfect Match)')
     plt.ylabel('Frequency')
     plt.tight_layout()
-    top1_hist_path = './evaluation/top1_similarity_hist.png'
-    plt.savefig(top1_hist_path, dpi=300)
+    plt.savefig('../../evaluation/top1_similarity_hist.png', dpi=300)
     plt.close()
-    
+
     # 2. Average Cosine Similarity by Rank
     plt.figure(figsize=(8, 6))
     sns.barplot(data=df, x='Rank', y='Cosine Similarity', errorbar='sd', palette='viridis')
@@ -61,10 +59,9 @@ def generate_charts():
     plt.ylabel('Cosine Similarity')
     plt.ylim(0, 1.0)
     plt.tight_layout()
-    rank_bar_path = './evaluation/similarity_by_rank.png'
-    plt.savefig(rank_bar_path, dpi=300)
+    plt.savefig('../../evaluation/similarity_by_rank.png', dpi=300)
     plt.close()
-    
+
     # 3. Similarity by Item Type (Boxplot)
     plt.figure(figsize=(8, 6))
     sns.boxplot(data=df, x='Type', y='Cosine Similarity', palette='Set2')
@@ -72,9 +69,21 @@ def generate_charts():
     plt.xlabel('Media Type')
     plt.ylabel('Cosine Similarity')
     plt.tight_layout()
-    type_box_path = './evaluation/similarity_by_type.png'
-    plt.savefig(type_box_path, dpi=300)
+    plt.savefig('../../evaluation/similarity_by_type.png', dpi=300)
     plt.close()
-    
+
+    # 4. Query Latency Distribution
+    plt.figure(figsize=(10, 6))
+    sns.histplot(data=latency_df, x='Latency (s)', bins=20, kde=True, color='steelblue')
+    plt.title('Query Latency Distribution (100 Queries)')
+    plt.xlabel('Latency (seconds)')
+    plt.ylabel('Frequency')
+    plt.tight_layout()
+    plt.savefig('../../evaluation/latency_distribution.png', dpi=300)
+    plt.close()
+
+    print("Charts saved to ../../evaluation/")
+
+
 if __name__ == '__main__':
     generate_charts()
