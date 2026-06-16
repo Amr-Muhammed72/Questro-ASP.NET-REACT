@@ -136,6 +136,22 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
   // Note: currentPageRef.current changes are handled by handlePageChange below,
   // which explicitly calls fetchLibraryItems — so we don't need it in deps.
 
+  // ── Listen for custom global events to optimistically remove toggled items ──
+  useEffect(() => {
+    const handleLibraryToggle = (e) => {
+      const { type, id, action } = e.detail;
+      const currentTab = TABS.find(t => t.id === activeTab);
+      // Only remove the item if the current tab matches the action that was toggled
+      // e.g. activeTab="movie-liked", type="movie", action="liked"
+      if (currentTab?.type === type && currentTab?.action === action) {
+        const idField = type === 'movie' ? 'tmdbId' : 'rawgId';
+        setItems(prev => prev.filter(item => item[idField] !== id));
+      }
+    };
+    window.addEventListener('library-item-toggled', handleLibraryToggle);
+    return () => window.removeEventListener('library-item-toggled', handleLibraryToggle);
+  }, [activeTab]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleTabChange = (tabId) => {
@@ -233,7 +249,7 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
                   movies={items}
                   loading={isLoading}
                   isOwnProfile={isOwnProfile}
-                  onRemoveItem={handleRemoveItem}
+                  onRemoveItem={activeTab === 'movie-rated' ? undefined : handleRemoveItem}
                   currentPage={pagination.pageNumber}
                   onPageChange={handlePageChange}
                 />
@@ -242,7 +258,7 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
                   games={items}
                   loading={isLoading}
                   isOwnProfile={isOwnProfile}
-                  onRemoveItem={handleRemoveItem}
+                  onRemoveItem={activeTab === 'game-rated' ? undefined : handleRemoveItem}
                   currentPage={pagination.pageNumber}
                   onPageChange={handlePageChange}
                 />

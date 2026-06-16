@@ -75,12 +75,12 @@ apiClient.interceptors.response.use(
       try {
         await refreshPromise;
         return apiClient(originalRequest);
-      } catch {
-        return Promise.reject(error);
+      } catch (retryError) {
+        return Promise.reject(retryError.response?.data || retryError);
       }
     }
 
-    return Promise.reject(error);
+    return Promise.reject(error.response?.data || error);
   }
 );
 export default { 
