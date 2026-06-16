@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Star, CalendarDays, MapPin, User } from "lucide-react";
 
-import NavBar from '../components/layout/NavBar';
+
 import bgImage from '../assets/main-background.png';
 
 import MovieRow from '../features/movies/components/MovieRow';
@@ -62,7 +62,7 @@ const ActorDetailsPage = () => {
 
       {/* 🔝 NAVBAR */}
       <div className="relative z-50">
-        <NavBar />
+        
       </div>
 
       {/* CONTENT */}

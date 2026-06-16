@@ -1,21 +1,24 @@
 import { memo, useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 
 const StaffCard = ({ person }) => {
-  const imageUrl = person.profileUrl || '/fallback-avatar.jpg';
+  const [imgError, setImgError] = useState(false);
+  const showFallback = !person.profileUrl || imgError;
 
   return (
     <div className="flex-shrink-0 w-36 md:w-44 lg:w-48 flex flex-col group cursor-pointer transition-all duration-300">
-      <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden mb-4 bg-[#11131A] ring-1 ring-white/10 shadow-lg">
-        <img 
-          src={imageUrl} 
-          alt={person.name} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.src = '/fallback-avatar.jpg';
-          }}
-        />
+      <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden mb-4 bg-zinc-800 flex items-center justify-center ring-1 ring-white/10 shadow-lg relative">
+        {!showFallback ? (
+          <img 
+            src={person.profileUrl} 
+            alt={person.name} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <User className="w-16 h-16 text-zinc-600 group-hover:scale-110 transition-transform duration-500" />
+        )}
       </div>
       <h5 className="text-base lg:text-lg font-bold text-white line-clamp-1">{person.name}</h5>
       <p className="text-sm lg:text-base text-zinc-400 line-clamp-2 mt-1 leading-relaxed">

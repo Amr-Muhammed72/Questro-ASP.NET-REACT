@@ -1,5 +1,5 @@
 import React from 'react';
-import NavBar from '../components/layout/NavBar';
+
 import HeroSectionLandingPage from '../components/sections/HeroSectionLandingPage';
 import EditorialPosterGrid from '../components/sections/EditorialPosterGrid';
 import FeatureStrip from '../components/sections/FeatureStrip';
@@ -14,7 +14,7 @@ const LandingPage = () => {
     <div className="relative w-full min-h-screen overflow-x-hidden font-sans">
       <div className="absolute inset-0 bg-black/40 z-0" />
       <div className="relative z-50">
-        <NavBar />
+        
       </div>
 
       <main className="relative z-10">
