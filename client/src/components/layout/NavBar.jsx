@@ -66,10 +66,10 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   return (
     <>
       <nav
-        className={`fixed top-0 w-full z-50 py-3 sm:py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-300 ease-in-out border-b ${
+        className={`fixed top-0 w-full z-[100] py-3 sm:py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-500 ease-out border-b ${
           (isVisible && !forceHidden) ? 'translate-y-0' : '-translate-y-full'
         } ${
-          isScrolled ? 'bg-zinc-950/95 backdrop-blur-md shadow-lg border-zinc-800/50' : 'bg-gradient-to-b from-zinc-950/40 to-transparent border-transparent'
+          isScrolled ? 'bg-[#09090b]/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)] border-white/5' : 'bg-gradient-to-b from-[#09090b]/80 to-transparent border-transparent'
         }`}
       >
         {/* Logo and Brand */}

@@ -1,9 +1,11 @@
 import { memo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Star, Calendar, Globe2, Users, Trash2 } from 'lucide-react';
 import OptimizedImage from '../../../components/common/OptimizedImage';
 
 const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
   const [isRemoving, setIsRemoving] = useState(false);
+  const movieId = movie?.tmdbId || movie?.id;
 
   if (!movie) return null;
 
@@ -29,29 +31,9 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
     }
   };
 
-  const handleWishlist = useCallback(async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isWishlisting) return;
-    setIsWishlisting(true);
-    try {
-      const res = await fetch(`http://localhost:5222/api/movie-interactions/${movie.tmdbId || movie.id}/wishlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) {
-        setIsWishlisted(prev => !prev);
-      }
-    } catch (err) {
-      console.error('Wishlist error:', err);
-    } finally {
-      setIsWishlisting(false);
-    }
-  }, [isWishlisting, movie.tmdbId, movie.id]);
-
   return (
-    <div className="flex flex-col group/card cursor-pointer items-center w-full">
-      <div className={`relative flex-shrink-0 transition-all duration-500 ease-out hover:scale-105 hover:z-30 hover:shadow-2xl hover:shadow-rose-500/40 rounded-xl overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900 ${containerWidthClass} aspect-[2/3] border border-zinc-700/50 hover:border-rose-500/50`}>
+    <Link to={`/movies/${movieId}`} className="flex flex-col group/card cursor-pointer items-center w-full">
+      <div className={`relative flex-shrink-0 hover-pro hover:scale-105 hover:z-30 rounded-xl overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900 ${containerWidthClass} aspect-[2/3] border border-zinc-700/50`}>
 
         {displayImage ? (
           <OptimizedImage
@@ -67,92 +49,68 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
           </div>
         )}
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/95 via-zinc-900/50 to-transparent opacity-0 group-hover/card:opacity-100 transition-all duration-300" />
+        {/* Dynamic Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/95 via-zinc-900/40 to-black/30 opacity-0 group-hover/card:opacity-100 transition-all duration-300" />
 
-        {/* Hover Overlay */}
-        <div className="absolute inset-0 flex flex-col justify-between p-4 opacity-0 group-hover/card:opacity-100 transition-all duration-300">
+        {/* Hover Content */}
+        <div className="absolute inset-0 flex flex-col justify-between p-3 sm:p-4 opacity-0 group-hover/card:opacity-100 transition-all duration-300 pointer-events-none group-hover/card:pointer-events-auto">
 
           {/* Top Section */}
-          <div className="flex justify-between items-start transform translate-y-[-10px] opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-300 delay-75">
-
-            {/* MPAA Certification — top left */}
+          <div className="flex justify-between items-start transform -translate-y-2 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-300 delay-75">
+            {/* MPAA Certification */}
             {movie.mpaCertification ? (
-              <div className="bg-white/10 backdrop-blur-md text-zinc-200 px-2 py-0.5 rounded text-[10px] font-bold border border-white/20">
+              <div className="bg-black/60 backdrop-blur-md text-zinc-200 px-2 py-1 rounded text-[10px] font-bold border border-white/10 shadow-lg">
                 {movie.mpaCertification}
               </div>
             ) : <div />}
 
-            {/* Right side buttons — top right */}
-            <div className="flex items-center gap-1.5">
-
-              {/* Watchlist button */}
-              <button
-                onClick={handleWishlist}
-                disabled={isWishlisting}
-                className={`flex items-center justify-center w-9 h-9 rounded-full backdrop-blur-md text-white transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110
-                  ${isWishlisted
-                    ? 'bg-rose-500/90 hover:bg-rose-600 border border-rose-400/50 shadow-rose-500/40'
-                    : 'bg-black/60 hover:bg-black/80 border border-white/15'
-                  }`}
-                title={isWishlisted ? 'Remove from watchlist' : 'Add to watchlist'}
-              >
-                {isWishlisting ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : isWishlisted ? (
-                  <BookmarkCheck className="w-4 h-4" />
-                ) : (
-                  <Bookmark className="w-4 h-4" />
-                )}
-              </button>
-
-              {/* Remove button */}
-              {onRemove && (
+            {/* Remove Button (Library Only) */}
+            {onRemove && (
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={handleRemove}
                   disabled={isRemoving}
-                  className="flex items-center justify-center w-9 h-9 rounded-full bg-red-500/90 hover:bg-red-600 backdrop-blur-md text-white transition-all duration-200 shadow-lg hover:shadow-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110"
-                  title="Remove from collection"
+                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md text-red-500 hover:text-red-400 transition-all duration-200 shadow-lg shadow-red-500/20 border border-red-500/30 hover:border-red-500/50 hover:scale-110 disabled:opacity-50"
+                  title="Remove from library"
                 >
                   {isRemoving ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current opacity-80" />
                   )}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom Section */}
-          <div className="flex flex-col gap-3 transform translate-y-4 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-300 delay-100">
-
+          <div className="flex flex-col gap-2 transform translate-y-4 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-300 delay-150">
             {movie.tmdbRating > 0 && (
-              <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md text-rose-500 px-2.5 py-1 rounded-full text-xs font-bold border border-white/10 shadow-lg w-fit">
+              <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md text-indigo-400 px-2.5 py-1 rounded-full text-xs font-bold border border-indigo-500/30 shadow-lg w-fit">
                 <Star className="w-3.5 h-3.5 fill-current" />
-                {movie.tmdbRating.toFixed(1)}
+                {(movie.tmdbRating / 2).toFixed(1)}
               </div>
             )}
 
-            <div className="flex items-center justify-between text-zinc-300 text-xs font-medium">
+            <div className="flex items-center justify-between text-zinc-300 text-[10px] sm:text-xs font-medium">
               {releaseYear && (
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
                   {releaseYear}
                 </div>
               )}
               {movie.language && (
                 <div className="flex items-center gap-1 uppercase">
-                  <Globe2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <Globe2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-400" />
                   {movie.language}
                 </div>
               )}
             </div>
 
             {movie.genres && movie.genres.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 mt-1">
                 {movie.genres.slice(0, 3).map((genre, index) => (
-                  <span key={genre.id || index} className="text-[10px] font-medium bg-white/10 backdrop-blur-md text-zinc-200 px-2.5 py-1 rounded-md border border-white/5">
+                  <span key={genre.id || index} className="text-[9px] sm:text-[10px] font-medium bg-white/10 backdrop-blur-md text-zinc-200 px-2 py-0.5 rounded-md border border-white/5">
                     {genre.name || genre}
                   </span>
                 ))}
@@ -160,8 +118,8 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
             )}
 
             {movie.tmdbVoteCount > 0 && (
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-medium mt-1 pt-3 border-t border-white/10">
-                <Users className="w-3.5 h-3.5 flex-shrink-0" />
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 font-medium mt-1 pt-2 border-t border-white/10">
+                <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                 <span>{movie.tmdbVoteCount.toLocaleString()} Votes</span>
               </div>
             )}

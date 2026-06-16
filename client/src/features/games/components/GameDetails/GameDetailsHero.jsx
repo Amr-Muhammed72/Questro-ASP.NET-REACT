@@ -1,73 +1,21 @@
 import { memo, useState, useEffect } from 'react';
-import { Star, Play, X } from 'lucide-react';
+import { Star, Play, X, MonitorPlay } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import MovieDetailsActions from './MovieDetailsActions';
+import GameDetailsActions from './GameDetailsActions';
 
-const CircularProgress = ({ score, label, color }) => {
-  const percentage = (score / 5) * 100;
-  const strokeColor = color === 'yellow' ? '#EAB308' : '#22C55E';
-  
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center">
-        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
-          <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-zinc-800" />
-          <circle 
-            cx="32" cy="32" r="28" 
-            stroke={strokeColor} 
-            strokeWidth="4" 
-            fill="transparent" 
-            strokeDasharray="175.93" 
-            strokeDashoffset={175.93 - (175.93 * percentage) / 100}
-            className="transition-all duration-1000 ease-out" 
-            strokeLinecap="round" 
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-white font-bold text-lg lg:text-xl flex items-center gap-1">
-            {color === 'yellow' && <Star className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-500 fill-yellow-500" />}
-            {score.toFixed(1)}
-          </span>
-        </div>
-      </div>
-      <span className="text-xs lg:text-sm text-zinc-400 font-bold uppercase tracking-wider">{label}</span>
-    </div>
-  );
-};
-
-const getYoutubeEmbed = (url) => {
-  if (!url) return null;
-
-  let videoId = "";
-  if (url.includes("watch?v=")) {
-    videoId = url.split("v=")[1]?.split("&")[0];
-  } else if (url.includes("youtu.be/")) {
-    videoId = url.split("youtu.be/")[1];
-  } else {
-    videoId = url;
-  }
-
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&playsinline=1&rel=0`;
-};
-
-const MovieDetailsHero = memo(({ movie }) => {
+const GameDetailsHero = memo(({ game }) => {
   const {
     title,
     backdropUrl,
     posterUrl,
     releaseDate,
-    runtime,
-    tmdbRating,
-    ratingSummary,
+    rating,
     genres,
-    overview,
     trailerUrl,
-  } = movie;
+  } = game;
 
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
-  const embedUrl = getYoutubeEmbed(trailerUrl);
 
-  // Close modal on escape key
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') setIsTrailerOpen(false);
@@ -77,31 +25,17 @@ const MovieDetailsHero = memo(({ movie }) => {
   }, [isTrailerOpen]);
 
   const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
-  const hours = runtime ? Math.floor(runtime / 60) : 0;
-  const minutes = runtime ? runtime % 60 : 0;
-  const formattedRuntime = runtime ? `${hours}h ${minutes}m` : 'N/A';
-
-  // Convert TMDB and User 10-point scale ratings to a 5-point scale
-  const tmdb = tmdbRating ? tmdbRating / 2 : 0;
-  const userAvg = ratingSummary?.average ? ratingSummary.average / 2 : 0;
-  
-  let finalScore = tmdb;
-  if (tmdb > 0 && userAvg > 0) {
-    finalScore = (tmdb + userAvg) / 2;
-  } else if (userAvg > 0) {
-    finalScore = userAvg;
-  }
 
   return (
     <div className="relative w-full min-h-[100svh] bg-[#09090b] flex items-center pt-32 pb-48 lg:pt-40 lg:pb-56 overflow-hidden">
       {/* Background Image & Overlays */}
       <div className="absolute inset-0 overflow-hidden bg-[#09090b]">
-        {backdropUrl && (
+        {(backdropUrl || posterUrl) && (
           <motion.img
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 0.85, scale: 1 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
-            src={backdropUrl}
+            src={backdropUrl || posterUrl}
             alt={title}
             className="w-full h-full object-cover object-top"
             loading="lazy"
@@ -133,11 +67,7 @@ const MovieDetailsHero = memo(({ movie }) => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             onClick={() => {
-              if (embedUrl) {
-                setIsTrailerOpen(true);
-              } else {
-                toast.error("No trailer available for this movie.");
-              }
+              if (trailerUrl) setIsTrailerOpen(true);
             }}
             className="w-36 sm:w-48 lg:w-72 xl:w-80 aspect-[2/3] flex-shrink-0 relative z-30 bg-zinc-900 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group border border-white/10 cursor-pointer"
           >
@@ -151,7 +81,12 @@ const MovieDetailsHero = memo(({ movie }) => {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center opacity-20">
-                <span className="text-6xl">🎬</span>
+                <span className="text-6xl">🎮</span>
+              </div>
+            )}
+            {trailerUrl && typeof trailerUrl === 'string' && (
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-sm">
+                <Play className="w-16 h-16 text-white fill-white drop-shadow-2xl" />
               </div>
             )}
           </motion.div>
@@ -172,39 +107,32 @@ const MovieDetailsHero = memo(({ movie }) => {
                 {year}
               </span>
               <span>•</span>
-              <span className="bg-white/10 px-3 py-1 lg:px-4 lg:py-1.5 rounded-lg text-xs lg:text-sm border border-white/10 shadow-sm">
-                {formattedRuntime}
-              </span>
-              <span>•</span>
               <span className="flex items-center gap-1 bg-white/10 px-3 py-1 lg:px-4 lg:py-1.5 rounded-lg text-xs lg:text-sm border border-white/10 shadow-sm text-yellow-500">
                 <Star className="w-4 h-4 fill-yellow-500" />
-                {tmdbRating ? tmdbRating.toFixed(1) : 'N/A'}
+                {rating ? rating.toFixed(1) : 'N/A'}
               </span>
             </div>
 
             <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-10">
               {genres?.map((genre) => (
                 <span
-                  key={genre}
+                  key={genre.id || genre}
                   className="px-3 py-1 lg:px-4 lg:py-1.5 bg-white/5 border border-white/10 text-zinc-200 rounded-lg text-xs lg:text-sm font-bold tracking-wide shadow-sm hover:bg-white/10 transition-colors"
                 >
-                  {genre}
+                  {genre.name || genre}
                 </span>
               ))}
             </div>
 
-            <div className="flex items-center justify-center lg:justify-start gap-10 mb-10">
-              <CircularProgress score={finalScore} label="Global Score" color="green" />
-            </div>
-
-            {overview && (
-              <p className="text-zinc-300 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed max-w-4xl mb-12 drop-shadow-md line-clamp-4 sm:line-clamp-none">
-                {overview}
-              </p>
+            {game.platforms && game.platforms.length > 0 && (
+              <div className="flex flex-wrap justify-center lg:justify-start items-center gap-2 mb-10 text-zinc-400">
+                <MonitorPlay className="w-5 h-5" />
+                {game.platforms.map(p => p.name).join(' • ')}
+              </div>
             )}
 
             <div className="flex flex-col sm:flex-row flex-wrap justify-center lg:justify-start items-center gap-4 sm:gap-6 w-full sm:w-auto mt-auto">
-              {embedUrl && (
+              {trailerUrl && typeof trailerUrl === 'string' && (
                 <button
                   onClick={() => setIsTrailerOpen(true)}
                   className="flex items-center justify-center w-full sm:w-[160px] gap-2 py-3 lg:py-2.5 bg-white text-black text-sm lg:text-base font-black rounded-xl hover:bg-zinc-200 transition-transform shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:scale-105 cursor-pointer"
@@ -213,7 +141,17 @@ const MovieDetailsHero = memo(({ movie }) => {
                   Watch Trailer
                 </button>
               )}
-              <MovieDetailsActions movieId={movie.tmdbId} userStatus={movie.userStatus} />
+              {game.storeUrl && (
+                <a
+                  href={game.storeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-full sm:w-auto px-6 py-3 lg:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105 shadow-lg shadow-indigo-500/20"
+                >
+                  Visit Store
+                </a>
+              )}
+              <GameDetailsActions gameId={game.rawgId} />
             </div>
           </motion.div>
 
@@ -222,7 +160,7 @@ const MovieDetailsHero = memo(({ movie }) => {
 
       {/* Trailer Modal Overlay */}
       <AnimatePresence>
-        {isTrailerOpen && embedUrl && (
+        {isTrailerOpen && trailerUrl && typeof trailerUrl === 'string' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -242,12 +180,12 @@ const MovieDetailsHero = memo(({ movie }) => {
               className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
               onClick={e => e.stopPropagation()}
             >
-              <iframe
-                className="w-full h-full"
-                src={embedUrl}
-                title={`${title} Trailer`}
-                allow="autoplay; encrypted-media; fullscreen"
-                allowFullScreen
+              <video
+                className="w-full h-full object-contain"
+                src={trailerUrl}
+                autoPlay
+                controls
+                playsInline
               />
             </div>
           </motion.div>
@@ -257,5 +195,5 @@ const MovieDetailsHero = memo(({ movie }) => {
   );
 });
 
-MovieDetailsHero.displayName = 'MovieDetailsHero';
-export default MovieDetailsHero;
+GameDetailsHero.displayName = 'GameDetailsHero';
+export default GameDetailsHero;

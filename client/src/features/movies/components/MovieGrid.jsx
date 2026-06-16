@@ -1,4 +1,5 @@
 import { memo, useCallback, useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import MovieCard from './MovieCard';
 import GameCard from '../../../features/games/components/GameCard';
 
@@ -387,19 +388,29 @@ const MovieGrid = memo(({
     <div className="w-full py-8 px-4 sm:px-8 md:px-12 lg:px-16">
       {/* Grid — overlaid with a semi-transparent skeleton during page transitions */}
       <div className="relative">
-        <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 w-full transition-opacity duration-200 ${isLoading ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-          {currentData.map((item) => (
-            <CardComponent
-              key={getItemId(item)}
-              {...{ [type]: item }}
-              onRemove={
-                isOwnProfile && onRemoveItem
-                  ? () => onRemoveItem(getItemId(item))
-                  : undefined
-              }
-            />
-          ))}
-        </div>
+        <motion.div layout className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 w-full transition-opacity duration-200 ${isLoading ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+          <AnimatePresence mode="popLayout">
+            {currentData.map((item) => (
+              <motion.div
+                key={getItemId(item)}
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8, filter: 'blur(4px)' }}
+                transition={{ duration: 0.3 }}
+              >
+                <CardComponent
+                  {...{ [type]: item }}
+                  onRemove={
+                    isOwnProfile && onRemoveItem
+                      ? () => onRemoveItem(getItemId(item))
+                      : undefined
+                  }
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Show a loading overlay during arbitrary jumps to simulate the "instant" feeling without losing context */}
         {isLoading && currentData.length > 0 && (

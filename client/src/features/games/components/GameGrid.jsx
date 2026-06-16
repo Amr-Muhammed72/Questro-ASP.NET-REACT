@@ -1,4 +1,5 @@
 import { memo, useCallback, useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import GameCard from './GameCard';
 
 // ============================================================================
@@ -380,15 +381,25 @@ const GameGrid = memo(({
   return (
     <div className="w-full py-8 px-4 sm:px-8 md:px-12 lg:px-16">
       <div className="relative">
-        <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 w-full transition-opacity duration-200 ${isLoading ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-          {currentData.map((game) => (
-            <GameCard
-              key={game.rawgId}
-              game={game}
-              onRemove={isOwnProfile && onRemoveItem ? () => onRemoveItem(game.rawgId) : undefined}
-            />
-          ))}
-        </div>
+        <motion.div layout className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 w-full transition-opacity duration-200 ${isLoading ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+          <AnimatePresence mode="popLayout">
+            {currentData.map((game) => (
+              <motion.div
+                key={game.rawgId}
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8, filter: 'blur(4px)' }}
+                transition={{ duration: 0.3 }}
+              >
+                <GameCard
+                  game={game}
+                  onRemove={isOwnProfile && onRemoveItem ? () => onRemoveItem(game.rawgId) : undefined}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Show a loading overlay during arbitrary jumps to simulate the "instant" feeling without losing context */}
         {isLoading && currentData.length > 0 && (

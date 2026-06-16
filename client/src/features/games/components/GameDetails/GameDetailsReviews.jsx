@@ -3,13 +3,13 @@ import { Star, MessageCircle, Pencil, Trash2, ChevronDown, AlertTriangle } from 
 import { toast } from 'sonner';
 import { useAuth } from '../../../auth/store/AuthContext';
 import { useProfileStore } from '../../../profile/store/useProfileStore';
-import { useMovieReviews } from '../../hooks/useMovieReviews';
+import { useGameReviews } from '../../hooks/useGameReviews';
 import { 
-  useAddMovieReview, 
-  useRateMovie,
-  useUpdateMovieReview,
-  useDeleteMovieReview
-} from '../../hooks/useMovieInteractions';
+  useAddGameReview, 
+  useUpdateGameReview,
+  useDeleteGameReview,
+  useRateGame
+} from '../../hooks/useGameInteractions';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -63,20 +63,19 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, isPending }) => {
   );
 };
 
-const ReviewCard = ({ review, movieId, isMyReview }) => {
-  const authorName = review.userName || 'Anonymous';
+const ReviewCard = ({ review, gameId, isMyReview }) => {
+  const authorName = review.userName || review.username || 'Anonymous';
   const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=random&color=fff`;
   
-  // Initialize the image source with the user's profile picture if it exists, otherwise use the fallback.
-  // Prepend the backend URL if the path is relative.
+  const rawAvatar = review.userProfilePictureUrl || review.userAvatar;
   const [imgSrc, setImgSrc] = useState(() => {
-    if (!review.userProfilePictureUrl) return fallbackAvatarUrl;
-    return review.userProfilePictureUrl.startsWith('http')
-      ? review.userProfilePictureUrl
-      : `http://localhost:${import.meta.env.VITE_PORT || 5222}${review.userProfilePictureUrl}`;
+    if (!rawAvatar) return fallbackAvatarUrl;
+    return rawAvatar.startsWith('http')
+      ? rawAvatar
+      : `http://localhost:${import.meta.env.VITE_PORT || 5222}${rawAvatar}`;
   });
   
-  const formattedDate = new Date(review.timestamp || new Date()).toLocaleDateString('en-US', {
+  const formattedDate = new Date(review.timestamp || review.createdAt || new Date()).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -84,10 +83,10 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [editBody, setEditBody] = useState(review.body || review.content || '');
+  const [editBody, setEditBody] = useState(review.body || review.content || review.comment || '');
   
-  const updateMutation = useUpdateMovieReview(movieId);
-  const deleteMutation = useDeleteMovieReview(movieId);
+  const updateMutation = useUpdateGameReview(gameId);
+  const deleteMutation = useDeleteGameReview(gameId);
 
   const handleUpdate = () => {
     if (!editBody.trim()) {
@@ -138,7 +137,7 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
                    <div className="flex items-center gap-2">
                       <h5 className="font-bold text-white text-sm">{authorName}</h5>
                       {isMyReview && (
-                         <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] font-bold rounded uppercase tracking-wider">
+                         <span className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded uppercase tracking-wider">
                             You
                          </span>
                       )}
@@ -148,7 +147,7 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
              </Link>
              
              {/* Rating */}
-             {review.rating ? (
+             {review.rating > 0 ? (
                 <div className="flex items-center gap-0.5 bg-[#111] px-2 py-1 rounded-lg border border-white/5">
                    {[1, 2, 3, 4, 5].map((star) => (
                        <Star 
@@ -169,7 +168,7 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
               <textarea
                 value={editBody}
                 onChange={(e) => setEditBody(e.target.value)}
-                className="w-full bg-[#171717] border border-white/10 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-purple-500 transition-colors resize-none h-[140px] text-sm"
+                className="w-full bg-[#171717] border border-white/10 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors resize-none h-[140px] text-sm"
                 disabled={updateMutation.isPending}
               />
               <div className="flex justify-end gap-2 mt-3">
@@ -182,7 +181,7 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
                 </button>
                 <button 
                   onClick={handleUpdate} 
-                  className="px-5 py-2 text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-colors disabled:opacity-50"
+                  className="px-5 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors disabled:opacity-50"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -191,7 +190,7 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
             </div>
           ) : (
             <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
-              {review.body || review.content}
+              {review.body || review.content || review.comment}
             </p>
           )}
 
@@ -226,10 +225,10 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
   );
 };
 
-const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
+const ReviewComposer = ({ gameId, userRating, hasReviewed }) => {
    const { isLoggedIn } = useAuth();
-   const rateMovieMutation = useRateMovie(movieId);
-   const addReviewMutation = useAddMovieReview(movieId);
+   const addReviewMutation = useAddGameReview(gameId);
+   const rateGameMutation = useRateGame(gameId);
    
    const [hoverRating, setHoverRating] = useState(0);
    const [selectedRating, setSelectedRating] = useState(userRating || 0);
@@ -241,11 +240,12 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
        setSelectedRating(userRating || 0);
      }
    }, [userRating]);
- 
+
    const handleSaveRating = () => {
      if (selectedRating > 0) {
-       rateMovieMutation.mutate(selectedRating, {
-         onSuccess: () => toast.success('Rating submitted!')
+       rateGameMutation.mutate(selectedRating, {
+         onSuccess: () => toast.success('Rating saved!'),
+         onError: () => toast.error('Failed to save rating.')
        });
      }
    };
@@ -272,10 +272,10 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
       return (
          <div className="bg-[#111] rounded-2xl p-8 flex flex-col items-start border border-white/5">
             <h3 className="text-xl font-bold text-white mb-2">Your Opinion</h3>
-            <p className="text-zinc-400 mb-6 text-sm">Sign in to share your thoughts and rate this movie.</p>
+            <p className="text-zinc-400 mb-6 text-sm">Sign in to share your thoughts and rate this game.</p>
             <Link
                to="/login"
-               className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors text-sm"
+               className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors text-sm shadow-lg shadow-indigo-500/20"
             >
                Sign In to Review
             </Link>
@@ -284,42 +284,42 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
    }
 
    return (
-      <div className="bg-[#111] rounded-2xl p-8 border border-white/5">
+      <div className="bg-[#111] rounded-2xl p-8 border border-white/5 shadow-xl">
          <h3 className="text-xl font-bold text-white mb-6">Your Opinion</h3>
          
-         {/* Rating Section - Always Visible */}
-         <div className={clsx("flex flex-col", !hasReviewed && "mb-8 pb-8 border-b border-white/5")}>
-            <span className="text-sm text-zinc-400 font-medium mb-3">
-               {selectedRating > 0 ? 'Your Rating' : 'Rate this movie'}
-            </span>
-            <div className="flex items-center gap-1 mb-5">
-               {[1, 2, 3, 4, 5].map((star) => (
-               <Star
-                  key={star}
-                  className={clsx(
-                     "w-8 h-8 cursor-pointer transition-colors",
-                     star <= (hoverRating || selectedRating)
-                        ? "fill-yellow-500 text-yellow-500"
-                        : "text-zinc-700 hover:text-zinc-500"
-                  )}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  onClick={() => setSelectedRating(star)}
-               />
-               ))}
-            </div>
-            <button
-               onClick={handleSaveRating}
-               disabled={selectedRating === 0 || rateMovieMutation.isPending || selectedRating === userRating}
-               className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors w-fit"
-            >
-               {rateMovieMutation.isPending ? 'Saving...' : 'Save Rating'}
-            </button>
-         </div>
-
          {/* Review Section - Only visible if not already reviewed */}
          {!hasReviewed ? (
-            <div className="flex flex-col mt-8">
+            <div className="flex flex-col">
+               {/* Rating Section inside Composer */}
+             <div className={clsx("flex flex-col", !hasReviewed && "mb-8 pb-8 border-b border-white/5")}>
+                  <span className="text-sm text-zinc-400 font-medium mb-3">
+                     {selectedRating > 0 ? 'Your Rating' : 'Rate this game'}
+                  </span>
+                  <div className="flex items-center gap-1 mb-5">
+                     {[1, 2, 3, 4, 5].map((star) => (
+                     <Star
+                        key={star}
+                        className={clsx(
+                           "w-8 h-8 cursor-pointer transition-colors",
+                           star <= (hoverRating || selectedRating)
+                              ? "fill-yellow-500 text-yellow-500"
+                              : "text-zinc-700 hover:text-zinc-500"
+                        )}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => setSelectedRating(star)}
+                     />
+                     ))}
+                  </div>
+                  <button
+                     onClick={handleSaveRating}
+                     disabled={selectedRating === 0 || rateGameMutation.isPending || selectedRating === userRating}
+                     className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors w-fit"
+                  >
+                     {rateGameMutation.isPending ? 'Saving...' : 'Save Rating'}
+                  </button>
+               </div>
+
                <span className="text-sm text-zinc-400 font-medium mb-3">Write a review</span>
                <textarea
                   value={reviewBody}
@@ -327,9 +327,9 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
                      setReviewBody(e.target.value);
                      setError('');
                   }}
-                  placeholder="What did you think about this movie?"
+                  placeholder="What did you think about this game?"
                   className={clsx(
-                     "w-full bg-[#171717] border border-white/10 rounded-xl p-4 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500 transition-colors resize-none h-[140px] text-sm",
+                     "w-full bg-[#171717] border border-white/10 rounded-xl p-4 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none h-[140px] text-sm",
                      error && "border-red-500"
                   )}
                   maxLength={1000}
@@ -345,14 +345,14 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
                   <button
                      onClick={handleSubmitReview}
                      disabled={!reviewBody.trim() || addReviewMutation.isPending}
-                     className="w-full px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold rounded-xl transition-colors text-sm"
+                     className="w-full px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition-colors text-sm shadow-lg shadow-indigo-500/20"
                   >
                      {addReviewMutation.isPending ? 'Publishing...' : 'Publish Review'}
                   </button>
                </div>
             </div>
          ) : (
-            <div className="mt-6 pt-6 border-t border-white/5">
+            <div className="mt-2">
                <p className="text-zinc-400 text-sm">
                   You have already shared your written review. You can edit or delete it from the community list.
                </p>
@@ -362,7 +362,7 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
    );
 };
 
-const MovieDetailsReviews = memo(({ movieId, userRating }) => {
+const GameDetailsReviews = memo(({ gameId, userRating }) => {
   const {
     data,
     isLoading,
@@ -370,7 +370,7 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
-  } = useMovieReviews(movieId);
+  } = useGameReviews(gameId);
 
   const { myProfile } = useProfileStore();
   const [sortBy, setSortBy] = useState('newest');
@@ -382,15 +382,15 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
     let sortedList = [];
 
     if (sortBy === 'oldest') {
-      sortedList = list.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+      sortedList = list.sort((a, b) => new Date(a.timestamp || a.createdAt || 0) - new Date(b.timestamp || b.createdAt || 0));
     } else {
       // newest (default)
-      sortedList = list.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+      sortedList = list.sort((a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0));
     }
 
     // Always pin the current user's review to the top
     if (myProfile) {
-      const myReviewIndex = sortedList.findIndex(r => r.userName === myProfile.userName);
+      const myReviewIndex = sortedList.findIndex(r => r.userName === myProfile.userName || r.username === myProfile.userName);
       if (myReviewIndex > -1) {
         const [myReview] = sortedList.splice(myReviewIndex, 1);
         sortedList.unshift(myReview);
@@ -432,8 +432,8 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
 
   if (isError) return null;
   
-  const myReview = myProfile ? reviewsList.find(r => r.userName === myProfile.userName) : null;
-  const totalCount = data?.pages?.[0]?.totalCount || 0;
+  const myReview = myProfile ? reviewsList.find(r => r.userName === myProfile.userName || r.username === myProfile.userName) : null;
+  const totalCount = data?.pages?.[0]?.totalCount || reviewsList.length || 0;
 
   return (
     <div id="reviews-section" className="py-12 max-w-[1200px] mx-auto px-4 w-full">
@@ -448,7 +448,7 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
          
          {/* Right Side (Desktop) / Top (Mobile): Your Opinion (Composer) */}
          <div className="order-1 lg:order-2 lg:col-span-4 lg:sticky lg:top-24">
-            <ReviewComposer movieId={movieId} userRating={userRating} hasReviewed={!!myReview} />
+            <ReviewComposer gameId={gameId} userRating={userRating} hasReviewed={!!myReview} />
          </div>
 
          {/* Left Side (Desktop) / Bottom (Mobile): Community Reviews List */}
@@ -463,7 +463,7 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
                      <select 
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-[#111] border border-white/5 text-zinc-300 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
+                        className="appearance-none bg-[#111] border border-white/5 text-zinc-300 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
                      >
                         <option value="newest">Newest</option>
                         <option value="oldest">Oldest</option>
@@ -476,23 +476,23 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
             {/* Community Reviews List */}
             <div>
                {reviewsList.length === 0 ? (
-                  <div className="bg-[#111] rounded-2xl p-8 border border-white/5 flex flex-col items-start">
+                  <div className="bg-[#111] rounded-2xl p-8 border border-white/5 flex flex-col items-start shadow-xl">
                      <MessageCircle className="w-8 h-8 text-zinc-600 mb-4" />
                      <h4 className="text-lg font-bold text-white mb-1">No reviews yet</h4>
                      <p className="text-zinc-500 text-sm">
-                        Be the first to share your thoughts about this movie.
+                        Be the first to share your thoughts about this game.
                      </p>
                   </div>
                ) : (
                   <div className="flex flex-col">
                      <AnimatePresence>
                         {sortedReviews.map((review, index) => {
-                           const isMyReview = myProfile && review.userName === myProfile.userName;
+                           const isMyReview = myProfile && (review.userName === myProfile.userName || review.username === myProfile.userName);
                            return (
                               <ReviewCard 
-                                 key={review.id || index} 
+                                 key={review.id || review.reviewId || index} 
                                  review={review} 
-                                 movieId={movieId}
+                                 gameId={gameId}
                                  isMyReview={isMyReview} 
                               />
                            );
@@ -519,5 +519,5 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
   );
 });
 
-MovieDetailsReviews.displayName = 'MovieDetailsReviews';
-export default MovieDetailsReviews;
+GameDetailsReviews.displayName = 'GameDetailsReviews';
+export default GameDetailsReviews;

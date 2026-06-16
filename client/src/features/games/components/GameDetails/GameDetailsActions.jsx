@@ -1,23 +1,20 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState, useEffect } from 'react';
 import { Heart, Bookmark, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { useState } from 'react';
 import { useAuth } from '../../../auth/store/AuthContext';
-import {
-  useToggleLike,
-  useToggleWatchlist,
-  useToggleWatched,
-} from '../../hooks/useMovieInteractions';
+import { 
+  useToggleGameLike, 
+  useToggleGameWatchlist, 
+  useGameInteractionStatus 
+} from '../../hooks/useGameInteractions';
 
 const ActionButton = ({ icon: Icon, label, isActive, onClick, activeColor }) => {
-  // Hardcode classes so Tailwind doesn't purge them
   const getActiveStyles = () => {
     switch (activeColor) {
       case 'rose': return 'border-rose-500/50 bg-rose-500/10 text-rose-400';
       case 'indigo': return 'border-indigo-500/50 bg-indigo-500/10 text-indigo-400';
       case 'emerald': return 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400';
-      case 'yellow': return 'border-yellow-500/50 bg-yellow-500/10 text-yellow-500';
       default: return 'border-white/20 bg-white/10 text-white';
     }
   };
@@ -39,19 +36,15 @@ const ActionButton = ({ icon: Icon, label, isActive, onClick, activeColor }) => 
   );
 };
 
-const MovieDetailsActions = memo(({ movieId, userStatus }) => {
+const GameDetailsActions = memo(({ gameId }) => {
   const { isLoggedIn } = useAuth();
   
-  const { mutate: toggleLike } = useToggleLike(movieId);
-  const { mutate: toggleWatchlist } = useToggleWatchlist(movieId);
-  const { mutate: toggleWatched } = useToggleWatched(movieId);
+  const { mutate: toggleLike } = useToggleGameLike(gameId);
+  const { mutate: toggleWatchlist } = useToggleGameWatchlist(gameId);
+  const { data: interactionStatus } = useGameInteractionStatus(gameId, isLoggedIn);
 
   // Destructure with default values
-  const { isLiked = false, isInWatchlist = false, isWatched = false } = userStatus || {};
-
-  // Local state to override watched since backend does not return it in userStatus currently
-  const [localWatched, setLocalWatched] = useState(null);
-  const displayedWatched = localWatched !== null ? localWatched : isWatched;
+  const { isLiked = false, isInWatchlist = false } = interactionStatus || {};
 
   const handleAction = useCallback((actionFn) => {
     if (!isLoggedIn) {
@@ -60,15 +53,6 @@ const MovieDetailsActions = memo(({ movieId, userStatus }) => {
     }
     actionFn();
   }, [isLoggedIn]);
-
-  const handleToggleWatched = useCallback(() => {
-    if (!isLoggedIn) {
-      toast.error('Please sign in to interact.');
-      return;
-    }
-    setLocalWatched(prev => prev === null ? !isWatched : !prev);
-    toggleWatched();
-  }, [isLoggedIn, isWatched, toggleWatched]);
 
   return (
     <div className="flex flex-wrap gap-4">
@@ -81,21 +65,14 @@ const MovieDetailsActions = memo(({ movieId, userStatus }) => {
       />
       <ActionButton
         icon={Bookmark}
-        label={isInWatchlist ? "Saved" : "Watchlist"}
+        label={isInWatchlist ? "Wishlisted" : "Wishlist"}
         isActive={isInWatchlist}
         activeColor="indigo"
         onClick={() => handleAction(toggleWatchlist)}
-      />
-      <ActionButton
-        icon={Eye}
-        label={displayedWatched ? "Watched" : "Watched"}
-        isActive={displayedWatched}
-        activeColor="emerald"
-        onClick={handleToggleWatched}
       />
     </div>
   );
 });
 
-MovieDetailsActions.displayName = 'MovieDetailsActions';
-export default MovieDetailsActions;
+GameDetailsActions.displayName = 'GameDetailsActions';
+export default GameDetailsActions;
