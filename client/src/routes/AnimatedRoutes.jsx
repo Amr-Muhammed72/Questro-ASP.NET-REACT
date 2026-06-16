@@ -9,6 +9,7 @@ import ParentRoute from './guards/ParentRoute';
 
 // Shared wrapper
 import PageTransition from '../components/common/PageTransition';
+import NavBar from '../components/layout/NavBar';
 
 // ── Eagerly loaded pages ───────────────────────────────────────────────────
 // These are tiny and needed immediately on first paint (unauthenticated flow).
@@ -37,12 +38,16 @@ const PageLoader = () => (
 
 export default function AnimatedRoutes() {
   const location = useLocation();
+  const hideNavBarPaths = ['/login', '/register', '/forgot-password'];
+  const isAuthRoute = hideNavBarPaths.includes(location.pathname);
 
   return (
-    // Suspense must wrap AnimatePresence so lazy chunks have a fallback
-    // while they are being fetched.
-    <Suspense fallback={<PageLoader />}>
-      <AnimatePresence mode="wait">
+    <>
+      {!isAuthRoute && <NavBar />}
+      {/* Suspense must wrap AnimatePresence so lazy chunks have a fallback
+          while they are being fetched. */}
+      <Suspense fallback={<PageLoader />}>
+        <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
         <Routes location={location} key={location.pathname}>
 
           {/* Public */}
@@ -98,5 +103,6 @@ export default function AnimatedRoutes() {
         </Routes>
       </AnimatePresence>
     </Suspense>
+    </>
   );
 }

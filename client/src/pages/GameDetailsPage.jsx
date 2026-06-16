@@ -1,6 +1,6 @@
 import { lazy, useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import NavBar from '../components/layout/NavBar';
+
 import GameRow from '../features/games/components/GameRow';
 
 import GameDetailsHero from '../features/games/components/GameDetails/GameDetailsHero';
@@ -54,7 +54,7 @@ export default function GameDetailsPage() {
   if (isError || !game) {
     return (
       <div className="min-h-screen bg-[#09090b] flex flex-col">
-        <NavBar />
+        
         <div className="flex-1 flex flex-col items-center justify-center text-center px-4 space-y-6">
           <div className="w-24 h-24 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800 shadow-2xl mb-4">
             <span className="text-4xl">🎮</span>
@@ -81,7 +81,7 @@ export default function GameDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col">
-      <NavBar />
+      
       
       <div className="relative">
         <GameDetailsHero game={game} />

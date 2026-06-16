@@ -22,8 +22,6 @@ const childSchema = z.object({
 export const ChildForm = ({ onClose }) => {
   const [blockedMovieGenreIds, setBlockedMovieGenreIds] = useState([]);
   const [blockedGameGenreIds, setBlockedGameGenreIds] = useState([]);
-  const [maxContentRating, setMaxContentRating] = useState(null);
-  const [maxMetacriticRating, setMaxMetacriticRating] = useState(null);
   const [apiError, setApiError] = useState('');
 
   const createChildMutation = useCreateChild();
@@ -51,8 +49,6 @@ export const ChildForm = ({ onClose }) => {
       birthDate: data.birthDate ? new Date(data.birthDate).toISOString() : null,
       blockedMovieGenreIds: blockedMovieGenreIds.length > 0 ? blockedMovieGenreIds : null,
       blockedGameGenreIds: blockedGameGenreIds.length > 0 ? blockedGameGenreIds : null,
-      maxContentRating,
-      maxMetacriticRating,
     };
 
     createChildMutation.mutate(payload, {
@@ -187,10 +183,6 @@ export const ChildForm = ({ onClose }) => {
               onChangeBlockedMovieGenres={setBlockedMovieGenreIds}
               blockedGameGenreIds={blockedGameGenreIds}
               onChangeBlockedGameGenres={setBlockedGameGenreIds}
-              maxContentRating={maxContentRating}
-              onChangeMaxContentRating={setMaxContentRating}
-              maxMetacriticRating={maxMetacriticRating}
-              onChangeMaxMetacriticRating={setMaxMetacriticRating}
             />
           </div>
 

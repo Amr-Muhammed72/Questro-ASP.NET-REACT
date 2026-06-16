@@ -28,11 +28,7 @@ export default function MovieDetailsSkeleton() {
                 <div className="h-6 md:h-8 w-28 bg-zinc-800 rounded-md" />
               </div>
 
-              {/* Circular Global Score */}
-              <div className="mb-10">
-                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-zinc-800 rounded-full" />
-                <div className="h-2 w-12 bg-zinc-800 rounded mt-2 text-center" />
-              </div>
+
 
               {/* Synopsis Paragraph */}
               <div className="space-y-3 max-w-4xl mb-12">

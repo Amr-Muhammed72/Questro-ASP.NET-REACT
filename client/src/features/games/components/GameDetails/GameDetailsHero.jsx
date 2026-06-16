@@ -3,6 +3,29 @@ import { Star, Play, X, MonitorPlay } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameDetailsActions from './GameDetailsActions';
 
+const PosterFallback = ({ src, title }) => {
+  const [error, setError] = useState(false);
+
+  if (error || !src) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-800 text-zinc-500">
+        <MonitorPlay className="w-12 h-12 mb-2 opacity-50" />
+        <span className="text-xs font-bold uppercase tracking-widest opacity-50">No Poster</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${title} Poster`}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+      loading="lazy"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 const GameDetailsHero = memo(({ game }) => {
   const {
     title,
@@ -71,19 +94,7 @@ const GameDetailsHero = memo(({ game }) => {
             }}
             className="w-36 sm:w-48 lg:w-72 xl:w-80 aspect-[2/3] flex-shrink-0 relative z-30 bg-zinc-900 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group border border-white/10 cursor-pointer"
           >
-            {posterUrl ? (
-              <img
-                src={posterUrl}
-                alt={`${title} Poster`}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                loading="lazy"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center opacity-20">
-                <span className="text-6xl">🎮</span>
-              </div>
-            )}
+            <PosterFallback src={posterUrl} title={title} />
             {trailerUrl && typeof trailerUrl === 'string' && (
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-sm">
                 <Play className="w-16 h-16 text-white fill-white drop-shadow-2xl" />
@@ -107,9 +118,9 @@ const GameDetailsHero = memo(({ game }) => {
                 {year}
               </span>
               <span>•</span>
-              <span className="flex items-center gap-1 bg-white/10 px-3 py-1 lg:px-4 lg:py-1.5 rounded-lg text-xs lg:text-sm border border-white/10 shadow-sm text-yellow-500">
+              <span className="flex items-center gap-1 bg-white/10 px-3 py-1 lg:px-4 lg:py-1.5 rounded-lg text-xs lg:text-sm border border-white/10 shadow-sm text-yellow-500 font-bold">
                 <Star className="w-4 h-4 fill-yellow-500" />
-                {rating ? rating.toFixed(1) : 'N/A'}
+                {rating ? (rating * 2).toFixed(1) : 'N/A'} <span className="text-zinc-400 text-[10px] lg:text-xs font-normal">/10</span>
               </span>
             </div>
 

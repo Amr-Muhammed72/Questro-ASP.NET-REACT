@@ -8,7 +8,7 @@ import MovieDetailsHero from '../features/movies/components/MovieDetails/MovieDe
 import MovieDetailsActions from '../features/movies/components/MovieDetails/MovieDetailsActions';
 import MovieDetailsSummary from '../features/movies/components/MovieDetails/MovieDetailsSummary';
 import LazyLoadWrapper from '../features/movies/components/MovieDetails/LazyLoadWrapper';
-import NavBar from '../components/layout/NavBar';
+
 import MovieRow from '../features/movies/components/MovieRow';
 
 const MovieDetailsStaff = lazy(() => import('../features/movies/components/MovieDetails/MovieDetailsStaff'));
@@ -30,7 +30,7 @@ export default function MovieDetailsPage() {
   if (isError || !movie) {
     return (
       <div className="min-h-screen bg-[#09090b] flex flex-col">
-        <NavBar />
+        
         <div className="flex-1 flex flex-col items-center justify-center text-center px-4 space-y-6">
           <div className="w-24 h-24 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800 shadow-2xl mb-4">
             <span className="text-4xl">🎬</span>
@@ -57,7 +57,7 @@ export default function MovieDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col">
-      <NavBar />
+      
       
       <div className="relative">
         <MovieDetailsHero movie={movie} />
