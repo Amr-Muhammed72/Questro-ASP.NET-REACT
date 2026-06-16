@@ -142,6 +142,10 @@ All paginated endpoints return a `PagedResponse<T>`:
 - `PUT /api/family/children/{childId}/restrictions` (update child restrictions)
 - `GET /api/users/me/restrictions` (get current user's own restrictions)
 
+### Global search route (auth required)
+
+- `GET /api/search?q={query}&limit=5`
+
 ---
 
 # Part A — Movies Domain
@@ -1180,6 +1184,60 @@ Response on success: HTTP 200 OK
 | `Family.ChildNotFound` | 404 | No user with this `childId` exists |
 | `Family.ChildNotOwned` | 403 | This child doesn't belong to the authenticated parent |
 | `Family.DeleteChildFailed` | 500 | Identity failed to delete account (check `Details`) |
+
+---
+
+# Part G — Global Search
+
+The global search endpoint allows the frontend to search across Movies, Games, Actors, and Users simultaneously. It is designed to be used in the main navigation bar.
+
+## 28) Global Search
+
+- Method: `GET`
+- URL: `/api/search`
+- Auth: Yes
+- Query Params:
+  - `q` (string, required): The search term.
+  - `limit` (int, optional, default = `5`): Maximum number of results to return per category. Server clamps this to a maximum of 20.
+
+Response — `GlobalSearchResultDto`:
+
+```json
+{
+  "movies": [
+    {
+      "tmdbId": 155,
+      "title": "The Dark Knight",
+      "posterUrl": "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+      "releaseDate": "2008-07-16T00:00:00Z"
+    }
+  ],
+  "games": [
+    {
+      "rawgId": 3498,
+      "name": "Grand Theft Auto V",
+      "backgroundImageUrl": "https://media.rawg.io/media/games/bg.jpg",
+      "released": "2013-09-17T00:00:00Z"
+    }
+  ],
+  "actors": [
+    {
+      "tmdbId": 3894,
+      "name": "Christian Bale",
+      "profileUrl": "https://image.tmdb.org/t/p/w500/b7fTC9WFkgqGOv77mLQAI05KcgY.jpg"
+    }
+  ],
+  "users": [
+    {
+      "id": 42,
+      "username": "batman_fan",
+      "profilePictureUrl": "/uploads/profile-pictures/bat.jpg"
+    }
+  ]
+}
+```
+
+> **Note on Child Accounts:** The backend automatically applies child safety filters (e.g., blocking adult content or restricted genres) to the Movie and Game search results if the logged-in user is a child account.
 
 ---
 

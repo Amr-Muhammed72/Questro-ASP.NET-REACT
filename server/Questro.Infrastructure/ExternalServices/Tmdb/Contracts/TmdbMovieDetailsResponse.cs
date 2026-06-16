@@ -40,6 +40,9 @@ public sealed class TmdbMovieDetailsResponse
     [JsonPropertyName("vote_count")]
     public int? VoteCount { get; set; }
 
+    [JsonPropertyName("homepage")]
+    public string? Homepage { get; set; }
+
     [JsonPropertyName("genres")]
     public List<TmdbGenreDto> Genres { get; set; } = new();
 }

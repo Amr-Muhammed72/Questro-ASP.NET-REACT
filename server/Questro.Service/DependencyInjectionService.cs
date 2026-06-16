@@ -20,6 +20,8 @@ using Questro.Service.Services.Movies;
 using Questro.Service.Services.Notifications;
 using Questro.Service.Services.Social;
 using Questro.Service.Services.Users;
+using Questro.Service.Abstractions.Search;
+using Questro.Service.Services.Search;
 
 using Questro.Shared.Contracts.Email;
 
@@ -59,6 +61,7 @@ public static class DependencyInjectionService
         services.AddScoped<IFamilyManagementService, FamilyManagementService>();
         services.AddScoped<IUserNetworkService, UserNetworkService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IGlobalSearchService, GlobalSearchService>();
         services.AddScoped<NewContentNotificationJob>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionService).Assembly);
