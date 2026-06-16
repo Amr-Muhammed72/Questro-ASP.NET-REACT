@@ -92,6 +92,22 @@ public sealed class TmdbService : ITmdbService
         return await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchMovie)}{query}", cancellationToken);
     }
 
+    public async Task<TmdbPagedPersonResponse?> SearchPersonsAsync(
+        string querySearch,
+        int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var queryParams = new Dictionary<string, string?>
+        {
+            [TmdbConstants.QueryKeys.Query] = querySearch,
+            [TmdbConstants.QueryKeys.Page] = (page < 1 ? 1 : page).ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.IncludeAdult] = "false"
+        };
+
+        var query = BuildQuery(queryParams);
+        return await GetAsync<TmdbPagedPersonResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchPerson)}{query}", cancellationToken);
+    }
+
     public Task<TmdbGenreListResponse?> GetMovieGenresAsync(CancellationToken cancellationToken = default)
     {
         var query = BuildQuery(null);
