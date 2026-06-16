@@ -31,6 +31,7 @@ public static class DependencyInjectionApi
             {
                 { bearerScheme, new string[] { } }
             });
+          
         });
 
         return services;

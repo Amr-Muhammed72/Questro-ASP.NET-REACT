@@ -6,6 +6,7 @@ using Questro.Core.Specifications.Family;
 using Questro.Core.Specifications.Movies;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.Tmdb.Contracts;
+using Questro.Service.Abstractions.Cache;
 using Questro.Service.Abstractions.Movies;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Movies;
@@ -21,6 +22,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     private const int SafeDiscoveryPages = 5;
     private static readonly TimeSpan SafeCacheExpiration = TimeSpan.FromMinutes(30);
 
+    private readonly ICacheService _cacheService;
     private readonly ITmdbService _tmdbService;
     private readonly IGenericRepository<MovieGenre> _movieGenreRepository;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -31,6 +33,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     private readonly IGenericRepository<UserMovieWatchlist> _movieWatchlistRepo;
 
     public MovieCatalogService(
+        ICacheService cacheService,
         ITmdbService tmdbService,
         IGenericRepository<MovieGenre> movieGenreRepository,
         UserManager<ApplicationUser> userManager,
@@ -40,6 +43,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
         IGenericRepository<UserMovieRate> movieRateRepo,
         IGenericRepository<UserMovieWatchlist> movieWatchlistRepo)
     {
+        _cacheService = cacheService;
         _tmdbService = tmdbService;
         _movieGenreRepository = movieGenreRepository;
         _userManager = userManager;
@@ -321,14 +325,14 @@ public sealed class MovieCatalogService : IMovieCatalogService
         var resultList = new List<MovieListItemDto>();
         foreach (var item in recommenderResponse.Recommendations)
         {
-            if (item.ExternalId <= 0) continue;
+            if (item.itemId <= 0) continue;
 
             // Optional: Parallelize these calls to TMDB
-            var details = await _tmdbService.GetMovieDetailsAsync(item.ExternalId, cancellationToken);
+            var details = await _tmdbService.GetMovieDetailsAsync(item.itemId, cancellationToken);
             if (details is null) continue;
 
             var movieDto = new MovieListItemDto(
-                MovieId: 0, 
+                MovieId: 0,
                 TmdbId: details.Id,
                 Title: details.Title ?? string.Empty,
                 PosterUrl: BuildImageUrl(details.PosterPath, "w500"),
@@ -352,6 +356,9 @@ public sealed class MovieCatalogService : IMovieCatalogService
         }
 
         return Result.Success<IEnumerable<MovieListItemDto>>(resultList);
+
+
+
     }
 
     // ═══════════════════════════════════════════════════════════════════════

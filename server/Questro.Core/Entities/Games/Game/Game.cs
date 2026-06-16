@@ -13,6 +13,8 @@ public class Game
     public string? Backdrop_Url { get; set; }
     public string? Trailer_Url { get; set; }
     public string? Store_Url { get; set; }
+    public string? Website { get; set; }
+    public List<string> Tags { get; set; } = new List<string>();
     
     public virtual ICollection<GamePhoto> Photos { get; set; } = new HashSet<GamePhoto>();
     public virtual ICollection<Game_GameGenre> GameGenres { get; set; } = new HashSet<Game_GameGenre>();

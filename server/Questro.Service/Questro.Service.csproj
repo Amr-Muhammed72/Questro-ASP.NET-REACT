@@ -14,9 +14,8 @@
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
     <PackageReference Include="Hangfire.SqlServer" Version="1.8.23" />
     <PackageReference Include="mailkit" Version="4.16.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.14" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.14" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.7.0" />
+   
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.9.0" />
   </ItemGroup>
 
