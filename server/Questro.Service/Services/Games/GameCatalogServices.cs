@@ -14,6 +14,7 @@ using Questro.Shared.Contracts.Recommender;
 using Questro.Shared.ErrorHandle.Games;
 using Questro.Shared.Result;
 using Microsoft.Extensions.Caching.Hybrid;
+using Questro.Service.Abstractions.Cache;
 
 namespace Questro.Service.Services.Games
 {
@@ -25,6 +26,7 @@ namespace Questro.Service.Services.Games
         private readonly HybridCache hybridCache; 
 
         private readonly IRawgService _rawgservices;
+        private readonly ICacheService _cacheService;
         private readonly IGenericRepository<GameGenre> _gameGenreRepository;
         private readonly IGenericRepository<Game> _gameRepository;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -35,6 +37,7 @@ namespace Questro.Service.Services.Games
         private readonly IGenericRepository<UserGameWishlist> _gameWishlistRepo;
 
         public GameCatalogServices(
+            ICacheService cacheService,
             HybridCache hybridCache,
             IRawgService rawgservices,
             IGenericRepository<GameGenre> gameGenreRepository,
@@ -46,6 +49,7 @@ namespace Questro.Service.Services.Games
             IGenericRepository<UserGameRate> gameRateRepo,
             IGenericRepository<UserGameWishlist> gameWishlistRepo)
         {
+            _cacheService = cacheService;
             this.hybridCache = hybridCache;
             _rawgservices = rawgservices;
             _gameGenreRepository = gameGenreRepository;
@@ -111,9 +115,9 @@ namespace Questro.Service.Services.Games
         // ── Recently Added ──────────────────────────────────────────────────
 
         public async Task<Result<PagedResponse<GameListItemDto>>> GetRecentlyAddedAsync(
-            int take = 20, long? userId = null, CancellationToken cancellationToken = default)
+            int take = 10, long? userId = null, CancellationToken cancellationToken = default)
         {
-            var safeTake = 20;
+            var safeTake = 10;
 
             var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
             if (restriction is not null && HasActiveGameRestrictions(restriction))
@@ -125,50 +129,45 @@ namespace Questro.Service.Services.Games
             var oneMonthAgo = DateTime.UtcNow.Date.AddMonths(-1);
             var collectedGames = new List<RawgGameSummaryDto>();
             var page = 1;
-            string key = "recentlyAdded";
-            var cacheOptions = new HybridCacheEntryOptions
+           
+            string cacheKey = "RecentlyAddedForGames"; 
+         
+            var cachedResult = await _cacheService.GetAsync<List<RawgGameSummaryDto>>(cacheKey);
+            if (cachedResult is not null)
             {
-                Expiration = TimeSpan.FromDays(1),
+                collectedGames = cachedResult;
 
-               // Flags = HybridCacheEntryFlags.DisableDistributedCache
-            };
-
-            /*var res = await hybridCache.GetOrCreateAsync<List<RawgGameSummaryDto>>(
-                key,
-                async (cacheToken) =>
-                {
-                    
-                    return collectedGames.Take(safeTake).ToList();
-                },
-                options: cacheOptions 
-            );*/
-            while (collectedGames.Count < safeTake)
-            {
-                var specParams = new GameSpecParams
-                {
-                    PageIndex = page,
-                    PageSize = 40,
-                    Sort = "latest"
-                };
-
-                var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, isChildAccount: restriction != null, cancellationToken);
-                if (rawgResponse is null || !rawgResponse.Results.Any())
-                    break;
-
-                var filtered = rawgResponse.Results
-                    .Where(x =>
-                        GameGenreResponseFilter.IsGameVisible(x) &&
-                        ParseDate(x.Released) is DateTime releaseDate &&
-                        releaseDate.Date >= oneMonthAgo && releaseDate.Date <= DateTime.UtcNow.Date &&
-                        !string.IsNullOrWhiteSpace(x.BackgroundImage))
-                    .ToList();
-
-                collectedGames.AddRange(filtered);
-                page++;
             }
+            else
+            {
+                while (collectedGames.Count < 10)
+                {
+                    var specParams = new GameSpecParams
+                    {
+                        PageIndex = page,
+                        PageSize = 40,
+                        Sort = "latest"
+                    };
 
+                    var rawgResponse = await _rawgservices.DiscoverGamesAsync(specParams, isChildAccount: restriction != null, cancellationToken);
+                    if (rawgResponse is null || !rawgResponse.Results.Any())
+                        break;
+
+                    var filtered = rawgResponse.Results
+                        .Where(x =>
+                            GameGenreResponseFilter.IsGameVisible(x) &&
+                            ParseDate(x.Released) is DateTime releaseDate &&
+                            releaseDate.Date >= oneMonthAgo && releaseDate.Date <= DateTime.UtcNow.Date &&
+                            !string.IsNullOrWhiteSpace(x.BackgroundImage))
+                        .ToList().AsReadOnly();
+
+                    collectedGames.AddRange(filtered);
+                    page++;
+                }
+                await _cacheService.SetAsync(cacheKey, collectedGames, TimeSpan.FromDays(2));
+            }
             var mappedGames = collectedGames
-                .Take(safeTake)
+                .Take(10)
                 .Select(x => MapToGameListItemDto(x, genreMap))
                 .ToList();
 
@@ -185,9 +184,9 @@ namespace Questro.Service.Services.Games
         // ── Trending ────────────────────────────────────────────────────────
 
         public async Task<Result<PagedResponse<GameListItemDto>>> GetTrendingAsync(
-            int take = 20, long? userId = null, CancellationToken cancellationToken = default)
+            int take = 10, long? userId = null, CancellationToken cancellationToken = default)
         {
-            var safeTake = 20;
+            var safeTake = 10;
 
             var restriction = await GetChildRestrictionAsync(userId, cancellationToken);
             if (restriction is not null && HasActiveGameRestrictions(restriction))
@@ -196,14 +195,28 @@ namespace Questro.Service.Services.Games
             }
 
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
-            var rawgResponse = await _rawgservices.GetTrendingGamesAsync(1, safeTake * 2, cancellationToken);
-
-            if (rawgResponse is null || !rawgResponse.Results.Any())
+            string cacheKey = "TrendingGames";
+            var res = new RawgPagedGameResponse();
+            var cachedResult = await _cacheService.GetAsync<RawgPagedGameResponse>(cacheKey);
+            if (cachedResult is not null)
+            {
+                res = cachedResult;
+            }
+            else
+            {
+                RawgPagedGameResponse? rawgResponse = await _rawgservices.GetTrendingGamesAsync(1, safeTake * 2, cancellationToken);
+                res = rawgResponse;
+                if (res is not null)
+                {
+                    await _cacheService.SetAsync(cacheKey, res, TimeSpan.FromDays(2));
+                }
+            }
+            if (res is null || !res.Results.Any())
             {
                 return Result.Success(EmptyPagedResponse<GameListItemDto>(1, safeTake));
             }
 
-            var mappedGames = rawgResponse.Results
+            var mappedGames = res.Results
                 .Where(GameGenreResponseFilter.IsGameVisible)
                 .OrderByDescending(x => x.Rating ?? 0)
                 .ThenByDescending(x => x.RatingsCount ?? 0)
