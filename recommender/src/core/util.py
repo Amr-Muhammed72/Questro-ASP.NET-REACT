@@ -8,13 +8,14 @@ import os
 
 nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "tagger", "parser", "ner"])
 
+_SPACY_N_PROCESS = 1 if sys.platform == "win32" else 4
 
 
 def batch_normalize_text(texts_list, column_name="Text"):
     """Batch normalizes text using spaCy lemmatization."""
     cleaned_texts = []
 
-    pipe = nlp.pipe(texts_list, batch_size=256, n_process=4)
+    pipe = nlp.pipe(texts_list, batch_size=256, n_process=_SPACY_N_PROCESS)
 
     for doc in tqdm(pipe, total=len(texts_list), desc=f"Processing {column_name}"):
         clean_string = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
@@ -32,7 +33,7 @@ def normalize_text(text: str) -> str:
     clean_text = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
     return clean_text
 
-def generate_recommendation_prompt(user_query: str, retrieved_items: list, user: dict = None, blocked_genres: list = None) -> str:
+def generate_recommendation_prompt(user_query: str, retrieved_items: list, user: dict = None, blocked_genres: list = None, final_k: int = 5) -> str:
     """Constructs the prompt for the Generation Phase, incorporating user context."""
     
     context = ""
@@ -72,7 +73,7 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user:
     {context}
 
     INSTRUCTIONS:
-    1. Recommend 2-3 items from the provided database context that best match the current request.
+    1. Select the {final_k} best items from the candidates above that match the current request.
     2. Personalize your pitch based on the User Background provided above. Explain why these specific items will appeal to their specific tastes, technical background, or interests.
     3. Only recommend items from the provided context list.
     4. IMPORTANT: Format your response directly as the final message to the user. Speak directly to them. Do not include your internal reasoning, scratchpads, or repeat these instructions.
