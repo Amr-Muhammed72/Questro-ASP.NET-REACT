@@ -44,7 +44,7 @@ const GameDetailsActions = memo(({ gameId }) => {
   const { data: interactionStatus } = useGameInteractionStatus(gameId, isLoggedIn);
 
   // Destructure with default values
-  const { isLiked = false, isInWatchlist = false } = interactionStatus || {};
+  const { isLiked = false, isInWishlist = false } = interactionStatus || {};
 
   const handleAction = useCallback((actionFn) => {
     if (!isLoggedIn) {
@@ -65,8 +65,8 @@ const GameDetailsActions = memo(({ gameId }) => {
       />
       <ActionButton
         icon={Bookmark}
-        label={isInWatchlist ? "Wishlisted" : "Wishlist"}
-        isActive={isInWatchlist}
+        label={isInWishlist ? "Wishlisted" : "Wishlist"}
+        isActive={isInWishlist}
         activeColor="indigo"
         onClick={() => handleAction(toggleWatchlist)}
       />

@@ -8,7 +8,8 @@ import {
   useAddGameReview, 
   useUpdateGameReview,
   useDeleteGameReview,
-  useRateGame
+  useRateGame,
+  useGameInteractionStatus
 } from '../../hooks/useGameInteractions';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -287,39 +288,39 @@ const ReviewComposer = ({ gameId, userRating, hasReviewed }) => {
       <div className="bg-[#111] rounded-2xl p-8 border border-white/5 shadow-xl">
          <h3 className="text-xl font-bold text-white mb-6">Your Opinion</h3>
          
+         {/* Rating Section - Always Visible */}
+         <div className={clsx("flex flex-col", !hasReviewed && "mb-8 pb-8 border-b border-white/5")}>
+            <span className="text-sm text-zinc-400 font-medium mb-3">
+               {selectedRating > 0 ? 'Your Rating' : 'Rate this game'}
+            </span>
+            <div className="flex items-center gap-1 mb-5">
+               {[1, 2, 3, 4, 5].map((star) => (
+               <Star
+                  key={star}
+                  className={clsx(
+                     "w-8 h-8 cursor-pointer transition-colors",
+                     star <= (hoverRating || selectedRating)
+                        ? "fill-yellow-500 text-yellow-500"
+                        : "text-zinc-700 hover:text-zinc-500"
+                  )}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setSelectedRating(star)}
+               />
+               ))}
+            </div>
+            <button
+               onClick={handleSaveRating}
+               disabled={selectedRating === 0 || rateGameMutation.isPending || selectedRating === userRating}
+               className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors w-fit"
+            >
+               {rateGameMutation.isPending ? 'Saving...' : 'Save Rating'}
+            </button>
+         </div>
+
          {/* Review Section - Only visible if not already reviewed */}
          {!hasReviewed ? (
-            <div className="flex flex-col">
-               {/* Rating Section inside Composer */}
-             <div className={clsx("flex flex-col", !hasReviewed && "mb-8 pb-8 border-b border-white/5")}>
-                  <span className="text-sm text-zinc-400 font-medium mb-3">
-                     {selectedRating > 0 ? 'Your Rating' : 'Rate this game'}
-                  </span>
-                  <div className="flex items-center gap-1 mb-5">
-                     {[1, 2, 3, 4, 5].map((star) => (
-                     <Star
-                        key={star}
-                        className={clsx(
-                           "w-8 h-8 cursor-pointer transition-colors",
-                           star <= (hoverRating || selectedRating)
-                              ? "fill-yellow-500 text-yellow-500"
-                              : "text-zinc-700 hover:text-zinc-500"
-                        )}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        onClick={() => setSelectedRating(star)}
-                     />
-                     ))}
-                  </div>
-                  <button
-                     onClick={handleSaveRating}
-                     disabled={selectedRating === 0 || rateGameMutation.isPending || selectedRating === userRating}
-                     className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors w-fit"
-                  >
-                     {rateGameMutation.isPending ? 'Saving...' : 'Save Rating'}
-                  </button>
-               </div>
-
+            <div className="flex flex-col mt-8">
                <span className="text-sm text-zinc-400 font-medium mb-3">Write a review</span>
                <textarea
                   value={reviewBody}
@@ -352,7 +353,7 @@ const ReviewComposer = ({ gameId, userRating, hasReviewed }) => {
                </div>
             </div>
          ) : (
-            <div className="mt-2">
+            <div className="mt-6 pt-6 border-t border-white/5">
                <p className="text-zinc-400 text-sm">
                   You have already shared your written review. You can edit or delete it from the community list.
                </p>
@@ -362,7 +363,11 @@ const ReviewComposer = ({ gameId, userRating, hasReviewed }) => {
    );
 };
 
-const GameDetailsReviews = memo(({ gameId, userRating }) => {
+const GameDetailsReviews = memo(({ gameId }) => {
+  const { isLoggedIn } = useAuth();
+  const { data: interactionStatus } = useGameInteractionStatus(gameId, isLoggedIn);
+  const userRating = interactionStatus?.userRating || 0;
+
   const {
     data,
     isLoading,

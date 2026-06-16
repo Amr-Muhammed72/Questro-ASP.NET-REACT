@@ -25,7 +25,7 @@ const MoviesPage  = lazy(() => import('../pages/MoviesPage'));
 const MovieDetailsPage = lazy(() => import('../pages/MovieDetailsPage'));
 const GamesPage   = lazy(() => import('../pages/GamesPage'));
 const GameDetailsPage = lazy(() => import('../pages/GameDetailsPage'));
-const ActorDetailsPage = lazy(() => import('../pages/ActorDetailsPage'));
+const StaffDetailsPage = lazy(() => import('../pages/StaffDetailsPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const FamilyDashboard = lazy(() => import('../features/family/components/FamilyDashboard').then(module => ({ default: module.FamilyDashboard })));
 
@@ -88,8 +88,8 @@ export default function AnimatedRoutes() {
             element={<ProtectedRoute><PageTransition><GameDetailsPage /></PageTransition></ProtectedRoute>}
           />
           <Route
-            path="/actor/:id"
-            element={<ProtectedRoute><PageTransition><ActorDetailsPage /></PageTransition></ProtectedRoute>}
+            path="/staff/:id"
+            element={<ProtectedRoute><PageTransition><StaffDetailsPage /></PageTransition></ProtectedRoute>}
           />
           <Route
             path="/users/:userId"
