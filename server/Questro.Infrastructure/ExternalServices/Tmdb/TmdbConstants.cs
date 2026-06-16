@@ -8,6 +8,7 @@ internal static class TmdbConstants
         public const string NowPlayingMovie = "movie/now_playing";
         public const string DiscoverMovie = "discover/movie";
         public const string SearchMovie = "search/movie";
+        public const string SearchPerson = "search/person";
         public const string GenreMovieList = "genre/movie/list";
         public const string Movie = "movie";
         public const string Person = "person";
