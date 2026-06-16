@@ -230,7 +230,8 @@ public sealed class MovieInteractionService : IMovieInteractionService
                 x.User?.UserName,
                 x.Body,
                 x.Sentiment,
-                x.Timestamp))
+                x.Timestamp,
+                x.User?.ProfilePic))
             .ToList();
 
         return Result.Success(new PagedResponse<MovieReviewDto>
@@ -291,15 +292,16 @@ public sealed class MovieInteractionService : IMovieInteractionService
         await _unitOfWork.CompleteAsync(cancellationToken);
         await TriggerGamificationCheckAsync(userId);
 
-        var userName = await GetUserNameAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         return Result.Success(new MovieReviewDto(
             review.Id,
             movie.TMDB_Id,
             review.UserId,
-            userName,
+            user?.UserName,
             review.Body,
             review.Sentiment,
-            review.Timestamp));
+            review.Timestamp,
+            user?.ProfilePic));
     }
 
     public async Task<Result<MovieReviewDto>> UpdateReviewAsync(int tmdbId, long userId, string body, CancellationToken cancellationToken = default)
@@ -344,15 +346,16 @@ public sealed class MovieInteractionService : IMovieInteractionService
         await _unitOfWork.CompleteAsync(cancellationToken);
         await TriggerGamificationCheckAsync(userId);
 
-        var userName = await GetUserNameAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         return Result.Success(new MovieReviewDto(
             existingReview.Id,
             movie.TMDB_Id,
             existingReview.UserId,
-            userName,
+            user?.UserName,
             existingReview.Body,
             existingReview.Sentiment,
-            existingReview.Timestamp));
+            existingReview.Timestamp,
+            user?.ProfilePic));
     }
 
     public async Task<Result<bool>> DeleteReviewAsync(int tmdbId, long userId, CancellationToken cancellationToken = default)
@@ -498,6 +501,7 @@ public sealed class MovieInteractionService : IMovieInteractionService
             movie.TMDB_Id,
             userStatus.IsLiked,
             userStatus.IsInWatchlist,
+            userStatus.IsWatched,
             userStatus.UserRating);
     }
 
@@ -515,9 +519,14 @@ public sealed class MovieInteractionService : IMovieInteractionService
             new UserMovieWatchlistByUserAndMovieSpecification(userId, movieId),
             cancellationToken);
 
+        var watched = await _userMovieWatchedRepository.GetEntityWithSpecAsync(
+            new UserMovieWatchedByUserAndMovieSpecification(userId, movieId),
+            cancellationToken);
+
         return new MovieUserStatusDto(
             like is not null,
             watchlist is not null,
+            watched is not null,
             rate?.Stars);
     }
 }

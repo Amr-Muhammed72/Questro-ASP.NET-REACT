@@ -12,6 +12,14 @@ export const gameService = {
   },
 
   /**
+   * Fetch game details by RAWG ID
+   */
+  getGameDetails: async (rawgId, signal) => {
+    const response = await apiClient.get(`/Games/${rawgId}`, { signal });
+    return response.data;
+  },
+
+  /**
    * Fetch all available game genres
    * @returns {Promise<Array>} GameGenreDto[]
    */

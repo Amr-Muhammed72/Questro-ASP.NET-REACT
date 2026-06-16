@@ -44,9 +44,9 @@ public sealed class TmdbService : ITmdbService
         return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.NowPlayingMovie)}{query}", cancellationToken);
     }
 
-    public Task<TmdbPagedMovieResponse?> DiscoverMoviesAsync(
+    public async Task<TmdbPagedMovieResponse?> DiscoverMoviesAsync(
         MovieSpecParams specParams,
-        string? maxContentRating = null,
+        bool isChildAccount = false,
         CancellationToken cancellationToken = default)
     {
         var queryParams = new Dictionary<string, string?>
@@ -60,15 +60,15 @@ public sealed class TmdbService : ITmdbService
             [TmdbConstants.QueryKeys.VoteAverageLte]      = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture)
         };
 
-        ApplyTmdbContentSafety(queryParams, maxContentRating);
+        ApplyTmdbContentSafety(queryParams, isChildAccount);
 
         var query = BuildQuery(queryParams);
-        return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.DiscoverMovie)}{query}", cancellationToken);
+        return await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.DiscoverMovie)}{query}", cancellationToken);
     }
 
-    public Task<TmdbPagedMovieResponse?> SearchMoviesAsync(
+    public async Task<TmdbPagedMovieResponse?> SearchMoviesAsync(
         MovieSpecParams specParams,
-        string? maxContentRating = null,
+        bool isChildAccount = false,
         CancellationToken cancellationToken = default)
     {
         // TMDB /search/movie only honours: query, page, year, language, include_adult.
@@ -86,10 +86,26 @@ public sealed class TmdbService : ITmdbService
 
         // Global Shield only — include_adult=false is always applied.
         // Child certification filter is a Discover-only TMDB param and is omitted here.
-        ApplyTmdbContentSafety(queryParams, maxContentRating: null);
+        ApplyTmdbContentSafety(queryParams, isChildAccount);
 
         var query = BuildQuery(queryParams);
-        return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchMovie)}{query}", cancellationToken);
+        return await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchMovie)}{query}", cancellationToken);
+    }
+
+    public async Task<TmdbPagedPersonResponse?> SearchPersonsAsync(
+        string querySearch,
+        int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var queryParams = new Dictionary<string, string?>
+        {
+            [TmdbConstants.QueryKeys.Query] = querySearch,
+            [TmdbConstants.QueryKeys.Page] = (page < 1 ? 1 : page).ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.IncludeAdult] = "false"
+        };
+
+        var query = BuildQuery(queryParams);
+        return await GetAsync<TmdbPagedPersonResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchPerson)}{query}", cancellationToken);
     }
 
     public Task<TmdbGenreListResponse?> GetMovieGenresAsync(CancellationToken cancellationToken = default)
@@ -256,18 +272,17 @@ public sealed class TmdbService : ITmdbService
 
     private static void ApplyTmdbContentSafety(
         Dictionary<string, string?> queryParams,
-        string? maxContentRating)
+        bool isChildAccount)
     {
-        // ── Global Shield ── always block adult content for every user ──────
-        queryParams[TmdbConstants.QueryKeys.IncludeAdult] = TmdbConstants.QueryValues.False;
+        // ── Global Shield ── always exclude adult content for every user ─────
+        queryParams[TmdbConstants.QueryKeys.IncludeAdult] = "false";
 
-        // ── Child Shield ── enforce MPA certification cap ───────────────────
-        // maxContentRating is guaranteed non-null here for child paths
-        // (callers default to "PG-13" via ?? before passing it in).
-        if (!string.IsNullOrWhiteSpace(maxContentRating))
+        // ── Certification Cap ────────────────────────────────────────────────
+        // Child path:  isChildAccount is true.
+        if (isChildAccount)
         {
-            queryParams[TmdbConstants.QueryKeys.CertificationCountry] = TmdbConstants.QueryValues.CertificationCountryUs;
-            queryParams[TmdbConstants.QueryKeys.CertificationLte]     = maxContentRating;
+            queryParams[TmdbConstants.QueryKeys.CertificationCountry] = "US";
+            queryParams[TmdbConstants.QueryKeys.CertificationLte]     = "PG-13";
         }
     }
 

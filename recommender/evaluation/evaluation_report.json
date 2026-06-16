@@ -1,0 +1,716 @@
+{
+  "format_adherence": {
+    "total_applicable": 240,
+    "correct_format": 230
+  },
+  "domain_diversity": {
+    "total_applicable": 20,
+    "diverse_queries": 4
+  },
+  "lexical_overlap": {
+    "total_queries": 100,
+    "avg_jaccard": 0.05471622985676912
+  },
+  "query_metrics": [
+    {
+      "query": "An action RPG during World War 2 with a mind-bending twist.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.06587301587301587
+    },
+    {
+      "query": "An action RPG in outer space with co-op multiplayer.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.08251507321274763
+    },
+    {
+      "query": "A fantasy epic in outer space with puzzle solving.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.10267410267410267
+    },
+    {
+      "query": "A sci-fi movie in a vast desert with a mind-bending twist.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.022727272727272724
+    },
+    {
+      "query": "A multiplayer shooter in a modern metropolis with beautiful art.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.06944444444444443
+    },
+    {
+      "query": "A historical drama set in a post-apocalyptic wasteland focusing on survival.",
+      "target_format": "MOVIE",
+      "format_accuracy": 0.6666666666666666,
+      "is_diverse": null,
+      "avg_jaccard": 0.08335074886799025
+    },
+    {
+      "query": "A sci-fi movie in outer space with beautiful art.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.03320261437908497
+    },
+    {
+      "query": "A platformer set in a post-apocalyptic wasteland that is relaxing and cozy.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.048371647509578536
+    },
+    {
+      "query": "A horror game in a modern metropolis about exploring the unknown.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.051865907653383926
+    },
+    {
+      "query": "A platformer in a magical academy that is relaxing and cozy.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.008547008547008546
+    },
+    {
+      "query": "A platformer in a neon cyberpunk city with a mind-bending twist.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.032586135325861354
+    },
+    {
+      "query": "A horror game set in a post-apocalyptic wasteland that is very emotional.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.07284610814022578
+    },
+    {
+      "query": "A historical drama in a modern metropolis that is very emotional.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.0437917637917638
+    },
+    {
+      "query": "A historical drama in a spooky haunted mansion about exploring the unknown.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.036701860231272
+    },
+    {
+      "query": "A platformer during World War 2 with co-op multiplayer.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.02233115468409586
+    },
+    {
+      "query": "An action RPG in a modern metropolis focusing on survival.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.05791245791245791
+    },
+    {
+      "query": "An action RPG in a magical academy with co-op multiplayer.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.03561253561253561
+    },
+    {
+      "query": "A fantasy epic during World War 2 focusing on survival.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.08893767402013279
+    },
+    {
+      "query": "A platformer in a spooky haunted mansion with puzzle solving.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.043466223698781836
+    },
+    {
+      "query": "A puzzle game underwater with a mind-bending twist.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.17286036036036037
+    },
+    {
+      "query": "A puzzle game set in a post-apocalyptic wasteland that is relaxing and cozy.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.05137085137085137
+    },
+    {
+      "query": "A romantic comedy in outer space that is very emotional.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.06087516087516087
+    },
+    {
+      "query": "A puzzle game during World War 2 with beautiful art.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.1254239587572921
+    },
+    {
+      "query": "A fantasy epic in a spooky haunted mansion featuring intense combat.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": true,
+      "avg_jaccard": 0.0358115468409586
+    },
+    {
+      "query": "A survival game set in a post-apocalyptic wasteland with a great story.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.08782405334129473
+    },
+    {
+      "query": "An action RPG in a vast desert featuring intense combat.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.048688977057098494
+    },
+    {
+      "query": "A survival game in a neon cyberpunk city that is relaxing and cozy.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.04497354497354497
+    },
+    {
+      "query": "A romantic comedy in a spooky haunted mansion that is relaxing and cozy.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.030915032679738563
+    },
+    {
+      "query": "A survival game underwater focusing on survival.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.05701754385964911
+    },
+    {
+      "query": "A puzzle game in a neon cyberpunk city with co-op multiplayer.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.04902177925433739
+    },
+    {
+      "query": "A sci-fi movie in a magical academy featuring intense combat.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.03614718614718615
+    },
+    {
+      "query": "An action RPG underwater focusing on survival.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.12181571815718158
+    },
+    {
+      "query": "A historical drama in a vast desert focusing on survival.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.0462962962962963
+    },
+    {
+      "query": "A multiplayer shooter in a neon cyberpunk city with co-op multiplayer.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.04113002957675615
+    },
+    {
+      "query": "A platformer in a medieval kingdom with beautiful art.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.033216619981325864
+    },
+    {
+      "query": "An action RPG in a medieval kingdom that is very emotional.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.05091761505865031
+    },
+    {
+      "query": "A fantasy epic in a magical academy about exploring the unknown.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.028693528693528692
+    },
+    {
+      "query": "A historical drama during World War 2 that is very emotional.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.0751131221719457
+    },
+    {
+      "query": "A survival game in a modern metropolis with a great story.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.059714795008912656
+    },
+    {
+      "query": "A horror game during World War 2 featuring intense combat.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.163472706155633
+    },
+    {
+      "query": "A puzzle game in a spooky haunted mansion that is very emotional.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.07101608187134502
+    },
+    {
+      "query": "A romantic comedy in a neon cyberpunk city about exploring the unknown.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.03276182881446039
+    },
+    {
+      "query": "A puzzle game in a vast desert with puzzle solving.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.04490493166963755
+    },
+    {
+      "query": "An action RPG set in a post-apocalyptic wasteland featuring intense combat.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.08532948532948532
+    },
+    {
+      "query": "A horror game in a magical academy about exploring the unknown.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.05296155749876258
+    },
+    {
+      "query": "A multiplayer shooter in a spooky haunted mansion focusing on survival.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.032134532134532136
+    },
+    {
+      "query": "A multiplayer shooter in outer space that is relaxing and cozy.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.06485771485771485
+    },
+    {
+      "query": "A multiplayer shooter set in a post-apocalyptic wasteland with beautiful art.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.09972848788638262
+    },
+    {
+      "query": "A sci-fi movie underwater with a great story.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.029761904761904757
+    },
+    {
+      "query": "A puzzle game in a medieval kingdom about exploring the unknown.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.03182164930798811
+    },
+    {
+      "query": "A fantasy epic in a vast desert that is very emotional.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.01013309134906231
+    },
+    {
+      "query": "An action RPG in a spooky haunted mansion that is relaxing and cozy.",
+      "target_format": "GAME",
+      "format_accuracy": 0.6666666666666666,
+      "is_diverse": null,
+      "avg_jaccard": 0.060218026604581226
+    },
+    {
+      "query": "A sci-fi movie during World War 2 that is very emotional.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.04046905155776123
+    },
+    {
+      "query": "A historical drama in outer space featuring intense combat.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.029938333444644805
+    },
+    {
+      "query": "A horror game in a spooky haunted mansion about exploring the unknown.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.11090860597439545
+    },
+    {
+      "query": "A puzzle game in a magical academy that is very emotional.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.06890142021720969
+    },
+    {
+      "query": "A historical drama in a magical academy with co-op multiplayer.",
+      "target_format": "MOVIE",
+      "format_accuracy": 0.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.0646945646945647
+    },
+    {
+      "query": "A multiplayer shooter in a magical academy with a mind-bending twist.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.051485551485551485
+    },
+    {
+      "query": "A romantic comedy during World War 2 that is relaxing and cozy.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.05988390694273047
+    },
+    {
+      "query": "A multiplayer shooter during World War 2 with puzzle solving.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.026515868011769653
+    },
+    {
+      "query": "A romantic comedy in a medieval kingdom that is relaxing and cozy.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.03829492440983549
+    },
+    {
+      "query": "A sci-fi movie in a modern metropolis that is very emotional.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.00961671509616715
+    },
+    {
+      "query": "A sci-fi movie in a spooky haunted mansion that is very emotional.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.00980392156862745
+    },
+    {
+      "query": "A multiplayer shooter underwater with a great story.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.049062049062049064
+    },
+    {
+      "query": "A survival game during World War 2 with co-op multiplayer.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.0330794936058094
+    },
+    {
+      "query": "A horror game in a vast desert with puzzle solving.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.08720330237358102
+    },
+    {
+      "query": "A platformer in a vast desert with beautiful art.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.052625152625152626
+    },
+    {
+      "query": "An action RPG in a neon cyberpunk city with a great story.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.1015221337801983
+    },
+    {
+      "query": "A fantasy epic set in a post-apocalyptic wasteland featuring intense combat.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": true,
+      "avg_jaccard": 0.061565632954132254
+    },
+    {
+      "query": "A romantic comedy set in a post-apocalyptic wasteland with puzzle solving.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": true,
+      "avg_jaccard": 0.047474747474747475
+    },
+    {
+      "query": "A sci-fi movie set in a post-apocalyptic wasteland about exploring the unknown.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.053767179996688196
+    },
+    {
+      "query": "A fantasy epic in a modern metropolis with a mind-bending twist.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": true,
+      "avg_jaccard": 0.01616161616161616
+    },
+    {
+      "query": "A historical drama underwater with a great story.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.08095238095238096
+    },
+    {
+      "query": "A fantasy epic in a neon cyberpunk city with a mind-bending twist.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.049907674510007494
+    },
+    {
+      "query": "A historical drama in a neon cyberpunk city with co-op multiplayer.",
+      "target_format": "MOVIE",
+      "format_accuracy": 0.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.05802361976906284
+    },
+    {
+      "query": "A survival game in a vast desert featuring intense combat.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.036062378167641324
+    },
+    {
+      "query": "A romantic comedy in a modern metropolis featuring intense combat.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.05828460038986355
+    },
+    {
+      "query": "A platformer in outer space with beautiful art.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.015392015392015393
+    },
+    {
+      "query": "A survival game in a medieval kingdom featuring intense combat.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.06285514468047905
+    },
+    {
+      "query": "A platformer underwater that is very emotional.",
+      "target_format": "GAME",
+      "format_accuracy": 0.6666666666666666,
+      "is_diverse": null,
+      "avg_jaccard": 0.01833758892582422
+    },
+    {
+      "query": "A multiplayer shooter in a medieval kingdom that is relaxing and cozy.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.025949820788530465
+    },
+    {
+      "query": "A romantic comedy in a vast desert that is relaxing and cozy.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.027015197237854446
+    },
+    {
+      "query": "A romantic comedy underwater with beautiful art.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.047619047619047616
+    },
+    {
+      "query": "A survival game in a magical academy that is very emotional.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.008333333333333333
+    },
+    {
+      "query": "A fantasy epic underwater that is relaxing and cozy.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.04402878674723335
+    },
+    {
+      "query": "A sci-fi movie in a medieval kingdom about exploring the unknown.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.015182884748102138
+    },
+    {
+      "query": "A historical drama in a medieval kingdom that is very emotional.",
+      "target_format": "MOVIE",
+      "format_accuracy": 0.6666666666666666,
+      "is_diverse": null,
+      "avg_jaccard": 0.017653890824622532
+    },
+    {
+      "query": "A platformer in a modern metropolis with co-op multiplayer.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.03673178673178673
+    },
+    {
+      "query": "A horror game in outer space focusing on survival.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.05087719298245614
+    },
+    {
+      "query": "A multiplayer shooter in a vast desert with a mind-bending twist.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.040752688172043014
+    },
+    {
+      "query": "A survival game in a spooky haunted mansion that is very emotional.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.04663487016428194
+    },
+    {
+      "query": "A horror game in a neon cyberpunk city with a mind-bending twist.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.0718404808317089
+    },
+    {
+      "query": "A horror game underwater about exploring the unknown.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.21233766233766235
+    },
+    {
+      "query": "A romantic comedy in a magical academy focusing on survival.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.02343358395989975
+    },
+    {
+      "query": "A puzzle game in outer space with puzzle solving.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.06481907831625801
+    },
+    {
+      "query": "A puzzle game in a modern metropolis with beautiful art.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.16616161616161615
+    },
+    {
+      "query": "A fantasy epic in a medieval kingdom that is very emotional.",
+      "target_format": null,
+      "format_accuracy": null,
+      "is_diverse": false,
+      "avg_jaccard": 0.04254385964912281
+    },
+    {
+      "query": "A sci-fi movie in a neon cyberpunk city with beautiful art.",
+      "target_format": "MOVIE",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.026287262872628725
+    },
+    {
+      "query": "A horror game in a medieval kingdom featuring intense combat.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.034393192362562754
+    },
+    {
+      "query": "A survival game in outer space with a mind-bending twist.",
+      "target_format": "GAME",
+      "format_accuracy": 1.0,
+      "is_diverse": null,
+      "avg_jaccard": 0.036549707602339186
+    }
+  ]
+}

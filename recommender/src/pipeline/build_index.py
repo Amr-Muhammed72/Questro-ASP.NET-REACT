@@ -10,8 +10,8 @@ from src.core.rag import CrossDomainRAGIndex
 from src.core.util import generate_recommendation_prompt, batch_normalize_text, clean_disk
 from src.pipeline.preprocess import unify_and_format_domain
 
-INDEX_FILE = "./vector_store/faiss_index.bin"
-META_FILE = "./vector_store/metadata.db"
+INDEX_FILE = "../../vector_store/faiss_index.bin"
+META_FILE = "../../vector_store/metadata.db"
 
 def get_unified_records(datasets: dict) -> list:
     
