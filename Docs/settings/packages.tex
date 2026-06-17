@@ -12,7 +12,8 @@
 \usepackage{tabularx}
 \usepackage{algorithm}
 \usepackage{algorithmicx}
-\usepackage{url}  
+\usepackage{url}
+\usepackage{xurl} % allow long URLs in the bibliography to wrap anywhere instead of overflowing
 \usepackage{tabularx}
 \usepackage{multirow}
 \usepackage{makecell}
@@ -24,3 +25,8 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows, positioning}
 \usepackage{listings}
+\usepackage[expansion=false]{microtype} % character protrusion to reduce overfull lines (expansion off: base CM fonts are non-scalable)
+
+% Let TeX loosen lines as a last resort so long unbreakable \texttt{} identifiers
+% and file paths reflow to the next line instead of running into the margin.
+\setlength{\emergencystretch}{3em}
