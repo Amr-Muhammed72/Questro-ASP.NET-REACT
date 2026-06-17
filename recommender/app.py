@@ -2,6 +2,7 @@ import pandas as pd
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import json
 import requests
 import threading
 
@@ -70,9 +71,12 @@ def recommend():
     
     query = data.get("query")
     k = min(int(data.get("k", 5)), 50)
+    # Always retrieve at least 20 candidates so Gemini has a meaningful pool
+    # to re-rank from, regardless of how many final results the client requested.
+    retrieve_k = max(k * 4, 20)
     user = data.get("user", None)
     blocked_genres = data.get("blocked_genres", None)
-    
+
     allow_adult_val = data.get("allow_adult", False)
     if isinstance(allow_adult_val, str):
         allow_adult = allow_adult_val.lower() == 'true'
@@ -84,9 +88,9 @@ def recommend():
 
     try:
         retrieved_results = rag_system.retrieve(
-            query=query, 
-            top_k=k, 
-            blocked_genres=blocked_genres, 
+            query=query,
+            top_k=retrieve_k,
+            blocked_genres=blocked_genres,
             allow_adult=allow_adult
         )
         
@@ -115,13 +119,6 @@ def recommend():
 
             ml_api_url = os.getenv("ML_API_URL", "http://localhost:7749")
             
-            # Dynamically hot-add items to the ML model catalog so it can score them
-            try:
-                print(f"Hot-adding {len(catalog_add_items)} candidates to ML catalog...")
-                add_res = requests.post(f"{ml_api_url}/catalog/add", json={"items": catalog_add_items}, timeout=30)
-                add_res.raise_for_status()
-            except Exception as e:
-                print(f"Warning: Failed to hot-add catalog items: {e}")
             
             rerank_request = {
                 "user": user,
@@ -129,9 +126,7 @@ def recommend():
             }
             model_result = {}
             try:
-                print(rerank_request)
                 response = requests.post(f"{ml_api_url}/recommend/rerank", json=rerank_request, timeout=10)
-                print(response.json())
                 response.raise_for_status()
                 rerank_data = response.json()
                 
@@ -149,10 +144,11 @@ def recommend():
                 print(f"Warning: ML API reranking failed. Falling back to local RAG scores. Error: {e}")
 
         llm_prompt = generate_recommendation_prompt(
-            user_query=query, 
-            retrieved_items=retrieved_results, 
+            user_query=query,
+            retrieved_items=retrieved_results,
             user=user,
-            blocked_genres=blocked_genres
+            blocked_genres=blocked_genres,
+            final_k=k
         )
         
         # --- LLM Generation via Google Gemini ---
