@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-const HeroSectionLandingPage = ({ isLoading, isLoggedIn }) => {
+const HeroSectionHomePage = ({ isLoading, isLoggedIn }) => {
   const heroCTA = isLoggedIn
     ? {
         primary: { text: 'Discover Movies', link: '/movies' },
@@ -101,4 +101,4 @@ const HeroSectionLandingPage = ({ isLoading, isLoggedIn }) => {
   );
 };
 
-export default HeroSectionLandingPage;
+export default HeroSectionHomePage;

@@ -14,6 +14,7 @@ import NavBar from '../components/layout/NavBar';
 // ── Eagerly loaded pages ───────────────────────────────────────────────────
 // These are tiny and needed immediately on first paint (unauthenticated flow).
 import LandingPage from '../pages/LandingPage';
+import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
@@ -54,6 +55,10 @@ export default function AnimatedRoutes() {
           <Route
             path="/"
             element={<PageTransition><LandingPage /></PageTransition>}
+          />
+          <Route
+            path="/home"
+            element={<PageTransition><HomePage /></PageTransition>}
           />
 
           {/* Guest-only */}
