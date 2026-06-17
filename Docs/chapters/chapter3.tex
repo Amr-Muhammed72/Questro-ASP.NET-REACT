@@ -1,0 +1,580 @@
+
+\chapter{Related Work}
+
+\label{chap:related_work}
+
+
+
+\section{Similar Concepts and Market Gap Analysis}
+
+\label{sec:similar_concepts}
+
+
+
+Existing entertainment recommendation platforms generally fall into three categories: strictly movie-focused, strictly game-focused, or general lists without deep personalization. This section analyzes these categories and highlights the specific gap our system fills.
+
+
+
+\subsection{Existing Movie-Focused Platforms}
+
+Prominent platforms like \textbf{MovieLens} \cite{movielens_site}, \textbf{IMDb} \cite{imdb_site}, \textbf{Letterboxd} \cite{letterboxd_site}, and \textbf{Criticker} \cite{criticker_site} dominate the film recommendation space.
+
+\begin{itemize}
+
+    \item \textbf{Strengths:} These systems excel at collaborative filtering (MovieLens) and social community building (Letterboxd).
+
+    \item \textbf{Limitations:} They are siloed environments. A user's gaming preferences—which often correlate with narrative tastes in movies—are completely ignored. Furthermore, platforms like IMDb rely heavily on popularity charts rather than deep personalized AI.
+
+\end{itemize}
+
+
+
+\subsection{Existing Game-Focused Platforms}
+
+Platforms such as \textbf{Steam} \cite{steam_site}, \textbf{RAWG} \cite{rawg_site}, and \textbf{IGDB} \cite{igdb_ref} utilize behavioral data (playtime) and metadata for suggestions.
+
+\begin{itemize}
+
+    \item \textbf{Strengths:} Steam's interactive recommender is highly effective at using behavioral "hours played" data.
+
+    \item \textbf{Limitations:} These systems function in isolation. They cannot leverage a user's love for a specific movie genre (e.g., Cyberpunk films) to recommend aesthetically similar games, missing a key cross-domain discovery opportunity.
+
+\end{itemize}
+
+
+
+\subsection{Cross-Media and Other Approaches}
+
+A few platforms like \textbf{Simkl} \cite{simkl_site}, \textbf{TasteDive} \cite{tastedive_site}, and \textbf{Flickchart} \cite{flickchart_site} attempt to bridge gaps or use alternative methods (like pairwise ranking).
+
+\begin{itemize}
+
+    \item \textbf{Limitations:} While specific tools like Simkl track multiple media, they often lack the deep, hybrid machine learning models that unify the user profile. They act more as "trackers" or "search engines" (TasteDive) rather than personalized AI assistants.
+
+\end{itemize}
+
+
+
+\subsection{Market Gap Analysis}
+
+Table \ref{tab:competitor_analysis} presents a comprehensive comparison of our proposed system against existing solutions. As shown, while individual features exist in isolation, no current platform combines cross-domain (Movie+Game) profiling with hybrid AI and explainability.
+
+
+
+\begin{table}[H]
+
+    \centering
+
+    \caption{Gap Analysis: Comparison of Existing Platforms vs. Our System}
+
+    \label{tab:competitor_analysis}
+
+    \resizebox{\textwidth}{!}{%
+
+    \begin{tabular}{|l|c|c|c|c|l|}
+
+        \hline
+
+        \textbf{Platform} & \textbf{Movies} & \textbf{Games} & \textbf{Personalized AI} & \textbf{Cross-Domain} & \textbf{Primary Focus} \\
+
+        \hline
+
+        \multicolumn{6}{|c|}{\textit{Movie-Centric}} \\
+
+        \hline
+
+        MovieLens \cite{movielens_site} & \checkmark & - & \checkmark & - & Research-grade collaborative filtering \\
+
+        IMDb \cite{imdb_site} & \checkmark & - & Basic & - & Database \& Popularity charts \\
+
+        Letterboxd \cite{letterboxd_site} & \checkmark & - & - & - & Social logging \& Lists \\
+
+        Criticker \cite{criticker_site} & \checkmark & - & \checkmark & - & Taste compatibility matching \\
+
+        \hline
+
+        \multicolumn{6}{|c|}{\textit{Game-Centric}} \\
+
+        \hline
+
+        Steam \cite{steam_site} & - & \checkmark & \checkmark & - & Storefront behavioral data (playtime) \\
+
+        RAWG \cite{rawg_site} & - & \checkmark & \checkmark & - & Visual discovery database \\
+
+        IGDB \cite{igdb_ref} & - & \checkmark & \checkmark & - & Metadata \& GNN approaches \\
+
+        \hline
+
+        \multicolumn{6}{|c|}{\textit{General / Other}} \\
+
+        \hline
+
+        Simkl \cite{simkl_site} & \checkmark & - & \checkmark & - & TV/Anime/Movie Tracking \\
+
+        TasteDive \cite{tastedive_site} & \checkmark & \checkmark & - & \checkmark & Item-to-Item Similarity (Search) \\
+
+        \textbf{Our System} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{Unified Hybrid Recommendation} \\
+
+        \hline
+
+    \end{tabular}%
+
+    }
+
+\end{table}
+
+
+
+\subsection{Conclusion of Market Survey}
+
+The analysis confirms that the "Entertainment Recommendation" market is fragmented. Users currently require separate accounts on MovieLens and Steam to get recommendations. Our system proposes a novel solution by fusing these domains, utilizing a shared user profile to improve recommendation accuracy and discovery across both media types.
+
+
+
+% =========================================================
+
+% NEW SECTION: Theoretical Background (Paradigms)
+
+% =========================================================
+
+\section{Theoretical Background: Recommendation Paradigms}
+
+\label{sec:recommendation_paradigms}
+
+
+
+Recommendation systems (RS) are algorithmic systems designed to guide users toward relevant items by predicting individual preferences. Since their adoption by major platforms (e.g., Amazon, Netflix), RS have become essential for reducing information overload. A recommender works by narrowing down a large pool of items into a smaller set of likely candidates, then ranking them by relevance. Recommendation systems are classified into four main paradigms:
+
+
+
+\subsection{Collaborative Filtering (CF)}
+
+Collaborative Filtering infers user preferences by analyzing patterns of behavior across many users. Two common CF variants are:
+
+\begin{itemize}
+
+    \item \textbf{User-based CF:} Finds users similar to the target user and recommends items they liked.
+
+    \item \textbf{Item-based CF:} Computes similarity between items based on co-consumption patterns (e.g., "Users who liked X also liked Y").
+
+\end{itemize}
+
+
+
+\subsection{Content-Based Filtering (CBF)}
+
+Content-based filtering models items by their attributes (e.g., genres, tags, cast, technical features) and recommends items similar to those the user has previously liked. This method is effective for handling new items (Item Cold-Start) since it relies on metadata rather than user interactions.
+
+
+
+\subsection{Context-Aware Filtering}
+
+Context-aware methods incorporate situational signals—time of day, device type, or parental control settings—into recommendation logic. Context awareness improves immediate relevance and enforces safety constraints (e.g., filtering mature content for child profiles).
+
+
+
+\subsection{Hybrid Filtering}
+
+Hybrid approaches combine multiple strategies—CF, CBF, and Context-Aware—to exploit complementary strengths. For example, a system might use Content-Based filtering for new users (to solve Cold-Start) and Collaborative Filtering for active users to provide diverse suggestions \cite{ref:hybrid_survey}.
+
+
+
+\begin{table}[H]
+
+\centering
+
+\caption{Comparison of Recommendation Methods}
+
+\label{tab:recommendation_techniques}
+
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{3.0cm}|p{4.2cm}|p{4.2cm}|p{3.6cm}|}
+
+\hline
+
+\textbf{Method} & \textbf{Mechanism} & \textbf{Advantages} & \textbf{Limitations} \\ \hline
+
+Collaborative Filtering \cite{ref:rs_handbook} & Uses preferences of similar users & Captures complex preferences; Serendipity & Cold start problem \cite{ref:cold_start}; Data sparsity \cite{ref:matrix_factorization} \\ \hline
+
+Content-Based Filtering \cite{sridhar2023content} & Matches item attributes to user preferences & Effective for distinct items; No community data needed & Limited to similar items (Overspecialization) \\ \hline
+
+Context-Aware Filtering \cite{adomavicius2022context} & Considers user context (e.g., time, location) & Timely, relevant suggestions & Needs context data; Computationally intensive \\ \hline
+
+Hybrid Filtering \cite{ref:hybrid_survey} & Combines collaborative and content-based methods & High accuracy; Robustness & Complex implementation \\ \hline
+
+\end{tabular}
+
+\end{table}
+
+% =========================================================
+
+% NEW SECTION: Challenges
+
+% =========================================================
+
+\section{Challenges in Recommender Systems}
+
+\label{sec:challenges}
+
+
+
+Recommender systems face several practical and theoretical challenges that can affect their impact and usability.
+
+
+
+\subsection{Cold-Start Problem}
+
+The Cold-Start problem arises for \textbf{new users} (no history) or \textbf{new items} (no interactions) \cite{ref:cold_start}. 
+
+\begin{itemize}
+
+    \item \textit{Mitigation:} Strategies include content-based filtering, onboarding questionnaires (Initiation Survey), and metadata-driven heuristics.
+
+\end{itemize}
+
+
+
+\subsection{Accuracy and Evaluation}
+
+Accuracy depends on data quality and algorithm effectiveness. It is typically evaluated using metrics such as RMSE (Root Mean Square Error), Precision, and Recall. Balancing accuracy with computational performance is a key engineering challenge.
+
+
+
+\subsection{Diversity}
+
+A lack of diversity restricts users to a "Filter Bubble," preventing them from discovering new content types. Improving diversity involves balancing \textbf{Exploitation} (showing what we know the user likes) and \textbf{Exploration} (showing new, risky items).
+
+
+
+\subsection{Data Sparsity}
+
+Data sparsity occurs when most users engage with only a small fraction of available items, resulting in empty values in the rating matrix. This weakens similarity estimates. Solutions include Matrix Factorization and Hybrid approaches \cite{ref:matrix_factorization}.
+
+
+
+\begin{table}[H]
+
+\centering
+
+\caption{Key Challenges in Recommender Systems}
+
+\label{tab:recommendation_challenges}
+
+\renewcommand{\arraystretch}{1.3}
+
+\begin{tabular}{|p{3.0cm}|p{4.5cm}|p{6.0cm}|}
+
+\hline
+
+\textbf{Challenge} & \textbf{Description} & \textbf{Solutions} \\ \hline
+
+Cold Start & Insufficient data for new users or items & Hybrid approaches; Onboarding flows; Metadata usage \\ \hline
+
+Accuracy & Quality of predictions vs actual user preference & Feature engineering; Ensemble methods; A/B Testing \\ \hline
+
+Diversity & Limited variety in recommendations & Exploration-exploitation balance; Re-ranking algorithms \\ \hline
+
+Sparsity & Missing user-item ratings in large matrices & Matrix factorization; Dimensionality reduction \\ \hline
+
+\end{tabular}
+
+\end{table}
+
+
+
+\section{Summary of Studies}
+
+\label{sec:summary_of_studies}
+
+
+
+To establish the theoretical foundation for our proposed system, this section reviews five recent academic studies. These papers were selected to represent the state-of-the-art in key areas relevant to our work: Graph Neural Networks (GNNs), multi-modal feature fusion, and hybrid deep learning architectures. For each study, we analyze the problem statement, proposed algorithms, datasets used, and reported performance.
+
+
+
+\subsection{Graph neural network recommendation algorithm based on improved dual tower model}
+
+\subsubsection{Problem Statement}
+
+Traditional recommendation models struggle to balance recall and accuracy and often fail to capture rich interactions between users and items. In particular, standard two-tower neural models train user and item embeddings separately, so they cannot model feature interactions between user and item towers, leading to reduced recommendation accuracy \cite{he2024graph}. Additionally, real-world data are heterogeneous (involving users, items, and attributes), which homogeneous networks cannot fully exploit.
+
+
+
+\subsubsection{Proposed Solution and Algorithms}
+
+He et al. (2024) propose the \textbf{Interactive Higher-order Dual Tower (IHDT)} model \cite{he2024graph}. IHDT builds a heterogeneous graph connecting users, items, and attributes via meta-paths, then learns richer representations through two mechanisms: (1) an \textbf{interactive learning mechanism} that injects relevant features between the user and item towers, and (2) a \textbf{higher-order feature learning} via Graph Convolutional Networks (GCN) that aggregates multi-hop neighborhood information. The model pools the interactive embeddings through a dual-tower architecture and computes a prediction by taking the inner product of the final user/item embeddings \cite{he2024graph}.
+
+
+
+\subsubsection{Dataset}
+
+The authors evaluate IHDT on the Movielens benchmarks. They use both the \textbf{MovieLens-1M} and \textbf{MovieLens-10M} datasets (each containing 1M and 10M user–movie rating interactions, respectively, on a 1–5 scale) \cite{he2024graph}.
+
+
+
+\subsubsection{Results and Performance}
+
+IHDT significantly outperforms several baselines on recommendation accuracy. For example, on Movielens-10M the IHDT model achieves higher precision, recall, and NDCG than comparison methods \cite{he2024graph}. Overall RMSE is reduced by up to 0.6–5.2\% relative to classic models, indicating improved performance \cite{he2024graph}. Ablation studies confirm that both the interactive learning and high-order GCN components contribute to this gain.
+
+
+
+\subsubsection{Weaknesses}
+
+The IHDT study notes several limitations. The model’s computation is heavier (due to extra interactive edges and GCN layers), and its efficiency relative to other models needs more comparison. Crucially, IHDT has only been tested on movie data; its effectiveness on other recommendation domains (e.g. products or music) is unverified \cite{he2024graph}.
+
+
+
+\subsection{User preference modeling for movie recommendations based on deep learning}
+
+\subsubsection{Problem Statement}
+
+Existing movie recommenders often rely solely on content-based or collaborative filtering methods, which can fail to capture \textbf{complex user preferences and dynamics} in browsing behavior. Such systems struggle with data sparsity and cold-start issues and may not integrate fine-grained content features with rich user history \cite{gao2025user}.
+
+
+
+\subsubsection{Proposed Solution and Algorithms}
+
+Gao et al. (2025) introduce a \textbf{hybrid deep learning} recommendation method that fuses PageRank analysis of browsing graphs with a CNN-based content model \cite{gao2025user}. They represent each user’s browsing history as a directed graph of movie pages and run a PageRank (or modified PageRank-D) algorithm to score each page’s importance. Separately, they apply a Convolutional Neural Network (CNN) to the movie content (poster images or descriptions) to estimate the likelihood a user will accept a movie. Finally, the PageRank score (user behavior signal) and CNN prediction (content similarity signal) are combined (via a weighted sum) to produce the final recommendation ranking \cite{gao2025user}.
+
+
+
+\subsubsection{Dataset}
+
+The system is evaluated on a specialized dataset of \textbf{215 users’ browsing activity} over \textbf{508 movie pages}. Each user has a sequence of visited movie pages (with time spent), enabling the PageRank graph. The authors note that this dataset contains much richer behavioral detail than standard public sets, but acknowledge it is unique to this study \cite{gao2025user}.
+
+
+
+\subsubsection{Results and Performance}
+
+The hybrid model significantly improves recommendation accuracy. In experiments, the proposed method increased precision by about \textbf{+7.15\%} and recall by \textbf{+5.19\%} over baseline methods \cite{gao2025user}. In comparative tests, their model outperformed other recent techniques (e.g. methods by Sun et al. and Yadav et al.), achieving about \textbf{+0.83\% precision} and \textbf{+0.62\% recall} over the next-best alternatives \cite{gao2025user}.
+
+
+
+\subsubsection{Weaknesses}
+
+The authors acknowledge that their evaluation has limitations. Notably, it relies on a single, proprietary browsing dataset with very detailed user behavior, which may not generalize to other settings \cite{gao2025user}. They did not compare alternative deep learning architectures (e.g. RNNs or attention models), so it is unclear if the chosen CNN + PageRank fusion is optimal \cite{gao2025user}.
+
+
+
+\subsection{Personalized movie recommendation in IoT-enhanced systems using GCN and MLP}
+
+\subsubsection{Problem Statement}
+
+Conventional recommenders may underutilize emerging IoT context and advanced graph models. With the IoT, films can collect real-time user feedback and sensor data (e.g. emotion or gesture), which traditional methods do not exploit. At the same time, standard CNN-based models lack the ability to capture non-Euclidean user–item interaction structures. Thus there is a need for a recommender that fuses IoT-enabled context with graph-based collaborative filtering \cite{xia2024iot}.
+
+
+
+\subsubsection{Proposed Solution and Algorithms}
+
+Xia et al. (2024) propose a \textbf{GCN-CF} (Graph Convolutional Collaborative Filtering) model that integrates IoT-sensed context into a GCN-based recommendation \cite{xia2024iot}. The core model uses a three-layer Graph Convolutional Network to propagate high-order collaborative-filtering signals on the user-item interaction graph. The GCN encodings of users and items are then fed into a Multi-Layer Perceptron (MLP) to predict ratings \cite{xia2024iot}. The system also incorporates auxiliary information via an attention mechanism that can adaptively weight user/item features in real time.
+
+
+
+\subsubsection{Dataset}
+
+Experiments use the public MovieLens benchmarks. Specifically, the authors test on \textbf{MovieLens-100K} and \textbf{MovieLens-1M} (943 users/100K ratings, and 6K users/1M ratings) \cite{xia2024iot}. User and item attributes (age, gender, genres, etc.) are also used as side information.
+
+
+
+\subsubsection{Results and Performance}
+
+The GCN-CF model achieves the best RMSE on both datasets: \textbf{0.8762 on ML-100K} and \textbf{0.8275 on ML-1M}, outperforming traditional CF baselines by margins of 0.6–5.2\% in RMSE \cite{xia2024iot}. Adding the attention mechanism and auxiliary IoT features yields an additional ~0.4\% improvement. The authors also show that learned user/item embeddings cluster more tightly than a neural CF model, indicating superior representation learning \cite{xia2024iot}.
+
+
+
+\subsubsection{Weaknesses}
+
+The paper notes that the model’s applicability may be limited by certain factors. In particular, performance may vary with different film genres or audience demographics, so its cross-cultural generalization remains to be verified \cite{xia2024iot}. Future work should test GCN-CF on diverse movie domains.
+
+
+
+\subsection{Movie Recommendation with Poster Attention via Multi-modal Transformer Feature Fusion}
+
+\subsubsection{Problem Statement}
+
+Single-modality recommenders suffer from data sparsity and limited context: using only text or only collaborative signals can miss important cues. In movie recommendation, combining modalities (e.g. textual descriptions and poster images) can provide a more complete understanding of movies. Cross-modal systems can alleviate sparsity by leveraging rich content features, but many prior approaches did not effectively fuse visual and textual signals.
+
+
+
+\subsubsection{Proposed Solution and Algorithms}
+
+Xia et al. (2024) propose a \textbf{multi-modal transformer} recommendation model that uses pre-trained deep models to encode each modality and then fuses them \cite{xia2024poster}. Specifically, they use \textbf{BERT} to encode the movie’s text description and \textbf{Vision Transformer (ViT)} to encode the movie poster image. These feature vectors are then concatenated and fed through a Transformer-based fusion network (with attention) to predict a user’s rating for each movie \cite{xia2024poster}.
+
+
+
+\subsubsection{Dataset}
+
+Evaluation is performed on the standard MovieLens benchmarks (100K and 1M ratings) augmented with movie posters (from IMDb). The authors report results on both \textbf{ML-100K} and \textbf{ML-1M} datasets \cite{xia2024poster}.
+
+
+
+\subsubsection{Results and Performance}
+
+The multi-modal model achieves lower RMSE than single-modality baselines. On ML-100K, it achieved \textbf{RMSE $\approx$ 0.902} versus 0.987 for a unimodal model, demonstrating that adding image and text features improves accuracy \cite{xia2024poster}. On ML-1M with more data, the \textbf{RMSE further dropped to $\approx$0.893}.
+
+
+
+\subsubsection{Weaknesses}
+
+The authors acknowledge some limitations. First, the use of large pre-trained models (BERT, ViT) brings \textbf{high computational overhead} and many trainable parameters, which can hamper real-time or resource-constrained deployment \cite{xia2024poster}. Second, introducing rich modalities can add noise: e.g. not all parts of an image or text may be relevant, which can degrade performance if not handled carefully \cite{xia2024poster}.
+
+
+
+\subsection{Content-Based Movie Recommendation System Using MBO with DBN}
+
+\subsubsection{Problem Statement}
+
+Content-based recommenders aim to suggest movies similar to a user’s past preferences, but they must select the right features and accurately model user profiles. The key problem is building a content-based system that can pick out the most relevant movie features for each user and classify which movies to recommend, especially when integrating social profile data.
+
+
+
+\subsubsection{Proposed Solution and Algorithms}
+
+Sridhar et al. (2023) design a hybrid content-based model \cite{sridhar2023content}. They apply \textbf{Monarch Butterfly Optimization (MBO)} as a feature-selection algorithm to pick the most informative movie features for each user profile. Then, a \textbf{Deep Belief Network (DBN)} is trained to classify whether a given movie should be recommended to the user. MBO reduces the input dimensionality, and the DBN acts as the core recommendation engine \cite{sridhar2023content}.
+
+
+
+\subsubsection{Dataset}
+
+The experiments use two sources of data: a Facebook-derived dataset of user movie preferences, and the standard MovieLens ratings dataset \cite{sridhar2023content}. User profiles (from Facebook likes/interests) are mapped to movie attribute vectors, and MovieLens provides ground-truth ratings for evaluation.
+
+
+
+\subsubsection{Results and Performance}
+
+The MBO+DBN system achieves very low error rates and high accuracy. It reports \textbf{MAE $\approx$ 0.716} and \textbf{RMSE $\approx$ 0.915}, with \textbf{precision $\approx$ 97.35\%} and \textbf{recall $\approx$ 96.60\%} \cite{sridhar2023content}. These metrics beat a range of comparative algorithms including fuzzy clustering and k-NN collaborative filtering.
+
+
+
+\subsubsection{Weaknesses}
+
+The paper does not explicitly discuss limitations. However, one potential concern is reliance on the Facebook-derived user profile, which may not generalize to scenarios without such rich social data. Also, training a DBN can be computationally intensive, although the study does not quantify this cost.
+
+
+
+\newpage
+
+\subsection{Comparative Analysis of Recommender System Studies}
+
+This subsection provides a comparative overview of recent recommender system studies. Table \ref{tab:studies_comparison} highlights their methodologies, results, and limitations, enabling a clear comparison of the state-of-the-art techniques that inform our system design.
+
+
+
+\begin{table}[H]
+
+    \centering
+
+    \caption{Comparative Analysis of Recommender System Studies}
+
+    \label{tab:studies_comparison}
+
+    \renewcommand{\arraystretch}{1.5}
+
+    \resizebox{\textwidth}{!}{
+
+        \begin{tabular}{|l|c|p{4.2cm}|p{3.8cm}|p{4.0cm}|}
+
+            \hline
+
+            \textbf{Reference} & \textbf{Year} & \textbf{Methodology} & \textbf{Dataset} & \textbf{Performance Highlight} \\
+
+            \hline
+
+             \cite{gao2025user} & 2025 & Hybrid Deep Learning (PageRank + CNN) & Proprietary Browsing Data (215 users) & +7.15\% Precision improvement over baselines \\
+
+            \hline
+
+             \cite{he2024graph} & 2024 & IHDT (Graph Neural Network) & MovieLens-1M, MovieLens-10M & 5.2\% RMSE reduction on ML-10M \\
+
+            \hline
+
+             \cite{xia2024iot} & 2024 & GCN-CF with IoT Context & MovieLens-100K, MovieLens-1M & Achieved lowest RMSE (0.8275) on ML-1M \\
+
+            \hline
+
+             \cite{xia2024poster} & 2024 & Multi-modal Transformer (BERT + ViT) & MovieLens-100K, MovieLens-1M (w/ Posters) & RMSE dropped to 0.893 on ML-1M \\
+
+            \hline
+
+             \cite{sridhar2023content} & 2023 & Hybrid (MBO + DBN) & Facebook User Data + MovieLens & High Precision (97.35\%) and Recall (96.60\%) \\
+
+            \hline
+
+        \end{tabular}%
+
+    }
+
+\end{table}
+
+\section{Dataset Descriptions}
+\label{sec:dataset_descriptions}
+
+To power the cross-domain recommendation engine of Questro, high-quality metadata and user interaction logs are required for both the movie and video game domains. This section outlines the primary datasets selected for training models and populating the platform's initial content base.
+
+\subsection{RAWG Video Game Database}
+The RAWG dataset provides extensive metadata for video games, which is essential for our content-based filtering algorithms. The dataset encompasses a wide array of features, totaling over 50 distinct attributes per entry (including tags, developers, publishers, color palettes, and aggregate playtime metrics). Table \ref{tab:rawg_sample} illustrates a filtered sample of the primary attributes utilized in our system to map gaming content.
+
+\begin{table}[H]
+    \centering
+    \caption{Sample Metadata from the RAWG Games Dataset}
+    \label{tab:rawg_sample}
+    \renewcommand{\arraystretch}{1.3}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{|l|c|c|p{3.5cm}|p{3cm}|p{4.5cm}|}
+        \hline
+        \textbf{Title} & \textbf{Released} & \textbf{Rating} & \textbf{Platforms} & \textbf{Genres} & \textbf{Description Snippet} \\
+        \hline
+        Online Soccer Manager (OSM) & 2010-11-06 & 4.56 & iOS, Web, Android & Simulation, Sports & Do you want to be the manager... \\
+        Donkey Kong Country 3 & 1996-11-23 & 4.37 & 3DS, SNES, GBA, Wii U & Platformer & Donkey Kong and Diddy Kong have... \\
+        Cold Fear & 2005-03-15 & 3.85 & PC, PlayStation 2, Xbox & Action & In a ferocious Arctic storm, d... \\
+        \hline
+    \end{tabular}%
+    }
+\end{table}
+
+\subsection{Steam Reviews Dataset}
+To implement collaborative filtering and analyze player behavioral patterns, we incorporate the Steam Reviews Dataset. This dataset bridges the gap between static game metadata and actual user engagement by providing historical interaction records. Crucial data points include total hours played and binary recommendation flags, acting as explicit user feedback.
+
+\begin{table}[H]
+    \centering
+    \caption{Sample Interaction Data from the Steam Reviews Dataset}
+    \label{tab:steam_sample}
+    \renewcommand{\arraystretch}{1.3}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{|c|c|c|c|c|l|}
+        \hline
+        \textbf{App ID} & \textbf{User ID} & \textbf{Hours Played} & \textbf{Is Recommended} & \textbf{Date} & \textbf{Game Title} \\
+        \hline
+        749870 & 13160988 & 255.2 & True & 2021-02-25 & MyTD \\
+        314160 & 13934443 & 815.9 & True & 2019-12-10 & Microsoft Flight Simulator X \\
+        1145360 & 6233734 & 39.9 & True & 2020-10-03 & Hades \\
+        \hline
+    \end{tabular}%
+    }
+\end{table}
+
+\subsection{TMDB (The Movie Database) Dataset}
+For the film domain, the TMDB dataset serves as our foundational metadata source. It supplies the necessary cinematic attributes required to establish content similarity models. By extracting genres, release timelines, vote averages, and narrative overviews, our system maps these movie features against the gaming features (from RAWG) to enable cross-domain recommendations.
+
+\begin{table}[H]
+    \centering
+    \caption{Sample Metadata from the TMDB Movies Dataset}
+    \label{tab:tmdb_sample}
+    \renewcommand{\arraystretch}{1.3}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{|c|p{4cm}|c|c|p{3.5cm}|p{4.5cm}|}
+        \hline
+        \textbf{ID} & \textbf{Title} & \textbf{Release Date} & \textbf{Rating} & \textbf{Genres} & \textbf{Overview Snippet} \\
+        \hline
+        269958 & Blue SWAT & 1994-01-01 & 8.0 & Action, Crime, Sci-Fi & When Earth is tearing itself... \\
+        55201 & Åsa-Nisse på semester & 1953-09-04 & 2.3 & Comedy & Åsa-Nisse is visited by cousin... \\
+        935271 & After the Pandemic & 2022-03-01 & 3.2 & Sci-Fi, Action & Set in a post-apocalyptic world... \\
+        \hline
+    \end{tabular}%
+    }
+\end{table}
+
+\section{Chapter Summary}
+\label{sec:related_work_summary}
+This chapter reviewed the current landscape of entertainment recommendation systems. We began by establishing the theoretical background of recommendation paradigms—collaborative, content-based, context-aware, and hybrid—and the key challenges they face, such as the cold-start problem and data sparsity. While platforms like MovieLens and Steam offer strong domain-specific solutions, our analysis identifies a significant gap in cross-domain personalization. Furthermore, recent academic studies demonstrate the potential of hybrid and graph-based models, yet few have been applied to a unified Movie-Game environment. By integrating expansive datasets like RAWG, Steam Reviews, and TMDB, Questro leverages these theoretical insights to build a system that combines the social strengths of community platforms with the precision of modern cross-domain recommendation algorithms.

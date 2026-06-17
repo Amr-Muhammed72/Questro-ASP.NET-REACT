@@ -8,3 +8,13 @@
 *.lscache
 *.bin
 *.db
+Docs/reference.pdf
+Docs/main.aux
+Docs/main.bbl
+Docs/main.blg
+Docs/main.lof
+Docs/main.log
+Docs/main.lot
+Docs/main.out
+Docs/main.pdf
+Docs/main.toc

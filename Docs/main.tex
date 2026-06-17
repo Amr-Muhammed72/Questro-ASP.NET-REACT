@@ -1,0 +1,38 @@
+\documentclass[a4paper,12pt]{report}
+
+
+\input{settings/packages.tex}
+\begin{document}
+\pagenumbering{roman}
+\input{sections/title_page.tex}
+\input{sections/acknowledgments.tex}
+\input{sections/abstract.tex}
+
+\renewcommand{\cfttabpresnum}{Table }
+\renewcommand{\cfttabaftersnum}{:}   
+\setlength{\cfttabnumwidth}{2.5cm}   
+\renewcommand{\cftfigpresnum}{Figure } 
+\renewcommand{\cftfigaftersnum}{:}    
+\setlength{\cftfignumwidth}{2.5cm}
+\tableofcontents
+\clearpage
+% \addcontentsline{toc}{chapter}{List of Figures} 
+\listoffigures
+\clearpage
+% \addcontentsline{toc}{chapter}{List of Tables} 
+\listoftables
+\clearpage
+\pagenumbering{arabic}
+\input{chapters/chapter1}
+\input{chapters/chapter2}
+\input{chapters/chapter3}
+\input{chapters/chapter4}
+\input{chapters/chapter5}
+\input{chapters/chapter6}
+\input{chapters/chapter7}
+
+\bibliographystyle{unsrt}
+\bibliography{bibliography/bibliography}
+% \input{chapters/appendices}
+
+\end{document}
