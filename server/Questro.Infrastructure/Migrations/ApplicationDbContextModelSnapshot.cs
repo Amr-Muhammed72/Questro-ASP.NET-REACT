@@ -1061,13 +1061,6 @@ namespace Questro.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MaxContentRating")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int?>("MaxMetacriticRating")
-                        .HasColumnType("int");
-
                     b.HasKey("UserId");
 
                     b.ToTable("ChildRestrictions");

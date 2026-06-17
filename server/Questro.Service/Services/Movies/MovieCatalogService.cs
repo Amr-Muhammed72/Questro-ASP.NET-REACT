@@ -68,8 +68,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
         var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
         TmdbPagedMovieResponse? tmdbResponse = string.IsNullOrWhiteSpace(parameters.Search)
-            ? await _tmdbService.DiscoverMoviesAsync(parameters, maxContentRating: null, cancellationToken)
-            : await _tmdbService.SearchMoviesAsync(parameters, maxContentRating: null, cancellationToken);
+            ? await _tmdbService.DiscoverMoviesAsync(parameters, isChildAccount: restriction != null, cancellationToken)
+            : await _tmdbService.SearchMoviesAsync(parameters, isChildAccount: restriction != null, cancellationToken);
 
         if (tmdbResponse?.Results is null || tmdbResponse.Results.Count == 0)
         {
@@ -393,8 +393,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
                 };
 
                 tasks.Add(isSearch
-                    ? _tmdbService.SearchMoviesAsync(fetchParams, restriction.MaxContentRating ?? "PG-13", cancellationToken)
-                    : _tmdbService.DiscoverMoviesAsync(fetchParams, restriction.MaxContentRating ?? "PG-13", cancellationToken));
+                    ? _tmdbService.SearchMoviesAsync(fetchParams, isChildAccount: true, cancellationToken)
+                    : _tmdbService.DiscoverMoviesAsync(fetchParams, isChildAccount: true, cancellationToken));
             }
 
             var responses = await Task.WhenAll(tasks);
@@ -507,7 +507,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     }
 
     private static bool HasActiveMovieRestrictions(ChildRestriction r) =>
-        r.BlockedMovieGenreIds.Count > 0 || r.MaxContentRating is not null;
+        r.BlockedMovieGenreIds.Count > 0;
 
     private async Task<ChildRestriction?> GetChildRestrictionAsync(long? userId, CancellationToken cancellationToken)
     {
@@ -524,9 +524,11 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
     private static string BuildSafeCacheKey(string prefix, long userId, ChildRestriction restriction)
     {
-        var genreHash = string.Join(",", restriction.BlockedMovieGenreIds.OrderBy(x => x));
-        var ratingHash = restriction.MaxContentRating ?? "none";
-        return $"{prefix}_{userId}_{genreHash}_{ratingHash}";
+        var genreHash = restriction.BlockedMovieGenreIds.Count > 0 
+            ? string.Join(",", restriction.BlockedMovieGenreIds) 
+            : "none";
+        
+        return $"{prefix}_{userId}_{genreHash}";
     }
 
     /// <summary>

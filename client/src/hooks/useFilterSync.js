@@ -26,12 +26,12 @@ export const useFilterSync = (useStore) => {
         next.set(key, String(value));
       }
       return next;
-    }, { replace: true });
+    });
   }, [setFilters, setSearchParams]);
 
   const resetFilters = useCallback(() => {
     clearFilters();
-    setSearchParams(new URLSearchParams(), { replace: true });
+    setSearchParams(new URLSearchParams());
   }, [clearFilters, setSearchParams]);
 
   return {

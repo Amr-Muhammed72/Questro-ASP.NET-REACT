@@ -227,7 +227,9 @@ public sealed class GameInteractionService : IGameInteractionService
                 UserId = x.UserId,
                 Content = x.Body,
                 CreatedAt = x.Timestamp,
-                UpdatedAt = x.Timestamp
+                UpdatedAt = x.Timestamp,
+                UserName = x.User?.UserName,
+                UserProfilePictureUrl = x.User?.ProfilePic
             }).ToList();
 
         return Result.Success(new PagedResponse<GameReviewDto>
@@ -287,13 +289,14 @@ public sealed class GameInteractionService : IGameInteractionService
         await _unitOfWork.CompleteAsync(cancellationToken);
        
 
-        var userName = await GetUserNameAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         return Result.Success(new GameReviewDto
         {
             ReviewId = review.Id,
             GameId = review.GameId,
             UserId = review.UserId,
-          
+            UserName = user?.UserName,
+            UserProfilePictureUrl = user?.ProfilePic,
             Content = review.Body,
             CreatedAt = review.Timestamp,
             UpdatedAt = review.Timestamp
@@ -342,13 +345,14 @@ public sealed class GameInteractionService : IGameInteractionService
         await _unitOfWork.CompleteAsync(cancellationToken);
         
 
-        var userName = await GetUserNameAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         return Result.Success(new GameReviewDto
         {
             ReviewId = existingReview.Id,
             GameId = existingReview.GameId,
             UserId = existingReview.UserId,
-           
+            UserName = user?.UserName,
+            UserProfilePictureUrl = user?.ProfilePic,
             Content = existingReview.Body,
             CreatedAt = existingReview.Timestamp,
             UpdatedAt = existingReview.Timestamp

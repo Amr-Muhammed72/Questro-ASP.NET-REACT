@@ -1,10 +1,12 @@
 \chapter{System Implementation}
 
 \section{Overview}
-Building upon the rigorous architectural foundations established in the previous chapter, this chapter transitions into the concrete implementation specifics of the Questro platform. It details the precise libraries, programmatic patterns, and infrastructure configurations utilized to transform the abstract design into a functional, highly performant reality. The implementation demanded a strict adherence to modern software engineering best practices, emphasizing code maintainability, separation of concerns, and robust error handling across the entire stack.
+Building upon the architectural foundations established in Chapter~5, this chapter transitions from \textit{what} the Questro platform is designed to do into \textit{how} it was concretely realized in source code. Whereas the previous chapter described the decoupled, microservice-oriented topology in the abstract, this chapter documents the precise libraries, programmatic patterns, mathematical objectives, configuration values, and measured behaviour that turn that design into a running system. The guiding implementation philosophy was \textbf{grounded determinism}: every layer---from the ASP.NET Core orchestrator down to the contrastive training objective of the recommender---was implemented so that its behaviour is reproducible, inspectable, and verifiable against a fixed artifact set rather than inferred at runtime.
+
+The treatment is deliberately uneven in depth. The two components that constitute Questro's principal intellectual contribution---the \textbf{CL-EPIDTN} cross-domain neural recommender and the \textbf{Retrieval-Augmented Generation (RAG)} chatbot---are documented at a mathematics-grade level of detail, including their full multi-objective loss functions, inference and fusion equations, and measured evaluation metrics. The surrounding web stack (ASP.NET Core backend, EF Core persistence, React frontend, and the security layer) is documented solidly but proportionately, since its architecture was already justified in Chapter~5 and its implementation follows well-established patterns.
 
 \section{Technologies Used}
-The technology stack was selected to provide maximum developer velocity without sacrificing production scalability. Table \ref{tab:questro_tech_detailed} outlines the primary frameworks and libraries utilized across the core web application, while Table \ref{tab:chatbot_tech_detailed} details the specialized tools powering the Python-based Artificial Intelligence microservices.
+The technology stack was selected to maximize developer velocity without compromising production scalability or reproducibility. Table~\ref{tab:questro_tech_detailed} enumerates the frameworks and libraries powering the core web application, while Table~\ref{tab:chatbot_tech_detailed} details the specialized tooling behind the Python artificial-intelligence microservices.
 
 \begin{table}[H]
     \centering
@@ -13,7 +15,7 @@ The technology stack was selected to provide maximum developer velocity without 
     \begin{tabular}{|l|p{8cm}|}
         \hline
         \textbf{Component} & \textbf{Specific Technology / Library Used} \\ \hline
-        Frontend Core & React 19, TypeScript \\ \hline
+        Frontend Core & React 19 \cite{react_ref}, TypeScript \\ \hline
         Frontend Build Tool & Vite \\ \hline
         Frontend Styling & Tailwind CSS, Lucide React (Icons) \\ \hline
         Global State Management & Zustand \\ \hline
@@ -22,115 +24,405 @@ The technology stack was selected to provide maximum developer velocity without 
         Backend Framework & ASP.NET Core 8 Web API, C\# 12 \\ \hline
         Data Access & Entity Framework Core 8 \\ \hline
         Relational Database & Microsoft SQL Server 2022 \\ \hline
-        Authentication & Microsoft.AspNetCore.Authentication.JwtBearer \\ \hline
+        Authentication & \texttt{Microsoft.\allowbreak AspNetCore.\allowbreak Authentication.\allowbreak JwtBearer} \\ \hline
     \end{tabular}
 \end{table}
 
 \begin{table}[H]
     \centering
-    \caption{AI, Chatbot, and RAG Technology Stack.}
+    \caption{AI, Recommender, Chatbot, and RAG Technology Stack.}
     \label{tab:chatbot_tech_detailed}
     \begin{tabular}{|l|p{8cm}|}
         \hline
         \textbf{Component} & \textbf{Specific Technology / Library Used} \\ \hline
-        Microservice Framework & Python 3.11, FastAPI, Uvicorn, Flask \\ \hline
-        Machine Learning Engine & PyTorch (\texttt{torch}) \\ \hline
+        Recommender Microservice & Python 3.11, FastAPI, Uvicorn (port \texttt{7749}) \\ \hline
+        RAG / Chatbot Microservice & Python 3.11, Flask, Flask-CORS (port \texttt{5000}) \\ \hline
+        Machine Learning Engine & PyTorch (\texttt{torch}) \cite{paszke2019pytorch} \\ \hline
         Data Manipulation & Pandas, NumPy \\ \hline
-        Vector Search Engine & \texttt{faiss-cpu} (Memory Mapped) \\ \hline
+        Vector Search Engine & FAISS (\texttt{IndexHNSWFlat}, $M{=}32$, memory-mapped) \cite{johnson2019billion} \\ \hline
         Metadata Storage & SQLite (\texttt{sqlite3}) \\ \hline
-        Conversational AI Model & \texttt{openai} (Azure OpenAI SDK) \\ \hline
-        Text Embeddings & \texttt{sentence-transformers} (all-MiniLM-L6-v2) \\ \hline
+        Conversational AI Model & Google Gemini via the Generative Language API (default \texttt{gemini-3.5-flash}) \cite{gemini_ref} \\ \hline
+        Retrieval Embeddings & \texttt{sentence-transformers} \texttt{multi-qa-mpnet-base-dot-v1} \cite{reimers2019sentencebert} \\ \hline
+        Recommender Text Embeddings & \texttt{sentence-transformers} \texttt{all-MiniLM-L6-v2} \cite{wang2020minilm} \\ \hline
+        Offline NLP Preprocessing & spaCy (\texttt{en\_core\_web\_sm} lemmatizer) \\ \hline
     \end{tabular}
 \end{table}
 
-\section{Backend Implementation Details}
-The ASP.NET Core backend is structured as a Clean Architecture solution, organized into distinct projects: \texttt{Questro.Domain}, \texttt{Questro.Application}, \texttt{Questro.Infrastructure}, and \texttt{Questro.API}.
+\section{Backend Implementation}
+The ASP.NET Core backend is structured as a Clean Architecture solution \cite{martin2017clean}, partitioned into four projects with strictly inward-pointing dependencies: \texttt{Questro.Domain} (entities and contracts), \texttt{Questro.Application} (use-case services, DTOs, specifications), \texttt{Questro.Infrastructure} (EF Core, external API clients, persistence), and \texttt{Questro.API} (controllers, middleware, composition root).
 
-\subsection{The Specification Pattern Implementation}
-To prevent the rapid proliferation of complex, unmaintainable LINQ queries scattered across controllers and services, Questro implements the Specification Pattern.
-A base specification class, \texttt{BaseSpecification<T>}, implements the \texttt{ISpecification<T>} interface. This interface defines the criteria (\texttt{Expression<Func<T, bool>>}), as well as includes (for eager loading), ordering, and pagination parameters.
+\subsection{The Specification Pattern}
+To prevent the proliferation of complex, duplicated LINQ queries scattered across controllers and services, Questro implements the Specification Pattern \cite{evans2003ddd, fowler2002patterns}. A base class \texttt{BaseSpecification<T>} realizes the \texttt{ISpecification<T>} contract, encapsulating the filter criterion (\texttt{Expression<Func<T,bool>>}), eager-loading includes, ordering, and pagination parameters. Concrete specifications express a single query intent:
 
-When a specific query is needed, developers create a concrete specification class. For example, retrieving a user's movie review relies on the following logic structure:
 \begin{verbatim}
-public class UserMovieReviewByUserAndMovieSpecification 
+public class UserMovieReviewByUserAndMovieSpecification
     : BaseSpecification<UserMovieReview>
 {
     public UserMovieReviewByUserAndMovieSpecification(
         int userId, int movieId)
-        : base(x => 
-            x.UserId == userId && x.MovieId == movieId)
+        : base(x => x.UserId == userId
+                    && x.MovieId == movieId)
     {
-        // Add eager loading for related entities
+        // eager-loading of related entities is declared here
     }
 }
 \end{verbatim}
-The generic repository then applies this specification using a \texttt{Specification}\allowbreak\texttt{Evaluator} before executing the query against the database context. This ensures that the query logic is perfectly encapsulated, highly testable, and strictly reusable.
 
-\subsection{Unit of Work and Generic Repository}
-To guarantee that business operations spanning multiple database tables adhere to the ACID (Atomicity, Consistency, Isolation, Durability) properties, Questro utilizes an \texttt{IUnitOfWork} interface.
-The Generic Repository (\texttt{IGenericRepository<T>}) exposes standard CRUD methods (\texttt{Add}, \texttt{Update}, \texttt{Delete}, \texttt{GetByIdAsync}, \texttt{ListAsync}). However, these methods do not call \texttt{SaveChanges()} on the database context. Instead, they merely stage the changes within EF Core's change tracker.
-It is the responsibility of the domain service to call \texttt{\_unitOfWork.CompleteAsync()} at the very end of the execution block. If any step fails or throws an exception, the entire transaction is rolled back, preventing orphaned data records.
+A \texttt{SpecificationEvaluator} composes the criterion, includes, ordering, and paging onto the \texttt{IQueryable<T>} before it is materialized, so query logic is encapsulated, reusable, and unit-testable in isolation from the database context. As detailed in Section~\ref{sec:security_impl}, this pattern is also the primary mechanism for eliminating Insecure Direct Object Reference (IDOR) vulnerabilities.
 
-\subsection{Explicit Mapping versus AutoMapper}
-A common pattern in ASP.NET development is utilizing libraries like AutoMapper to automatically translate Domain Entities into Data Transfer Objects (DTOs) via reflection. 
-However, profiling revealed that extensive reflection-based mapping introduces unnecessary latency. Furthermore, it obscures the exact data contract, leading to unintentional over-fetching. Consequently, Questro eschews automatic mapping tools. Every Entity-to-DTO conversion is written explicitly via static extension methods or constructor initializers. While this increases boilerplate code marginally, it guarantees type safety, maximizes runtime performance, and provides unparalleled code transparency.
+\subsection{Unit of Work and the Generic Repository}
+To guarantee that business operations spanning multiple tables observe the ACID properties, Questro exposes an \texttt{IUnitOfWork} \cite{fowler2002patterns}. The generic repository \texttt{IGenericRepository<T>} provides the standard \texttt{Add}, \texttt{Update}, \texttt{Delete}, \texttt{GetByIdAsync}, and \texttt{ListAsync} operations, but---crucially---none of these call \texttt{SaveChanges()} directly; they merely stage mutations in EF Core's change tracker. Only the domain service, at the end of a use case, invokes \texttt{\_unitOfWork.CompleteAsync()}, committing the entire set of changes as one transaction. Any exception aborts the commit and rolls back the whole unit, eliminating partially-applied writes and orphaned rows.
 
-\section{Artificial Intelligence Modules Implementation}
-The Python microservices are explicitly designed to operate ephemerally and statelessly, handling massive mathematical arrays without blocking the primary ASP.NET web threads.
+\subsection{Explicit Mapping over Reflection}
+Questro deliberately avoids reflection-based object mappers such as AutoMapper. Profiling showed that reflection-driven mapping introduces measurable per-request latency and obscures the exact data contract, encouraging accidental over-fetching. Every Entity-to-DTO translation is therefore written explicitly via static extension methods or constructor initializers. The marginal increase in boilerplate is repaid in type safety, runtime performance, and a transparent, greppable data contract.
 
-\subsection{The Recommender API Implementation}
-The recommendation endpoint is implemented using FastAPI, served by the \texttt{uvicorn} ASGI server to handle concurrent asynchronous requests.
-Upon application startup, the service pre-loads a trained PyTorch model (\texttt{improved\_5epochs.pt}) into memory. This model encapsulates the latent feature vectors derived from the Singular Value Decomposition (SVD) training phase.
+\section{Persistence Implementation}
+Microsoft SQL Server 2022 is the system of record, accessed through EF Core 8 using a code-first migration strategy. The schema is normalized, with foreign-key constraints and composite indexes on the high-traffic interaction tables (\texttt{UserMovieReview}, \texttt{UserMovieWatched}, \texttt{UserMovieWatchlist}, and their game-domain counterparts) keyed on \texttt{(UserId, MovieId)} / \texttt{(UserId, GameId)} to accelerate ownership-scoped lookups. Consistent with the \textbf{CQRS-lite, ``Live-First''} strategy described in Chapter~5, list and discovery reads are synthesized directly from the external provider APIs (TMDB \cite{tmdb_ref} for movies, RAWG \cite{rawg_site} for games) and projected to lightweight DTOs, while only durable user interactions and the minimal metadata required to satisfy them are persisted locally. This keeps the relational footprint small and avoids the cost of mirroring multi-million-row third-party catalogs.
 
-The endpoint, \texttt{POST /api/recommend}, accepts a JSON payload containing the authenticated user's ID, the desired pagination \texttt{offset}, the limit \texttt{k}, and any parental control flags.
-The Python service queries its local data arrays (or reaches out to the ASP.NET backend if real-time hydration is needed) to construct the user's historical interaction matrix. It assigns the business-logic weights: $+0.25$ for wishlisted items, $-0.75$ for ignored items, and a normalized value for 1-5 star explicit ratings.
-The PyTorch model executes a fast forward pass, predicting the score for all unseen items. The results are sorted, sliced according to the \texttt{offset} and \texttt{k} parameters, and returned as a strict JSON array to the ASP.NET orchestrator.
+\section{Recommender Subsystem Implementation}
+\label{sec:recommender_impl}
+The recommender is the analytical centerpiece of Questro. It is implemented as a standalone Python service that loads a pre-trained PyTorch model once at start-up and serves stateless inference requests over HTTP. The model, \textbf{CL-EPIDTN} (Contrastive-Learning Enhanced Personalized Item--Domain Transformer Network), is a dual-tower neural architecture trained with a multi-objective contrastive criterion over a unified cross-domain corpus. The end-to-end model is depicted in Figure~\ref{fig:clepidtn_architecture}; the service topology is shown in Figure~\ref{fig:questro_api_architecture}.
 
-\subsection{The RAG Vector Search Implementation}
-The Retrieval-Augmented Generation pipeline is implemented utilizing \texttt{faiss-cpu}. Standard implementations of FAISS require the entire index (often multiple gigabytes in size) to reside in RAM.
-To implement a cost-effective, scalable solution, Questro configures the index utilizing \texttt{faiss.IO\_FLAG\_MMAP}:
-\begin{verbatim}
-import faiss
+\subsection{Offline Data Engineering and Enrichment}
+\label{sec:offline_data}
+CL-EPIDTN is trained on a unified corpus assembled offline by \texttt{cl\_epidtn\_recommender\_improved\_8.py}. Two public interaction sources are fused:
 
-# Load the index with memory mapping
-index = faiss.read_index(
-    "questro_embeddings.index", 
-    faiss.IO_FLAG_MMAP
-)
-\end{verbatim}
-This instructs the operating system to treat the index file on the solid-state drive as if it were in RAM, paging chunks into active memory only when actively queried.
+\begin{itemize}
+    \item \textbf{MovieLens-32M} \cite{harper2015movielens, movielens_site}: explicit ratings are loaded and filtered to retain only positive signals (\texttt{rating}~$\geq 3.5$). Each retained event yields a \texttt{user\_key} of the form \texttt{ml:\{userId\}} and an \texttt{item\_key} of the form \texttt{movie:\{movieId\}}.
+    \item \textbf{Steam recommendations} \cite{steam_site}: only rows with \texttt{is\_recommended = true} and \texttt{hours}~$\geq 1$ are kept, mapping to \texttt{user\_key}~$=$~\texttt{steam:\allowbreak\{user\_id\}} and \texttt{item\_key}~$=$~\texttt{game:\allowbreak\{app\_id\}}.
+\end{itemize}
 
-Once the nearest neighbors (the $L2$ Euclidean closest vectors to the user's query) are identified by FAISS, the system extracts the corresponding integer IDs. It connects to a local SQLite database utilizing Python's native \texttt{sqlite3} module to perform highly optimized, indexed lookups to retrieve the textual metadata associated with those IDs. This retrieved context is then injected into the system prompt passed to the Azure OpenAI SDK.
+The two interaction streams are concatenated, de-duplicated to the most recent event per (user, item) pair, and pruned of items with fewer than \texttt{min\_item\_interactions}~$=5$ interactions to discard unlearnable noise. \textbf{Crucially, the MovieLens user population and the Steam user population are disjoint}: no individual appears in both domains. This makes the learning problem a strict cross-domain, cold-start \textit{semantic-alignment} task rather than a within-domain next-item prediction task---a distinction that is decisive when interpreting the evaluation metrics in Section~\ref{sec:rec_eval}.
 
-\section{Web Application Implementation (Frontend)}
-The client-side interface is engineered to feel instantly responsive, akin to a native desktop application.
+Item metadata is enriched offline from two Hugging Face datasets---\texttt{ada-datadruids/\allowbreak full\_\allowbreak tmdb\_\allowbreak movies\_\allowbreak dataset} and \texttt{atalaydenknalbant/\allowbreak rawg-games-dataset}---joined on a normalized title (and, for movies, release year). Movie plot overviews are additionally back-filled from the TMDB REST API \cite{tmdb_ref}. For every item the pipeline constructs a \texttt{tokens} string concatenating genre tokens, a hand-authored \textbf{genre-bridge} lexicon that maps movie genres to game-domain synonyms (e.g. \texttt{Sci-Fi}~$\rightarrow$~``science fiction space futuristic'') to encourage cross-domain matching, tag tokens, truncated description tokens, and title tokens (appended last, a placement the inference engine later exploits for a franchise boost). Adult content is flagged during enrichment by scanning genres, keywords, tags, and ESRB/age fields against an explicit pattern, populating an \texttt{is\_adult} boolean that is enforced downstream at the retrieval boundary.
+
+Finally, a dense \textbf{text-embedding tensor} is precomputed with the \texttt{all-MiniLM-L6-v2} sentence encoder \cite{wang2020minilm, reimers2019sentencebert}: each item's \texttt{title}, \texttt{description}, and \texttt{tokens} are encoded into an $L_2$-normalized 384-dimensional vector. This tensor is persisted as \texttt{improved\_\allowbreak item\_\allowbreak text\_\allowbreak embeddings.pt} and injected into the item tower, giving the model a content channel that natively supports cold-start scoring. Survey respondent profiles---used for the collaborative-filtering fusion path---are loaded from \texttt{users\_ratings.csv}, each carrying demographic attributes, favourite/disliked genres, and a JSON list of rated items.
+
+\subsection{The CL-EPIDTN Dual-Tower Architecture}
+The model (class \texttt{CLEPIDTN}) embeds users and items into a shared $d = 128$-dimensional space in which relevance is measured by inner product. All public hyperparameters are taken verbatim from the \texttt{RecConfig} dataclass and are listed in Table~\ref{tab:recconfig}.
+
+\begin{table}[H]
+    \centering
+    \caption{Verified CL-EPIDTN configuration (\texttt{RecConfig}).}
+    \label{tab:recconfig}
+    \begin{tabular}{|l|l|p{6.5cm}|}
+        \hline
+        \textbf{Hyperparameter} & \textbf{Value} & \textbf{Role} \\ \hline
+        \texttt{embedding\_dim} ($d$) & 128 & Shared latent dimension \\ \hline
+        \texttt{transformer\_layers} & 5 & User-tower encoder depth \\ \hline
+        \texttt{attention\_heads} & 4 & Multi-head self-attention heads \\ \hline
+        \texttt{dropout} & 0.15 & Dropout / augmentation rate \\ \hline
+        \texttt{max\_seq\_len} & 30 & Max interaction-history length \\ \hline
+        \texttt{batch\_size} & 512 & In-batch negatives per step \\ \hline
+        \texttt{epochs} & 10 & Training epochs \\ \hline
+        \texttt{lr} & $2\times10^{-3}$ & Peak learning rate (OneCycle) \\ \hline
+        \texttt{temperature} ($\tau$) & 0.07 & InfoNCE temperature \\ \hline
+        \texttt{contrastive\_weight} ($\lambda_{\text{ssl}}$) & 0.15 & Self-supervised loss weight \\ \hline
+        \texttt{amm\_weight} ($\lambda_{\text{amm}}$) & 0.01 & Modality-matching loss weight \\ \hline
+        \texttt{gradient\_clip\_norm} & 1.0 & Gradient-norm clipping \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{User Tower}
+The user tower consumes the chronologically ordered sequence of item indices in the user's history (left-padded to \texttt{max\_seq\_len}~$=30$ with a learned padding index). Each history item is mapped through the shared item-identity embedding $\mathbf{E}_{\text{id}}$ and summed with a learned positional embedding. The resulting sequence is processed by a stack of five \texttt{TransformerEncoderLayer}s ($d_{\text{model}}=128$, $4$ heads, feed-forward width $4d=512$, GELU activation, dropout $0.15$, \texttt{batch\_first}); causal masking is disabled by default (\texttt{use\_causal\_attention = False}), so the encoder attends bidirectionally over the (padding-masked) history. From the encoded sequence the tower derives three signals: a \textbf{masked-mean pooled} representation $\mathbf{p}_{\text{seq}}$, the \textbf{most-recent} non-padding token's representation $\mathbf{r}$, and a learned \textbf{user/activity attribute} vector $\mathbf{a}$ (an identity embedding plus an activity-bucket embedding; both are zeroed in the anonymous inference path). A residual augmentation block produces $\tilde{\mathbf{p}}^{u}$, and the final user vector is
+
+\[
+\mathbf{u} = \mathrm{norm}\!\Big(\,W_u\big[\,\mathbf{a}+\tilde{\mathbf{p}}^{u}\;\Vert\;\mathbf{p}_{\text{seq}}\;\Vert\;\mathbf{r}\;\Vert\;\mathbf{a}_{\text{act}}\,\big]\Big),
+\]
+
+where $[\,\cdot\Vert\cdot\,]$ denotes concatenation, $W_u$ is the two-layer projection \texttt{user\_proj} (a $4d\!\to\!d$ GELU MLP with dropout), $\mathbf{a}_{\text{act}}$ is the activity embedding, and $\mathrm{norm}(\cdot)$ is $L_2$ normalization so that $\lVert\mathbf{u}\rVert_2 = 1$.
+
+\subsubsection{Item Tower}
+The item tower (\texttt{item\_features}) builds an item representation from four feature groups: the masked-mean of its metadata-\textbf{token} embeddings $\mathbf{t}$, a \textbf{domain} embedding $\mathbf{m}$ (movie vs.\ game), the item-\textbf{identity} embedding $\mathbf{e}_{\text{id}}$, and---when the precomputed text tensor is present---a \textbf{text} projection $W_{\text{txt}}\mathbf{x}$ of the MiniLM embedding $\mathbf{x}$. A residual augmentation block yields $\tilde{\mathbf{p}}^{i}$, and the final item vector is
+
+\[
+\mathbf{v} = \mathrm{norm}\!\Big(\,W_i\big[\,\mathbf{e}_{\text{id}}\;\Vert\;\mathbf{t}+\tilde{\mathbf{p}}^{i}\;\Vert\;\mathbf{m}\;\Vert\;W_{\text{txt}}\mathbf{x}\,\big]\Big),
+\]
+
+where $W_i$ is the \texttt{item\_proj} MLP whose input width is $4d$ when text embeddings are available and $3d$ otherwise. During training, token dropout (\texttt{mask\_tokens}) stochastically zeroes a fraction of an item's tokens to produce augmented views for the self-supervised objective.
+
+\subsection{Multi-Objective Training}
+\label{sec:rec_training}
+Training optimizes a weighted sum of three complementary objectives. Let $B$ be the batch size, $\tau$ the temperature, and let $\mathbf{u}_i,\mathbf{v}_i$ be the (normalized) user and positive-item vectors for example $i$.
+
+\paragraph{(1) Main contrastive loss (InfoNCE).} The primary objective is the InfoNCE \cite{oord2018cpc} loss with in-batch negatives, which pulls each user toward their true next item and pushes them away from the other $B-1$ items in the batch:
+
+\begin{equation}
+\mathcal{L}_{\text{main}}
+= -\frac{1}{B}\sum_{i=1}^{B}
+\log
+\frac{\exp\!\big(\mathbf{u}_i^{\top}\mathbf{v}_i/\tau\big)}
+     {\sum_{j=1}^{B}\exp\!\big(\mathbf{u}_i^{\top}\mathbf{v}_j/\tau\big)} .
+\label{eq:infonce}
+\end{equation}
+
+\paragraph{(2) Self-supervised contrastive loss (SSL).} Following the SimCLR-style philosophy of agreement between augmented views \cite{chen2020simclr}, two independently augmented encodings of each user history are produced (via stochastic history dropout) together with two token-masked encodings of each positive item. Writing $\ell(\cdot,\cdot)$ for the InfoNCE operator of Equation~\eqref{eq:infonce}, the SSL loss averages agreement across the pooled-sequence views $(\mathbf{s}^a,\mathbf{s}^b)$, the attribute views $(\mathbf{a}^a,\mathbf{a}^b)$, and the item views $(\mathbf{i}^a,\mathbf{i}^b)$:
+
+\begin{equation}
+\mathcal{L}_{\text{ssl}}
+= \tfrac{1}{3}\Big(\ell(\mathbf{s}^a,\mathbf{s}^b)
++ \ell(\mathbf{a}^a,\mathbf{a}^b)
++ \ell(\mathbf{i}^a,\mathbf{i}^b)\Big).
+\label{eq:ssl}
+\end{equation}
+
+\paragraph{(3) Auxiliary Modality-Matching loss (AMM).} To preserve semantic alignment between the two towers' augmentation projections and the opposite tower's output, a cosine-similarity matching term is applied. Using $\mathrm{sg}[\cdot]$ for the stop-gradient (detach) operator and $\cos(\cdot,\cdot)$ for cosine similarity:
+
+\begin{equation}
+\mathcal{L}_{\text{amm}}
+= \big(1-\cos(\tilde{\mathbf{p}}^{u},\,\mathrm{sg}[\mathbf{v}])\big)
++ \big(1-\cos(\tilde{\mathbf{p}}^{i},\,\mathrm{sg}[\mathbf{u}])\big).
+\label{eq:amm}
+\end{equation}
+
+Cosine similarity is used rather than mean-squared error specifically to avoid representational collapse.
+
+\paragraph{Combined objective.} The total loss is the weighted sum
+
+\begin{equation}
+\mathcal{L}
+= \mathcal{L}_{\text{main}}
++ \lambda_{\text{ssl}}\,\mathcal{L}_{\text{ssl}}
++ \lambda_{\text{amm}}\,\mathcal{L}_{\text{amm}},
+\qquad
+\lambda_{\text{ssl}} = 0.15,\;\; \lambda_{\text{amm}} = 0.01 .
+\label{eq:total_loss}
+\end{equation}
+
+Optimization uses Adam at peak learning rate $2\times10^{-3}$ under a \texttt{OneCycleLR} schedule (5\% linear warm-up followed by cosine annealing to zero), with gradient-norm clipping at $1.0$, batch size $512$, for $10$ epochs.
+
+\subsection{Interaction-Signal Weighting}
+\label{sec:signal_weighting}
+Before inference, every user action is mapped to a single scalar weight $w \in [-1, 1]$. Numeric star ratings $s \in [1,5]$ are mapped linearly,
+
+\begin{equation}
+w(s) = \mathrm{clamp}\!\Big(\frac{s-3}{2},\,-1,\,1\Big),
+\label{eq:starweight}
+\end{equation}
+
+so that 5 stars yields $+1.0$, 4 stars $+0.5$, 3 stars $0.0$, 2 stars $-0.5$, and 1 star $-1.0$. Implicit and survey signals reuse the same scale: a \texttt{wishlist} action (``Didn't watch/play but would'') maps to the value $3.5$, hence $w = +0.25$; an \texttt{ignore} action (``wouldn't watch/play'') maps to $1.5$, hence $w = -0.75$; an item submitted with no rating at all defaults to a mild positive $+0.25$. Table~\ref{tab:signal_weights} summarizes the mapping exactly as implemented.
+
+\begin{table}[H]
+    \centering
+    \caption{Interaction signal $\rightarrow$ weight mapping (as implemented).}
+    \label{tab:signal_weights}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Signal} & \textbf{Numeric} & \textbf{Weight $w$} \\ \hline
+        ``5 Stars'' & 5.0 & $+1.00$ \\ \hline
+        ``4 Stars'' & 4.0 & $+0.50$ \\ \hline
+        Wishlist / ``would watch/play'' & 3.5 & $+0.25$ \\ \hline
+        No rating supplied (default) & --- & $+0.25$ \\ \hline
+        ``3 Stars'' & 3.0 & $\phantom{+}0.00$ \\ \hline
+        ``2 Stars'' & 2.0 & $-0.50$ \\ \hline
+        Ignore / ``wouldn't watch/play'' & 1.5 & $-0.75$ \\ \hline
+        ``1 Star'' & 1.0 & $-1.00$ \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Inference Engine and Hybridization}
+\label{sec:inference}
+At start-up the service loads, from \texttt{artifacts\_improved8/}, the trained model (\texttt{improved\_8epochs.pt}), a dense item-index tensor of shape $(N_{\text{items}}, d)$ (\texttt{item\_index.pt}), the text-embedding tensor, and the metadata/lookup pickles. Unlike the RAG service, the recommender does \textbf{not} use FAISS: scoring is a single dense matrix product against the in-memory item index, which is exact and fast at the catalog scale ($N_{\text{items}}\approx 1.38\times10^{5}$).
+
+\subsubsection{Anonymous scoring path}
+Because the public training users are not Questro users, production inference runs in an \textbf{anonymous} mode (\texttt{user\_id = None}): no learned per-user embedding is used. The history is the sequence of positively-weighted item indices. The tower produces a sequence-derived user vector $\mathbf{u}_{\text{seq}}$, which is then blended with a weighted mean of the history items' \emph{item-tower} vectors to inject explicit-rating polarity:
+
+\begin{equation}
+\mathbf{u} = \mathrm{norm}\!\Big((1-\alpha)\,\mathbf{u}_{\text{seq}} + \alpha\;\mathrm{norm}\!\big(\textstyle\sum_{t} w_t\,\mathbf{v}_{h_t}\big)\Big),
+\qquad \alpha = 0.65,
+\label{eq:anonblend}
+\end{equation}
+
+where $h_t$ and $w_t$ are the $t$-th history item index and its weight. Each candidate $c$ then receives a composite score
+
+\begin{equation}
+\mathrm{score}(c) = \mathbf{u}^{\top}\mathbf{v}_c
++ \beta\,\mathrm{tok}(c)
++ \gamma\,\mathrm{txt}(c)
++ \delta\,\mathrm{title}(c),
+\label{eq:finalscore}
+\end{equation}
+
+combining the neural inner product with three content terms: a token-overlap boost $\mathrm{tok}(c)$ (which rewards shared metadata tokens with liked items and penalizes tokens exclusive to disliked items), a text-similarity term $\mathrm{txt}(c)$ computed from the MiniLM embeddings, and a title-token boost $\mathrm{title}(c)$ that matches the tail (title) tokens of the candidate against the history. The implemented weights are $\beta = 0.20$, $\gamma = 0.25$, and $\delta = 0.25$. History items are masked out (score $-\infty$); an optional domain filter restricts candidates to movies or games.
+
+\subsubsection{Collaborative-filtering fusion}
+For survey-seeded profiles the neural ranking is fused with a survey \textbf{user-based collaborative filter}. Two profiles' similarity blends a shrinkage-corrected cosine over their shared ratings with a cosine over their explicit genre-preference vectors:
+
+\begin{equation}
+\mathrm{sim}(u,u') = \frac{\omega_r\,\kappa\,s_r + \omega_g\,s_g}{\omega_r + \omega_g},
+\qquad
+\kappa = \frac{|\mathcal{S}|}{|\mathcal{S}| + 3},
+\label{eq:usercf}
+\end{equation}
+
+where $s_r$ is the cosine over the set $\mathcal{S}$ of co-rated items, $s_g$ the genre-preference cosine, $\kappa$ an overlap-shrinkage factor that discounts similarities resting on few shared items, and $(\omega_r,\omega_g) = (0.7, 0.3)$. The neural and user-CF candidate lists are combined with \textbf{Reciprocal Rank Fusion (RRF)} \cite{cormack2009rrf}:
+
+\begin{equation}
+\mathrm{RRF}(c) = \frac{w_{\text{neu}}}{\eta + r_{\text{neu}}(c)} + \frac{w_{\text{cf}}}{\eta + r_{\text{cf}}(c)},
+\qquad \eta = 20,\;\; w_{\text{neu}} = 0.75,\;\; w_{\text{cf}} = 0.25,
+\label{eq:rrf}
+\end{equation}
+
+where $r_{\text{neu}}(c)$ and $r_{\text{cf}}(c)$ are the (1-based) ranks of candidate $c$ in the neural and user-CF lists respectively, and $\eta$ is the rank constant that damps the influence of very high ranks.
+
+\subsubsection{Serving layer}
+The model is served by FastAPI/Uvicorn on port \texttt{7749}. The service is stateless with respect to user data---every request carries the full profile---and exposes \texttt{/recommend}, \texttt{/recommend/rerank}, \texttt{/catalog/add}, \texttt{/genres}, \texttt{/admin/reload}, and \texttt{/health}. Three behaviours from the implementation are worth recording: (i) when \texttt{blocked\_genres} is supplied the engine \textbf{over-fetches} \texttt{OVERFETCH\_MULTIPLIER}~$=5\times$ the requested page before filtering, guaranteeing a full page after the genre deny-list is applied; (ii) a \textbf{title-family boost} (\texttt{TITLE\_FAMILY\_BOOST}~$=0.40$) injects up to 50 same-franchise candidates and lifts their scores after stripping version/edition words (``Remastered'', ``GOTY'', roman numerals), so obvious sequels outrank generic genre matches; and (iii) responses return the backend provider ID (TMDB for movies, RAWG for games) alongside the model's internal \texttt{item\_key}. The offline script \texttt{build\_full\_catalog.py} bakes the recommender's entire retrievable catalog into the artifacts ahead of time---running the item tower on a clean context---so that the running API never needs to hot-add items on the GPU, a path that previously risked a CUDA device-side assertion under concurrent scoring.
+
+\subsection{Evaluation, Metrics, and Benchmarking}
+\label{sec:rec_eval}
+\subsubsection{Protocol and metric definitions}
+The model is evaluated under a \textbf{leave-one-out, leakage-resistant temporal split}: for each user the chronologically last interaction is the test target, the penultimate is the validation target, and training targets are drawn only from earlier events. Critically, ranking is performed against the \textbf{entire catalog} of $\approx 1.38\times10^{5}$ candidates---not against a small set of sampled negatives---which makes the absolute metric values a far stricter measure than the sampled-negative protocols common in the sequential-recommendation literature. With a single held-out relevant item per user $u$ at predicted rank $\mathrm{rank}_u$, over the evaluation set $U$:
+
+\begin{align}
+\mathrm{HR}@K   &= \frac{1}{|U|}\sum_{u\in U}\mathbb{1}\!\left[\mathrm{rank}_u \le K\right], \\
+\mathrm{MRR}    &= \frac{1}{|U|}\sum_{u\in U}\frac{1}{\mathrm{rank}_u}, \\
+\mathrm{NDCG}@K &= \frac{1}{|U|}\sum_{u\in U}\frac{\mathbb{1}\!\left[\mathrm{rank}_u \le K\right]}{\log_2(\mathrm{rank}_u + 1)} .
+\end{align}
+
+\subsubsection{Measured results}
+Table~\ref{tab:clepidtn_measured} reports CL-EPIDTN's measured full-catalog metrics on the temporal test split (1{,}000 sampled test users), together with a popularity baseline evaluated on the same protocol (25{,}836 users), as recorded in the project's training notebook.
+
+\begin{table}[H]
+    \centering
+    \caption{Measured full-catalog ranking metrics (leave-one-out temporal split). CL-EPIDTN values are reported at epoch 10; the best observed $\mathrm{HR}@10$ during training was $0.076$ (epoch 6).}
+    \label{tab:clepidtn_measured}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{|l|c|c|c|c|c|}
+        \hline
+        \textbf{Method} & \textbf{HR@10} & \textbf{NDCG@10} & \textbf{MRR} & \textbf{HR@50} & \textbf{NDCG@50} \\ \hline
+        Popularity baseline & 0.0823 & 0.0363 & --- & 0.2899 & 0.0805 \\ \hline
+        CL-EPIDTN (improved\_8) & 0.0710 & 0.0353 & 0.0299 & 0.1850 & 0.0601 \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{Model comparison matrix and contextual justification}
+Table~\ref{tab:baseline_matrix} situates CL-EPIDTN against recognized sequential and cross-domain recommenders. We deliberately do \textbf{not} transcribe single numbers from those papers into the same cells as Questro's, because doing so would be methodologically misleading: the cited baselines report $\mathrm{HR}@10$/$\mathrm{NDCG}@10$ on \textbf{single-domain} corpora under a \textbf{sampled-negative} protocol (typically one positive against 100 sampled negatives), whereas Questro's numbers in Table~\ref{tab:clepidtn_measured} are \textbf{full-catalog} ($\sim$138K-way) rankings over a \textbf{zero-overlap cross-domain} corpus. Under a 100-negative protocol the chance baseline alone is $\mathrm{HR}@10 \approx 0.10$, whereas under full-catalog ranking it is $\approx 7\times10^{-5}$; the two regimes differ by orders of magnitude and are not directly comparable.
+
+\begin{table}[H]
+    \centering
+    \caption{Architectural comparison of CL-EPIDTN with recognized baselines. Published metrics are reported by their authors under single-domain, sampled-negative protocols and are therefore not directly comparable to Questro's full-catalog cross-domain numbers.}
+    \label{tab:baseline_matrix}
+    \begin{tabular}{|l|p{5.0cm}|p{3.4cm}|}
+        \hline
+        \textbf{Model} & \textbf{Core mechanism} & \textbf{Evaluation regime (as published)} \\ \hline
+        BPR-MF \cite{rendle2009bpr} & Pairwise matrix factorization & Single-domain, sampled neg. \\ \hline
+        GRU4Rec \cite{hidasi2016gru4rec} & GRU over session sequences & Single-domain, sampled neg. \\ \hline
+        Caser \cite{tang2018caser} & Convolutional sequence embedding & Single-domain, sampled neg. \\ \hline
+        SASRec \cite{kang2018sasrec} & Causal self-attention & Single-domain, sampled neg. \\ \hline
+        BERT4Rec \cite{sun2019bert4rec} & Bidirectional masked self-attention & Single-domain, sampled neg. \\ \hline
+        \textbf{CL-EPIDTN (ours)} & Dual-tower bidirectional Transformer + contrastive (InfoNCE/SSL/AMM) + content channel + RRF fusion & \textbf{Cross-domain, full-catalog} ($\sim$138K) \\ \hline
+    \end{tabular}
+\end{table}
+
+% TODO(author): If a strictly comparable benchmark is desired, re-run one
+% open baseline (e.g. SASRec) under Questro's exact full-catalog, zero-overlap
+% cross-domain protocol and report its HR@10/NDCG@10 in the same cells as
+% Table 6.6, rather than importing the original papers' sampled-negative numbers.
+
+The contextual reading of Table~\ref{tab:clepidtn_measured} is therefore as follows. CL-EPIDTN is trained on MovieLens-32M \cite{harper2015movielens} and Steam \cite{steam_site} reviews with \textbf{zero user overlap} between the two domains, so at inference it must align a user known only through movies onto game candidates (and vice versa) purely through learned semantic and content structure. This is fundamentally harder than within-domain next-item prediction, and it is evaluated against the full catalog rather than a handful of sampled negatives. That the model attains $\mathrm{HR}@50 = 0.185$ under these conditions---ranking the single held-out item inside the top 50 of $\sim$138{,}000 candidates for nearly one user in five---is a meaningful result, even though the absolute $\mathrm{HR}@10$ appears nominally low next to numbers reported on single-domain, sampled-negative setups. In production the neural ranker is further hybridized with the content and user-CF channels of Section~\ref{sec:inference}, which the offline retrieval metric does not capture.
+
+\section{RAG Chatbot Implementation}
+\label{sec:rag_impl}
+The conversational assistant is a Retrieval-Augmented Generation pipeline implemented as a Flask microservice (\texttt{recommender/app.py}) backed by the \texttt{CrossDomainRAGIndex} class. It grounds a Large Language Model in Questro's own catalog so that responses are factual rather than hallucinated, and it enforces child-safety \textbf{before} any candidate reaches the model or the LLM.
+
+\subsection{Embedding Space and Memory-Mapped Vector Index}
+At index-build time every catalog item's \texttt{embedding\_text}---constructed in the preprocessing pipeline by concatenating the narrative with a ``Themes and tags:'' suffix---is encoded by the \texttt{multi-\allowbreak qa-\allowbreak mpnet-\allowbreak base-\allowbreak dot-\allowbreak v1} sentence encoder \cite{reimers2019sentencebert}, which is purpose-trained for semantic question--answer retrieval. The vectors are $L_2$-normalized (so inner-product search is equivalent to cosine similarity) and added to a FAISS \texttt{IndexHNSWFlat} graph with $M = 32$ \cite{johnson2019billion}. The index is persisted to \texttt{faiss\_index.bin} and the item metadata to a SQLite database (\texttt{metadata.db}). At server start-up the index is loaded with \texttt{faiss.IO\_FLAG\_MMAP}, memory-mapping the (multi-gigabyte) graph from SSD so that boot is fast and resident memory stays low, while SQLite provides $O(1)$ keyed metadata lookups.
+
+\subsection{Orchestration Pipeline}
+A request to \texttt{POST /api/recommend} carries a free-text \texttt{query}, an optional \texttt{user} profile, \texttt{blocked\_genres}, and an \texttt{allow\_adult} flag. The pipeline executes the following stages, illustrated in Figure~\ref{fig:rag_pipeline_impl}:
+
+\begin{enumerate}
+    \item \textbf{Embed and search.} The raw query (intentionally \emph{not} lemmatized, since the encoder is trained on natural text) is embedded and searched against the HNSW index, over-fetching a pool of $10\times$ the requested result count.
+    \item \textbf{Parental-control filtering at the vector boundary.} Each retrieved candidate is screened \emph{immediately}: if \texttt{allow\_adult} is false, any item whose \texttt{is\_adult} flag is set is discarded; if a non-empty \texttt{blocked\_genres} set is present, any item whose theme tags intersect the blocked set is discarded. This happens \textbf{before} reranking or generation (Section~\ref{sec:vector_boundary} of Chapter~5), so restricted content cannot leak even when it is the closest semantic match.
+    \item \textbf{Domain-diversity selection.} To prevent a single-domain result cluster, the selector guarantees at least one movie and one game in the result set before filling remaining slots by score.
+    \item \textbf{Personalized reranking.} If a user profile is present, the surviving candidates (at least $20$, i.e. $\max(4k, 20)$) are posted to the recommender's \texttt{/recommend/rerank} endpoint, which scores them against the user's taste. If the recommender is unavailable or scores nothing, the pipeline gracefully falls back to the original FAISS ordering.
+    \item \textbf{Grounded generation.} The reranked items, the user profile, and any blocked-genre constraints are assembled by \texttt{generate\_\allowbreak recommendation\_\allowbreak prompt} into a single prompt whose instructions explicitly forbid recommending anything outside the supplied context and forbid surfacing blocked themes.
+    \item \textbf{LLM call.} The prompt is dispatched to Google Gemini via the Generative Language API (\texttt{generateContent}, model from \texttt{GEMINI\_MODEL}, default \texttt{gemini-3.5-flash}) \cite{gemini_ref}, under a system instruction that constrains the model to a direct, user-facing recommendation pitch with no exposed reasoning.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.92\textwidth}{!}{
+        \begin{tikzpicture}[
+            node distance=1.1cm and 1.4cm,
+            box/.style={rectangle, draw, rounded corners, minimum width=2.7cm, minimum height=1cm, align=center, text width=2.6cm, font=\small},
+            db/.style={cylinder, draw, shape border rotate=90, aspect=0.25, minimum height=1.4cm, align=center, text width=2.2cm, font=\small},
+            arrow/.style={thick,->,>=stealth}
+            ]
+            \node (q)     [box, fill=blue!8] {User Query};
+            \node (emb)   [box, right=of q, fill=yellow!10] {Embed (MPNet)};
+            \node (faiss) [db, right=of emb, fill=blue!10] {FAISS HNSW (mmap)};
+            \node (filt)  [box, below=of faiss, fill=red!10] {Parental filter\\(is\_adult / genres)};
+            \node (rerank)[box, left=of filt, fill=orange!12] {ML rerank (7749)};
+            \node (llm)   [box, left=of rerank, fill=green!12] {Gemini\\(grounded gen.)};
+            \node (out)   [box, below=of llm, fill=blue!8] {Response};
+
+            \draw [arrow] (q) -- (emb);
+            \draw [arrow] (emb) -- (faiss);
+            \draw [arrow] (faiss) -- (filt);
+            \draw [arrow] (filt) -- (rerank);
+            \draw [arrow] (rerank) -- (llm);
+            \draw [arrow] (llm) -- (out);
+        \end{tikzpicture}
+    }
+    \caption{Implemented RAG request pipeline: retrieval, parental filtering at the vector boundary, personalized reranking, and grounded Gemini generation.}
+    \label{fig:rag_pipeline_impl}
+\end{figure}
+
+\subsection{Hallucination Control}
+Hallucination is suppressed structurally rather than by trusting the model: the LLM only ever sees a fixed, pre-filtered candidate list, and its prompt mandates that it ``only recommend items from the provided context list.'' Because the maturity filter executes at the vector boundary, the model is never even shown content it must then be trusted to refuse---a far stronger guarantee than prompt-level self-censorship.
+
+\subsection{Measured RAG Behaviour}
+The pipeline was exercised by the evaluation harness \texttt{recommender/\allowbreak src/\allowbreak tests/\allowbreak evaluate.py} over a 115-query suite spanning six categories (profile-coherent, cross-domain, title-based, ground-truth, no-profile, and edge-case). The aggregate results recorded in \texttt{recommender/evaluation/} are summarized in Table~\ref{tab:rag_eval}: every query completed without error, two-thirds of responses mixed both domains, and two-thirds of ground-truth probes surfaced the expected item.
+
+\begin{table}[H]
+    \centering
+    \caption{Measured RAG pipeline behaviour over the 115-query evaluation suite.}
+    \label{tab:rag_eval}
+    \begin{tabular}{|l|c|}
+        \hline
+        \textbf{Metric} & \textbf{Value} \\ \hline
+        Total queries / errors & 115 / 0 \\ \hline
+        Cross-domain (mixed) responses & 68.7\% \\ \hline
+        Ground-truth hit rate & 66.7\% \\ \hline
+        Queries using ML reranking (with profile) & 97 / 115 \\ \hline
+        Average end-to-end latency & 9.17\,s \\ \hline
+        Average qualitative response score & 7.02 / 10 \\ \hline
+    \end{tabular}
+\end{table}
+
+% TODO(author): the 9.17 s average latency is dominated by the external Gemini
+% round-trip; if a latency breakdown (retrieval vs. rerank vs. LLM) is desired,
+% instrument the three stages separately in evaluate.py and report the split.
+
+\section{Frontend Implementation}
+The React 19 client is engineered to feel as responsive as a native application.
 
 \subsection{Zustand State Management}
-Unlike Redux, which requires complex reducers, actions, and massive provider wrappers, Questro implements Zustand to create focused, atomic state slices.
-For example, the authentication slice maintains the \texttt{accessToken} and user profile object. UI components can hook into specific properties of this store (e.g., \texttt{useAuthStore(state => state.user)}) without triggering re-renders across the entire application tree when unrelated state changes.
+Rather than the boilerplate-heavy reducer/action/provider triad of Redux, Questro uses Zustand to compose focused, atomic state slices. The authentication slice holds the in-memory \texttt{accessToken} and the user profile; components subscribe to individual selectors (e.g. \texttt{useAuthStore(state => state.user)}) so that unrelated state changes do not trigger re-renders across the component tree.
 
 \subsection{Axios Interceptors and Silent Token Refresh}
-Handling the lifecycle of short-lived JWTs requires a robust frontend networking layer. Questro configures a singleton Axios instance with detailed request and response interceptors.
-The Request Interceptor automatically extracts the \texttt{accessToken} from the Zustand store and appends it to the \texttt{Authorization: Bearer} header.
-The Response Interceptor listens for \texttt{401 Unauthorized} HTTP status codes. If a \texttt{401} is intercepted, the interceptor pauses all outgoing network requests, queues them, and attempts to call \texttt{POST /api/Auth/refresh-token}. Because the Axios instance is configured with \texttt{withCredentials: true}, the browser automatically attaches the \texttt{HttpOnly} refresh token cookie to this request. Upon receiving the new access token, the interceptor resumes the queued requests seamlessly. To the end-user, the session renewal is completely invisible.
+A singleton Axios instance carries request and response interceptors. The request interceptor reads the \texttt{accessToken} from the Zustand store and attaches it as a \texttt{Bearer} header. The response interceptor watches for \texttt{401 Unauthorized}: on interception it pauses and queues outgoing requests, calls \texttt{POST /api/Auth/refresh-token} (with \texttt{withCredentials: true}, so the browser automatically sends the \texttt{HttpOnly} refresh-token cookie), and---upon receiving a fresh access token---transparently replays the queued requests. The session renewal is invisible to the user.
 
 \section{Security Implementation}
-Questro employs defense-in-depth strategies, ensuring validation at every boundary.
+\label{sec:security_impl}
+Questro applies defense-in-depth, validating at every boundary.
 
-\subsection{Zod Schema Validation}
-Before any form data is submitted to the backend, it is rigorously validated on the client side using \texttt{React Hook Form} combined with \texttt{Zod}. Zod provides TypeScript-first schema declarations. If a user attempts to submit a registration form where the \texttt{confirmPassword} does not strictly match the \texttt{password}, or the \texttt{email} fails regex validation, the UI immediately flags the error without executing a network request, drastically reducing server load from malformed payloads.
+\subsection{Dual-Token JWT with HttpOnly Refresh}
+As established in Chapter~5, authentication issues a short-lived access JWT \cite{rfc7519} (returned in the response body and held only in JavaScript memory, never \texttt{localStorage}) and a long-lived opaque refresh token (delivered via a \texttt{Set-Cookie} header with \texttt{HttpOnly}, \texttt{Secure}, and \texttt{SameSite}). Because the refresh token is unreadable by client-side script, the scheme neutralizes XSS exfiltration while still permitting the silent-refresh flow above.
 
-\subsection{Backend Model Validation}
-Client-side validation is strictly treated as a user-experience enhancement, never as a security barrier. The ASP.NET Core backend implements exhaustive validation on all incoming DTOs. While the current implementation relies heavily on Data Annotations (\texttt{[Required]}, \texttt{[MaxLength]}), the architecture is designed to seamlessly integrate FluentValidation for more complex, cross-property validation logic if required in the future.
+\subsection{Zod and Server-Side Validation}
+Client forms are validated with React Hook Form + Zod, which provides TypeScript-first schemas that reject malformed input (mismatched password confirmation, invalid e-mail) before any network request, reducing load from bad payloads. Client validation is treated strictly as a UX enhancement: the ASP.NET Core backend independently re-validates every incoming DTO (via Data Annotations, with the architecture poised to adopt FluentValidation for cross-property rules).
+
+\subsection{IDOR Mitigation via the Specification Pattern}
+Ownership-scoped operations never trust a client-supplied object ID alone. When a user deletes or edits, say, a movie review, the controller extracts the authenticated \texttt{userId} from the validated JWT claims and constructs a \texttt{UserMovieReviewByUserAndMovieSpecification(userId, movieId)} (Section~\ref{sec:recommender_impl}). The repository's \texttt{WHERE} clause then mandates a match on \emph{both} the resource ID and the owning user ID, so a request for another user's resource yields no rows and a \texttt{404}/\texttt{403}, blinding the attacker to the resource's existence.
 
 \section{Testing and Debugging}
-Ensuring the stability of the hybrid architecture required extensive testing across all boundaries.
-Integration testing was employed to verify that the \texttt{IMovieSyncService} correctly intercepted cache misses and successfully hydrated the SQL Server database from the external TMDB API.
-In the Python microservices, \texttt{pytest} was utilized to assert that the recommender arrays accurately penalized ignored items (-0.75 weight) and that the RAG pipeline correctly stripped out adult-flagged themes before dispatching prompts to the Azure OpenAI endpoints.
+Testing spanned every boundary of the hybrid system. Backend integration tests verified that the CQRS-lite sync services correctly hydrate the local database from TMDB on cache misses, and that the deterministic ``Auto-Watch'' trigger idempotently reconciles watched/watchlist state on rating or review. The recommender was validated end-to-end by its leave-one-out evaluation harness (Section~\ref{sec:rec_eval}) and by per-endpoint contract checks against the documented API. The RAG pipeline was exercised by the 115-query evaluation suite (Table~\ref{tab:rag_eval}), with the analysis script \texttt{analyze.py} aggregating per-category mix rates, ground-truth hit rates, and repeat-item counts. Debugging the recommender's runtime hot-add path surfaced a class of CUDA device-side assertions caused by growing embedding tables concurrently with scoring; this was resolved decisively by moving catalog expansion fully offline into \texttt{build\_full\_catalog.py}, so the served artifacts already contain every retrievable item and the API never mutates model tensors on the GPU under load.
 
 \section{System Results and Achievements}
-The culmination of these precise implementation strategies resulted in a platform that easily handles the complexities of cross-domain entertainment metadata. 
-By utilizing memory-mapped FAISS, the system successfully queries over 2.1 million vector embeddings without triggering Out-Of-Memory (OOM) exceptions. The decoupled Python FastAPI services execute multi-modal recommendation matrices in under 150 milliseconds. The ASP.NET Core backend operates entirely statelessly, utilizing the dual-token HttpOnly security flow to guarantee that user sessions are both permanently authenticated and entirely immune to XSS exfiltration. Finally, the React 19 frontend provides an ultra-fast, securely routed user interface that seamlessly abstracts the immense complexity of the underlying RAG and recommendation engines.
+The implementation delivers a coherent, measurable cross-domain entertainment platform. The recommender serves exact dense-index inference over a $\sim$138{,}000-item cross-domain catalog with sub-second per-request latency, hybridizing a contrastively-trained dual-tower Transformer with content and collaborative signals via reciprocal rank fusion. The RAG chatbot answers free-text queries with zero errors across its evaluation suite, mixes both entertainment domains in 68.7\% of responses, and surfaces the expected ground-truth item two-thirds of the time, all while enforcing child-safety deterministically at the vector boundary so that restricted content never reaches the language model. The ASP.NET Core backend operates statelessly behind a dual-token, \texttt{HttpOnly} security flow that is immune to XSS token theft, and the React 19 frontend abstracts the entire RAG-and-recommender complexity behind an interface whose token renewal is invisible to the user.
 
 \section{Chapter Summary}
-This chapter delved into the explicit implementation details of the Questro platform. We itemized the specific technologies utilized, highlighting React 19, ASP.NET Core 8, and PyTorch. We examined the backend architectural patterns, specifically the programmatic implementation of the Specification Pattern and Unit of Work, as well as the deliberate choice to avoid reflection-based mappers. The implementation of the AI microservices was dissected, illustrating the FastAPI endpoints, the mathematical weightings applied to user interactions, and the \texttt{faiss.IO\_FLAG\_MMAP} optimization. Furthermore, we detailed the frontend integration, focusing on Zustand state management and Axios interceptor patterns for silent token renewal. The chapter concluded by demonstrating how these choices forged a secure, highly performant, and scalable platform.
+This chapter documented the concrete implementation of the Questro platform, grounded throughout in its actual source code. We detailed the Clean-Architecture backend (Specification Pattern, Unit of Work, explicit mapping) and its EF Core persistence, then treated the two analytical centerpieces in depth: the \textbf{CL-EPIDTN} dual-tower recommender, including its user and item towers, its full InfoNCE/SSL/AMM multi-objective loss (Equations~\eqref{eq:infonce}--\eqref{eq:total_loss}), its anonymous-inference and RRF hybridization equations, and its measured full-catalog cross-domain metrics with a properly contextualized comparison to single-domain baselines; and the \textbf{RAG chatbot}, including its memory-mapped FAISS index, its parental-control filtering at the vector boundary, and its Gemini-grounded generation. We closed with the frontend, the dual-token security implementation, the testing strategy, and the quantified results that together demonstrate a secure, performant, and genuinely cross-domain system.

@@ -9,10 +9,12 @@ import ParentRoute from './guards/ParentRoute';
 
 // Shared wrapper
 import PageTransition from '../components/common/PageTransition';
+import NavBar from '../components/layout/NavBar';
 
 // ── Eagerly loaded pages ───────────────────────────────────────────────────
 // These are tiny and needed immediately on first paint (unauthenticated flow).
 import LandingPage from '../pages/LandingPage';
+import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
@@ -21,10 +23,10 @@ import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 // Heavy feature pages — downloaded only when the user navigates to them.
 // Vite will create separate JS chunks for each, keeping the initial bundle small.
 const MoviesPage  = lazy(() => import('../pages/MoviesPage'));
-const MovieDetailsPage  = lazy(() => import('../pages/MovieDetailsPage'));
-const GameDetailsPage  = lazy(() => import('../pages/GameDetailsPage'));
-const ActorDetailsPage = lazy(() => import('../pages/ActorDetailsPage'));
+const MovieDetailsPage = lazy(() => import('../pages/MovieDetailsPage'));
 const GamesPage   = lazy(() => import('../pages/GamesPage'));
+const GameDetailsPage = lazy(() => import('../pages/GameDetailsPage'));
+const StaffDetailsPage = lazy(() => import('../pages/StaffDetailsPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const FamilyDashboard = lazy(() => import('../features/family/components/FamilyDashboard').then(module => ({ default: module.FamilyDashboard })));
 
@@ -37,18 +39,26 @@ const PageLoader = () => (
 
 export default function AnimatedRoutes() {
   const location = useLocation();
+  const hideNavBarPaths = ['/login', '/register', '/forgot-password'];
+  const isAuthRoute = hideNavBarPaths.includes(location.pathname);
 
   return (
-    // Suspense must wrap AnimatePresence so lazy chunks have a fallback
-    // while they are being fetched.
-    <Suspense fallback={<PageLoader />}>
-      <AnimatePresence mode="wait">
+    <>
+      {!isAuthRoute && <NavBar />}
+      {/* Suspense must wrap AnimatePresence so lazy chunks have a fallback
+          while they are being fetched. */}
+      <Suspense fallback={<PageLoader />}>
+        <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
         <Routes location={location} key={location.pathname}>
 
           {/* Public */}
           <Route
             path="/"
             element={<PageTransition><LandingPage /></PageTransition>}
+          />
+          <Route
+            path="/home"
+            element={<PageTransition><HomePage /></PageTransition>}
           />
 
           {/* Guest-only */}
@@ -71,7 +81,7 @@ export default function AnimatedRoutes() {
             element={<ProtectedRoute><PageTransition><MoviesPage /></PageTransition></ProtectedRoute>}
           />
           <Route
-            path="/movies/:id"
+            path="/movies/:tmdbId"
             element={<ProtectedRoute><PageTransition><MovieDetailsPage /></PageTransition></ProtectedRoute>}
           />
           <Route
@@ -83,8 +93,8 @@ export default function AnimatedRoutes() {
             element={<ProtectedRoute><PageTransition><GameDetailsPage /></PageTransition></ProtectedRoute>}
           />
           <Route
-            path="/actor/:id"
-            element={<ProtectedRoute><PageTransition><ActorDetailsPage /></PageTransition></ProtectedRoute>}
+            path="/staff/:id"
+            element={<ProtectedRoute><PageTransition><StaffDetailsPage /></PageTransition></ProtectedRoute>}
           />
           <Route
             path="/users/:userId"
@@ -98,5 +108,6 @@ export default function AnimatedRoutes() {
         </Routes>
       </AnimatePresence>
     </Suspense>
+    </>
   );
 }

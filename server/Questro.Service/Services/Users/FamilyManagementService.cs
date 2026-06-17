@@ -80,10 +80,8 @@ public class FamilyManagementService : IFamilyManagementService
 		var restriction = new ChildRestriction
 		{
 			UserId = child.Id,
-			BlockedMovieGenreIds = request.BlockedMovieGenreIds ?? new List<int>(),
-			BlockedGameGenreIds = request.BlockedGameGenreIds ?? new List<int>(),
-			MaxContentRating = request.MaxContentRating,
-			MaxMetacriticRating = request.MaxMetacriticRating
+			BlockedMovieGenreIds = request.BlockedMovieGenreIds ?? new(),
+			BlockedGameGenreIds = request.BlockedGameGenreIds ?? new()
 		};
 
 		await _restrictionRepo.AddAsync(restriction, cancellationToken);
@@ -134,19 +132,15 @@ public class FamilyManagementService : IFamilyManagementService
 			restriction = new ChildRestriction
 			{
 				UserId = childId,
-				BlockedMovieGenreIds = request.BlockedMovieGenreIds,
-				BlockedGameGenreIds = request.BlockedGameGenreIds,
-				MaxContentRating = request.MaxContentRating,
-				MaxMetacriticRating = request.MaxMetacriticRating
+				BlockedMovieGenreIds = request.BlockedMovieGenreIds ?? new(),
+				BlockedGameGenreIds = request.BlockedGameGenreIds ?? new()
 			};
 			await _restrictionRepo.AddAsync(restriction, cancellationToken);
 		}
 		else
 		{
-			restriction.BlockedMovieGenreIds = request.BlockedMovieGenreIds;
-			restriction.BlockedGameGenreIds = request.BlockedGameGenreIds;
-			restriction.MaxContentRating = request.MaxContentRating;
-			restriction.MaxMetacriticRating = request.MaxMetacriticRating;
+			restriction.BlockedMovieGenreIds = request.BlockedMovieGenreIds ?? new();
+			restriction.BlockedGameGenreIds = request.BlockedGameGenreIds ?? new();
 			_restrictionRepo.Update(restriction);
 		}
 
@@ -163,7 +157,7 @@ public class FamilyManagementService : IFamilyManagementService
 			return Result.Failure<ChildRestrictionDto?>(UserError.UserNotFound);
 
 		if (!user.IsChildAccount)
-			return Result.Success(new ChildRestrictionDto());
+			return Result.Success<ChildRestrictionDto?>(new ChildRestrictionDto());
 
 		var spec = new ChildRestrictionByUserIdSpecification(userId);
 		var restriction = await _restrictionRepo.GetEntityWithSpecAsync(spec, cancellationToken);
@@ -235,9 +229,7 @@ public class FamilyManagementService : IFamilyManagementService
 		return new ChildRestrictionDto
 		{
 			BlockedMovieGenreIds = restriction.BlockedMovieGenreIds,
-			BlockedGameGenreIds = restriction.BlockedGameGenreIds,
-			MaxContentRating = restriction.MaxContentRating,
-			MaxMetacriticRating = restriction.MaxMetacriticRating
+			BlockedGameGenreIds = restriction.BlockedGameGenreIds
 		};
 	}
 }
