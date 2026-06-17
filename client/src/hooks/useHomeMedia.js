@@ -3,7 +3,7 @@ import { getTrendingMovies } from '../features/movies/api/movieService';
 import { gameService } from '../features/games/api/gameService';
 import { normalizeMovies, normalizeGames, interleaveMedia } from '../utils/mediaUtils';
 
-export const useLandingMedia = () => {
+export const useHomeMedia = () => {
   const [trendingMedia, setTrendingMedia] = useState([]);
   const [recentlyAddedMedia, setRecentlyAddedMedia] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -12,11 +12,10 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
   const { unreadCount } = useNotificationStore();
   const { currentProfile, imageUpdateStamp } = useProfileStore();
 
-  const baseLinks = [
-    { name: 'Home', path: '/' },
-  ];
+  const baseLinks = [];
 
   const authLinks = [
+    { name: 'Home', path: '/home' },
     { name: 'Movies', path: '/movies' },
     { name: 'Games', path: '/games' },
   ];
