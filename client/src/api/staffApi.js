@@ -1,9 +1,10 @@
-const BASE_URL = 'http://localhost:5222/api/staff';
+import { apiClient } from '../lib/apiClient';
 
 export const fetchStaffDetails = async (id) => {
-  const response = await fetch(`${BASE_URL}/${id}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch staff details');
+  try {
+    const response = await apiClient.get(`/staff/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch staff details');
   }
-  return await response.json();
 };
