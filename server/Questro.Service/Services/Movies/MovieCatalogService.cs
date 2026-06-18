@@ -328,6 +328,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
             if (item.itemId <= 0) continue;
 
             // Optional: Parallelize these calls to TMDB
+            if(item.itemId == null) continue;
             var details = await _tmdbService.GetMovieDetailsAsync(item.itemId, cancellationToken);
             if (details is null) continue;
 

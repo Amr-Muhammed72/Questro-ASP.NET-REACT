@@ -111,7 +111,7 @@ public sealed class RecommenderResponse
 public sealed class RecommenderItem
 {
     [JsonPropertyName("item_id")]
-    public int itemId { get; set; }
+    public int? itemId { get; set; }
     [JsonPropertyName("item_key")]
     public string? ItemKey { get; set; }
 

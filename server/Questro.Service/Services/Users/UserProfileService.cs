@@ -148,6 +148,30 @@ public class UserProfileService : IUserProfileService
         return await GetProfileAsync(userId, userId, cancellationToken);
     }
 
+    public async Task<Result<SurveyCompletionStatusDto>> GetSurveyCompletionStatusAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return Result.Failure<SurveyCompletionStatusDto>(UserError.UserNotFound);
+
+        // Check if user has completed survey: must have at least one genre in game OR movie
+        var hasGameGenres = user.GameGenresFav?.Any() ?? false;
+        var hasMovieGenres = user.MovieGenresFav?.Any() ?? false;
+        var isCompleted = hasGameGenres && hasMovieGenres;
+
+        var dto = new SurveyCompletionStatusDto
+        {
+            IsCompleted = isCompleted,
+            GameGenresFav = user.GameGenresFav ?? new(),
+            MovieGenresFav = user.MovieGenresFav ?? new(),
+            Message = isCompleted 
+                ? "Survey completed. User has selected genre preferences." 
+                : "Survey not completed. User has not selected any game or movie genres."
+        };
+
+        return Result.Success(dto);
+    }
+
     private static int CalculateAge(DateTime birthDate)
     {
         var today = DateTime.UtcNow.Date;

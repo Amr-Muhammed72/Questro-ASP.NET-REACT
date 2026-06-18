@@ -83,4 +83,15 @@ public class UserProfileController : ApiControllerBase
         var result = await _familyManagementService.GetMyRestrictionsAsync(userId.Value, cancellationToken);
         return HandleResult(result);
     }
+
+    [Authorize]
+    [HttpGet("survey/completion-status")]
+    public async Task<IActionResult> GetSurveyCompletionStatus(CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _userProfileService.GetSurveyCompletionStatusAsync(userId.Value, cancellationToken);
+        return HandleResult(result);
+    }
 }

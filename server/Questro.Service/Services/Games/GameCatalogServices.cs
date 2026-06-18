@@ -309,28 +309,28 @@ namespace Questro.Service.Services.Games
             var resultList = new List<GameListItemDto>();
             foreach (var item in recommenderResponse.Recommendations)
             {
-                if (item.itemId <= 0) continue;
+                if (item.itemId is null) continue;
 
-                var details = await _rawgservices.GetGameDetailsAsync(item.itemId, cancellationToken);
-                if (details is null) continue;
+                //  var details = await _rawgservices.GetGameDetailsAsync(item.itemId, cancellationToken);
+                var spec = new GameDetailsByRawgIdSpecification((int)item.itemId);
+                var game = await _gameRepository.GetEntityWithSpecAsync(spec, cancellationToken);
+
+                if (game is null) continue;
 
                 var gameDto = new GameListItemDto
                 {
-                    GameId = 0,
-                    RawgId = details.Id,
-                    Title = details.Name ?? string.Empty,
-                    Rating = details.Rating,
-                    ReleaseDate = ParseDate(details.Released),
-                    PosterUrl = details.BackgroundImage,
-                    TrailerUrl = null,
-                    Genres = details.Genres
-                        .Where(g => GameGenreResponseFilter.IsVisible(new RawgGenreDto { Id = g.Id, Name = g.Name }))
-                        .Select(g => new GameGenreDto(g.Id, g.Name ?? string.Empty)),
-                    Platforms = details.Platforms?
-                        .Where(p => p.Platform is not null)
-                        .Select(p => new GamePlatformDto(p.Platform!.Id, p.Platform!.Name ?? string.Empty)) ?? Enumerable.Empty<GamePlatformDto>()
+                    GameId = game.GameId,  // Use DB ID
+                    RawgId = game.RAWG_Id,
+                    Title = game.Title,
+                    Rating = game.Rating,
+                    ReleaseDate = game.Release_Date,
+                    PosterUrl = game.Poster_Url,
+                    Genres = game.GameGenres
+                        .Select(gg => new GameGenreDto(gg.Genre.GenreId, gg.Genre.Name))
+                        .Where(g => GameGenreResponseFilter.IsVisible(new RawgGenreDto { Name = g.Name })),
+                    Platforms = game.GamePlatforms
+                        .Select(gp => new GamePlatformDto(gp.Platform.Platform_Id, gp.Platform.Name))
                 };
-
                 resultList.Add(gameDto);
             }
 
