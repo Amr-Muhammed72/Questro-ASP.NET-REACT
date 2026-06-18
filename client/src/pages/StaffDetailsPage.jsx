@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft } from "lucide-react";
+import { useParams } from 'react-router-dom';
 import { motion } from "framer-motion";
 
 import { useStaffDetails } from '../hooks/useStaffDetails';
@@ -12,7 +11,6 @@ import StaffSkeleton from '../features/staff/components/StaffSkeleton';
 
 const StaffDetailsPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { actor, knownForMovies, isLoading, error } = useStaffDetails(id);
   const heroRef = useRef(null);
 
@@ -49,16 +47,6 @@ const StaffDetailsPage = () => {
       {/* 🌌 DYNAMIC PARALLAX BACKGROUND */}
       <StaffBackground bgImageUrl={bgImageUrl} />
 
-      {/* ⬅️ BACK BUTTON */}
-      <div className="relative z-50 px-6 md:px-16 pt-24">
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors group px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 w-fit"
-        >
-          <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="font-medium text-sm">Back</span>
-        </button>
-      </div>
 
       {/* 🎭 HERO CONTENT */}
       <div ref={heroRef} className="relative z-10 px-6 md:px-16 mt-8 max-w-7xl mx-auto">
