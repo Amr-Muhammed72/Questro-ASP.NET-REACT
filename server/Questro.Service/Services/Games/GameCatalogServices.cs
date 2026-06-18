@@ -1,20 +1,21 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Caching.Memory;
 using Questro.Core.Entities.Games;
 using Questro.Core.Entities.UserManagement;
 using Questro.Core.Specifications.Family;
 using Questro.Core.Specifications.Games;
-using System.Globalization;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.RAWG.Contracts;
+using Questro.Service.Abstractions.Cache;
 using Questro.Service.Abstractions.Games;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Games;
 using Questro.Shared.Contracts.Recommender;
 using Questro.Shared.ErrorHandle.Games;
 using Questro.Shared.Result;
-using Microsoft.Extensions.Caching.Hybrid;
-using Questro.Service.Abstractions.Cache;
+using System.Globalization;
+using System.Linq;
 
 namespace Questro.Service.Services.Games
 {
@@ -296,7 +297,7 @@ namespace Questro.Service.Services.Games
             var recommenderReq = new RecommenderRequest
             {
                 Domain = "game",
-                K = safeTake,
+                K = 40,
                 Offset = 0,
                 BlockedGenres = blockedGenres,
                 User = new RecommenderUserProfile
@@ -326,12 +327,12 @@ namespace Questro.Service.Services.Games
             var resultList = new List<GameListItemDto>();
             foreach (var item in recommenderResponse.Recommendations)
             {
+                var game = new Game();
                 if (item.itemId is null) continue;
-
-                //  var details = await _rawgservices.GetGameDetailsAsync(item.itemId, cancellationToken);
-                var spec = new GameDetailsByRawgIdSpecification((int)item.itemId);
-                var game = await _gameRepository.GetEntityWithSpecAsync(spec, cancellationToken);
-
+                    //  var details = await _rawgservices.GetGameDetailsAsync(item.itemId, cancellationToken);
+                    var spec = new GameDetailsByRawgIdSpecification((int)item.itemId);
+                    game = await _gameRepository.GetEntityWithSpecAsync(spec, cancellationToken);
+                
                 if (game is null) continue;
 
                 var gameDto = new GameListItemDto
@@ -358,7 +359,7 @@ namespace Questro.Service.Services.Games
 
             return Result.Success(new PagedResponse<GameListItemDto>
             {
-                Data = resultList,
+                Data = resultList.Skip(recommenderReq.Offset).Take(take),
                 PageNumber = 1,
                 PageSize = safeTake,
                 TotalCount = resultList.Count,
