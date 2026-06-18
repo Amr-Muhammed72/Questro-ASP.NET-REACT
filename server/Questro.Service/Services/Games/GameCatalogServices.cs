@@ -132,7 +132,8 @@ namespace Questro.Service.Services.Games
            
             string cacheKey = "RecentlyAddedForGames"; 
          
-            var cachedResult = await _cacheService.GetAsync<List<RawgGameSummaryDto>>(cacheKey);
+        //    var cachedResult = await _cacheService.GetAsync<List<RawgGameSummaryDto>>(cacheKey);
+            var cachedResult = _memoryCache.Get<List<RawgGameSummaryDto>>(cacheKey);
             if (cachedResult is not null)
             {
                 collectedGames = cachedResult;
@@ -164,7 +165,8 @@ namespace Questro.Service.Services.Games
                     collectedGames.AddRange(filtered);
                     page++;
                 }
-                await _cacheService.SetAsync(cacheKey, collectedGames, TimeSpan.FromDays(2));
+             //   await _cacheService.SetAsync(cacheKey, collectedGames, TimeSpan.FromDays(2));
+                _memoryCache.Set(cacheKey, collectedGames, TimeSpan.FromDays(2));
             }
             var mappedGames = collectedGames
                 .Take(10)
@@ -197,7 +199,8 @@ namespace Questro.Service.Services.Games
             var genreMap = await GetLocalGenreMapAsync(cancellationToken);
             string cacheKey = "TrendingGames";
             var res = new RawgPagedGameResponse();
-            var cachedResult = await _cacheService.GetAsync<RawgPagedGameResponse>(cacheKey);
+            //  var cachedResult = await _cacheService.GetAsync<RawgPagedGameResponse>(cacheKey);
+            var cachedResult = _memoryCache.Get<RawgPagedGameResponse>(cacheKey);
             if (cachedResult is not null)
             {
                 res = cachedResult;
@@ -208,7 +211,8 @@ namespace Questro.Service.Services.Games
                 res = rawgResponse;
                 if (res is not null)
                 {
-                    await _cacheService.SetAsync(cacheKey, res, TimeSpan.FromDays(2));
+                   // await _cacheService.SetAsync(cacheKey, res, TimeSpan.FromDays(2));
+                    _memoryCache.Set(cacheKey, res, TimeSpan.FromDays(2));
                 }
             }
             if (res is null || !res.Results.Any())

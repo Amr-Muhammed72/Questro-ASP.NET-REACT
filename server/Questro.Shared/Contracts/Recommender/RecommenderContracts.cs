@@ -67,7 +67,7 @@ public sealed class RecommenderRatingSignal
     public string? Rating { get; set; }
 
     [JsonPropertyName("stars")]
-    public double? Stars { get; set; }
+    public int? Stars { get; set; }
 
     [JsonPropertyName("source")]
     public string? Source { get; set; }
