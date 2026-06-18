@@ -251,7 +251,16 @@ const MovieGrid = memo(({
   // Handle all explicit page navigations
   const handlePageChange = useCallback(async (newPage) => {
     if (externalPageChange) externalPageChange(newPage);
-    if (!fetchPage) return; // Legacy mode delegates to parent
+    if (!fetchPage) {
+      // Legacy mode delegates to parent, but we still must scroll to top of grid
+      const grid = document.getElementById('results-grid');
+      if (grid) {
+        grid.scrollIntoView({ behavior: 'instant' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      return;
+    }
 
     const currentFetchId = ++fetchIdRef.current;
 
@@ -265,9 +274,9 @@ const MovieGrid = memo(({
       setNextPageBuffer([]);
       const grid = document.getElementById('results-grid');
       if (grid) {
-        grid.scrollIntoView({ behavior: 'smooth' });
+        grid.scrollIntoView({ behavior: 'instant' });
       } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
       }
 
       // 3. Immediately trigger a silent background fetch for the NEW currentPage + 1
@@ -302,9 +311,9 @@ const MovieGrid = memo(({
         setCurrentPage(newPage);
         const grid = document.getElementById('results-grid');
         if (grid) {
-          grid.scrollIntoView({ behavior: 'smooth' });
+          grid.scrollIntoView({ behavior: 'instant' });
         } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo({ top: 0, behavior: 'instant' });
         }
         
         // Step 2: Immediately after update, fire a new silent bg fetch for currentPage + 1

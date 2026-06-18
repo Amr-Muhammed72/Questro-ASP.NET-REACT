@@ -3,6 +3,7 @@ import { Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { setToken } from '../../../lib/apiClient';
+import { authService } from '../api/authService';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -19,29 +20,17 @@ const LoginForm = () => {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('http://localhost:5222/api/Auth/logIn', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password })
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Invalid credentials. Please check your email and password.');
-        } else {
-          throw new Error('An error occurred during login. Please try again.');
-        }
-      }
-
-      const data = await response.json();
+      const data = await authService.login({ email, password });
+      
       setToken(data.accessToken);
       login(data.accessToken);
       navigate('/movies');
     } catch (error) {
-      setErrorMessage(error.message);
+      if (error.response?.status === 401 || error.status === 401) {
+        setErrorMessage('Invalid credentials. Please check your email and password.');
+      } else {
+        setErrorMessage('An error occurred during login. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

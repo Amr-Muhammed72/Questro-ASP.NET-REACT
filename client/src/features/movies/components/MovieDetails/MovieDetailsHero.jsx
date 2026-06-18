@@ -3,37 +3,7 @@ import { Star, Play, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MovieDetailsActions from './MovieDetailsActions';
 
-const CircularProgress = ({ score, label, color }) => {
-  const percentage = (score / 5) * 100;
-  const strokeColor = color === 'yellow' ? '#EAB308' : '#22C55E';
-  
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center">
-        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
-          <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-zinc-800" />
-          <circle 
-            cx="32" cy="32" r="28" 
-            stroke={strokeColor} 
-            strokeWidth="4" 
-            fill="transparent" 
-            strokeDasharray="175.93" 
-            strokeDashoffset={175.93 - (175.93 * percentage) / 100}
-            className="transition-all duration-1000 ease-out" 
-            strokeLinecap="round" 
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-white font-bold text-lg lg:text-xl flex items-center gap-1">
-            {color === 'yellow' && <Star className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-500 fill-yellow-500" />}
-            {score.toFixed(1)}
-          </span>
-        </div>
-      </div>
-      <span className="text-xs lg:text-sm text-zinc-400 font-bold uppercase tracking-wider">{label}</span>
-    </div>
-  );
-};
+
 
 const getYoutubeEmbed = (url) => {
   if (!url) return null;
@@ -62,6 +32,7 @@ const MovieDetailsHero = memo(({ movie }) => {
     genres,
     overview,
     trailerUrl,
+    watchProviders,
   } = movie;
 
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
@@ -81,16 +52,24 @@ const MovieDetailsHero = memo(({ movie }) => {
   const minutes = runtime ? runtime % 60 : 0;
   const formattedRuntime = runtime ? `${hours}h ${minutes}m` : 'N/A';
 
-  // Convert TMDB and User 10-point scale ratings to a 5-point scale
-  const tmdb = tmdbRating ? tmdbRating / 2 : 0;
-  const userAvg = ratingSummary?.average ? ratingSummary.average / 2 : 0;
-  
-  let finalScore = tmdb;
-  if (tmdb > 0 && userAvg > 0) {
-    finalScore = (tmdb + userAvg) / 2;
-  } else if (userAvg > 0) {
-    finalScore = userAvg;
-  }
+  // Get unique providers sorted by priority
+  const uniqueProviders = (() => {
+    if (!watchProviders) return [];
+    const allProviders = [
+      ...(watchProviders.flatrate || []),
+      ...(watchProviders.rent || []),
+      ...(watchProviders.buy || [])
+    ];
+    const unique = [];
+    const seen = new Set();
+    for (const p of allProviders) {
+      if (!seen.has(p.providerId)) {
+        seen.add(p.providerId);
+        unique.push(p);
+      }
+    }
+    return unique.sort((a, b) => a.displayPriority - b.displayPriority).slice(0, 4);
+  })();
 
   return (
     <div className="relative w-full min-h-[100svh] bg-[#09090b] flex items-center pt-32 pb-48 lg:pt-40 lg:pb-56 overflow-hidden">
@@ -176,9 +155,9 @@ const MovieDetailsHero = memo(({ movie }) => {
                 {formattedRuntime}
               </span>
               <span>•</span>
-              <span className="flex items-center gap-1 bg-white/10 px-3 py-1 lg:px-4 lg:py-1.5 rounded-lg text-xs lg:text-sm border border-white/10 shadow-sm text-yellow-500">
+              <span className="flex items-center gap-1 bg-white/10 px-3 py-1 lg:px-4 lg:py-1.5 rounded-lg text-xs lg:text-sm border border-white/10 shadow-sm text-yellow-500 font-bold">
                 <Star className="w-4 h-4 fill-yellow-500" />
-                {tmdbRating ? tmdbRating.toFixed(1) : 'N/A'}
+                {tmdbRating ? tmdbRating.toFixed(1) : 'N/A'} <span className="text-zinc-400 text-[10px] lg:text-xs font-normal">/10</span>
               </span>
             </div>
 
@@ -193,8 +172,28 @@ const MovieDetailsHero = memo(({ movie }) => {
               ))}
             </div>
 
-            <div className="flex items-center justify-center lg:justify-start gap-10 mb-10">
-              <CircularProgress score={finalScore} label="Global Score" color="green" />
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-8 md:gap-10 mb-10 w-full">
+              {uniqueProviders.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <span className="text-xs lg:text-sm text-zinc-400 font-bold uppercase tracking-wider text-center lg:text-left">Available On</span>
+                  <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 lg:gap-3">
+                    {uniqueProviders.map(provider => (
+                      <div 
+                        key={provider.providerId} 
+                        className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl overflow-hidden shadow-lg border border-white/10 hover:scale-110 transition-transform duration-300"
+                        title={provider.providerName}
+                      >
+                        <img 
+                          src={provider.logoUrl} 
+                          alt={provider.providerName}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {overview && (

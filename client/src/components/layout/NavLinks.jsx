@@ -1,11 +1,10 @@
 import { NavLink } from 'react-router-dom';
 
 const NavLinks = ({ isAuthenticated }) => {
-  const baseLinks = [
-    { name: 'Home', path: '/' },
-  ];
+  const baseLinks = [];
 
   const authLinks = [
+    { name: 'Home', path: '/home' },
     { name: 'Movies', path: '/movies' },
     { name: 'Games', path: '/games' },
   ];

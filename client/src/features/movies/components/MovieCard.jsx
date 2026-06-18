@@ -88,7 +88,7 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
             {movie.tmdbRating > 0 && (
               <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md text-indigo-400 px-2.5 py-1 rounded-full text-xs font-bold border border-indigo-500/30 shadow-lg w-fit">
                 <Star className="w-3.5 h-3.5 fill-current" />
-                {(movie.tmdbRating / 2).toFixed(1)}
+                {(movie.tmdbRating).toFixed(1)} <span className="text-[10px] text-indigo-400/70 font-normal">/10</span>
               </div>
             )}
 

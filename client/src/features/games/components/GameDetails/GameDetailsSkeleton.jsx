@@ -1,9 +1,9 @@
-import NavBar from '../../../../components/layout/NavBar';
+
 
 export default function GameDetailsSkeleton() {
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col">
-      <NavBar forceHidden={false} />
+      
       
       {/* Hero Skeleton */}
       <div className="relative w-full min-h-[75vh] lg:h-[100dvh] lg:max-h-screen bg-[#09090b] flex items-center pt-24 pb-32 lg:py-0 overflow-hidden">
@@ -68,3 +68,4 @@ export default function GameDetailsSkeleton() {
     </div>
   );
 }
+

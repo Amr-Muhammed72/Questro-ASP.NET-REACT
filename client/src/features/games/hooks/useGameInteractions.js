@@ -18,7 +18,11 @@ const createOptimisticToggle = (queryClient, gameId, actionType) => {
       const previousStatus = queryClient.getQueryData(['gameInteraction', gameId]);
 
       queryClient.setQueryData(['gameInteraction', gameId], (old) => {
-        if (!old) return old;
+        if (!old) {
+          return {
+            [actionType]: true,
+          };
+        }
         return {
           ...old,
           [actionType]: !old[actionType],
@@ -51,7 +55,7 @@ export const useToggleGameWatchlist = (gameId) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => gameInteractionService.toggleWatchlist(gameId),
-    ...createOptimisticToggle(queryClient, gameId, 'isInWatchlist'),
+    ...createOptimisticToggle(queryClient, gameId, 'isInWishlist'),
   });
 };
 
@@ -59,6 +63,28 @@ export const useRateGame = (gameId) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (stars) => gameInteractionService.rateGame({ gameId, stars }),
+    onMutate: async (stars) => {
+      await queryClient.cancelQueries({ queryKey: ['gameInteraction', gameId] });
+      const previousStatus = queryClient.getQueryData(['gameInteraction', gameId]);
+
+      queryClient.setQueryData(['gameInteraction', gameId], (old) => {
+        if (!old) {
+          return { userRating: stars };
+        }
+        return {
+          ...old,
+          userRating: stars,
+        };
+      });
+
+      return { previousStatus };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousStatus) {
+        queryClient.setQueryData(['gameInteraction', gameId], context.previousStatus);
+      }
+      toast.error('Failed to rate game. Please try again.');
+    },
     onSuccess: () => {
       // Rating removes from wishlist as a side effect
       queryClient.invalidateQueries({ queryKey: ['gameInteraction', gameId] });

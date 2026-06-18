@@ -1,23 +1,38 @@
 import { memo, useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const StaffCard = ({ person }) => {
-  const imageUrl = person.profileUrl || '/fallback-avatar.jpg';
+  const [imgError, setImgError] = useState(false);
+  const showFallback = !person.profileUrl || imgError;
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    const id = person.tmdbId || person.staffId || person.id;
+    if (id) {
+      navigate(`/staff/${id}`);
+    }
+  };
 
   return (
-    <div className="flex-shrink-0 w-36 md:w-44 lg:w-48 flex flex-col group cursor-pointer transition-all duration-300">
-      <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden mb-4 bg-[#11131A] ring-1 ring-white/10 shadow-lg">
-        <img 
-          src={imageUrl} 
-          alt={person.name} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.src = '/fallback-avatar.jpg';
-          }}
-        />
+    <div 
+      onClick={handleClick}
+      className="flex-shrink-0 w-36 md:w-44 lg:w-48 flex flex-col group/card cursor-pointer transition-all duration-300"
+    >
+      <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden mb-4 bg-zinc-800 flex items-center justify-center ring-1 ring-white/10 shadow-lg relative">
+        {!showFallback ? (
+          <img 
+            src={person.profileUrl} 
+            alt={person.name} 
+            className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <User className="w-16 h-16 text-zinc-600 group-hover/card:scale-110 transition-transform duration-500" />
+        )}
       </div>
-      <h5 className="text-base lg:text-lg font-bold text-white line-clamp-1">{person.name}</h5>
+      <h5 className="text-base lg:text-lg font-bold text-white line-clamp-1 group-hover/card:text-indigo-400 transition-colors">{person.name}</h5>
       <p className="text-sm lg:text-base text-zinc-400 line-clamp-2 mt-1 leading-relaxed">
         {person.role || person.department || 'Staff'}
       </p>
