@@ -22,7 +22,7 @@ using Questro.Shared.Options.Rawg;
 using Questro.Shared.Options.Recommender;
 using System.Net;
 using System.Text;
-
+using StackExchange.Redis;
 namespace Questro.Infrastructure;
 
 public static class DependencyInjectionInfrastructure
@@ -150,6 +150,12 @@ public static class DependencyInjectionInfrastructure
         .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(25)))
         .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration["Redis:ConnectionString"];
+            options.InstanceName = "RecommendationApp:";
+        });
+        services.AddHybridCache();
 
         return services;
     }

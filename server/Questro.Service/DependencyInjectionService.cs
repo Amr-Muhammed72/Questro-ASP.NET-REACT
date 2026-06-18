@@ -24,7 +24,9 @@ using Questro.Service.Abstractions.Search;
 using Questro.Service.Services.Search;
 
 using Questro.Shared.Contracts.Email;
-
+using Questro.Service.Services.Games;
+using Questro.Service.Abstractions.Cache;
+using Questro.Service.Services.Cache;
 
 namespace Questro.Service;
 
@@ -35,11 +37,13 @@ public static class DependencyInjectionService
     {
         services.AddHttpClient();
         services.AddMemoryCache();
-
+        
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IExternalLoginServices, ExternalLoginServices>();
         services.AddScoped<IOTPService, OTPService>();
         services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
+        // cache 
+        services.AddSingleton<ICacheService, CacheService>();
 
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IEmailService, EmailService>();

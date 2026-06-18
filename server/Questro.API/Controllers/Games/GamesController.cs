@@ -39,7 +39,7 @@ namespace Questro.API.Controllers.Games
         }
 
         [HttpGet("recently-added")]
-        public async Task<IActionResult> GetRecentlyAdded([FromQuery] int take = 20, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetRecentlyAdded([FromQuery] int take = 10, CancellationToken cancellationToken = default)
         {
             var userId = GetCurrentUserId();
             var result = await _gamesServices.GetRecentlyAddedAsync(take, userId, cancellationToken);
@@ -59,7 +59,7 @@ namespace Questro.API.Controllers.Games
         }
 
         [HttpGet("trending")]
-        public async Task<IActionResult> GetTrending([FromQuery] int take = 20, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetTrending([FromQuery] int take = 10, CancellationToken cancellationToken = default)
         {
             var userId = GetCurrentUserId();
             var result = await _gamesServices.GetTrendingAsync(take, userId, cancellationToken);

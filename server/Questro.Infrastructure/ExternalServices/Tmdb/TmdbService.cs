@@ -114,7 +114,7 @@ public sealed class TmdbService : ITmdbService
         return GetAsync<TmdbGenreListResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.GenreMovieList)}{query}", cancellationToken);
     }
 
-    public Task<TmdbMovieDetailsResponse?> GetMovieDetailsAsync(int tmdbId, CancellationToken cancellationToken = default)
+    public Task<TmdbMovieDetailsResponse?> GetMovieDetailsAsync(int? tmdbId, CancellationToken cancellationToken = default)
     {
         var query = BuildQuery(null);
         return GetAsync<TmdbMovieDetailsResponse>($"{BuildEndpoint($"{TmdbConstants.Endpoints.Movie}/{tmdbId}")}{query}", cancellationToken);
