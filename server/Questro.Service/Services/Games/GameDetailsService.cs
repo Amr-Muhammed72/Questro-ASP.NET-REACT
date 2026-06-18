@@ -34,7 +34,7 @@ public sealed class GameDetailsService : IGameDetailsService
             return Result.Failure<GameDetailsDto>(GameError.InvalidRawgId);
         }
 
-        var localGame = await _gameRepository.GetEntityWithSpecAsync(
+        Game? localGame = await _gameRepository.GetEntityWithSpecAsync(
             new GameDetailsByRawgIdSpecification(rawgId),
             cancellationToken);
 

@@ -67,7 +67,7 @@ public sealed class RecommenderRatingSignal
     public string? Rating { get; set; }
 
     [JsonPropertyName("stars")]
-    public double? Stars { get; set; }
+    public int? Stars { get; set; }
 
     [JsonPropertyName("source")]
     public string? Source { get; set; }
@@ -77,7 +77,7 @@ public sealed class RecommenderRatingSignal
 
 public sealed class RecommenderResponse
 {
-    [JsonPropertyName("count")]
+    [JsonPropertyName(name: "count")]
     public int Count { get; set; }
 
     [JsonPropertyName("total_available")]
@@ -110,6 +110,8 @@ public sealed class RecommenderResponse
 
 public sealed class RecommenderItem
 {
+    [JsonPropertyName("item_id")]
+    public int itemId { get; set; }
     [JsonPropertyName("item_key")]
     public string? ItemKey { get; set; }
 
@@ -122,6 +124,5 @@ public sealed class RecommenderItem
     [JsonPropertyName("score")]
     public double Score { get; set; }
 
-    [JsonPropertyName("external_id")]
-    public int ExternalId { get; set; }
+    
 }
