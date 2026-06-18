@@ -5,7 +5,6 @@ import EditorialPosterGrid from '../components/sections/EditorialPosterGrid';
 import FeatureStrip from '../components/sections/FeatureStrip';
 import { useAuth } from '../features/auth/store/AuthContext';
 import { useHomeMedia } from '../hooks/useHomeMedia';
-
 const HomePage = () => {
   const { isLoggedIn } = useAuth();
   const { trendingMedia, recentlyAddedMedia, isLoading } = useHomeMedia();
