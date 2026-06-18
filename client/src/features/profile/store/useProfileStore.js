@@ -26,6 +26,7 @@ export const useProfileStore = create((set) => ({
   setError: (error) => set({ error }),
 
   clearProfile: () => set({
+    myProfile: null,
     currentProfile: null,
     followStats: null,
     error: null,

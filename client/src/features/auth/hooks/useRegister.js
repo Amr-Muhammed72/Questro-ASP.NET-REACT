@@ -13,8 +13,9 @@ export const useRegister = () => {
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {
-      const errorData = err.response?.data;
-      const errorMessage = errorData?.en || errorData?.description || 'An unexpected error occurred during registration.';
+      // apiClient interceptor returns Promise.reject(error.response?.data || error)
+      const errorData = err.response?.data || err;
+      const errorMessage = errorData?.en || errorData?.description || errorData?.message || 'An unexpected error occurred during registration.';
       const details = errorData?.details || [];
       console.error('Registration error response:', errorData);
       setError({ message: errorMessage, details, code: errorData?.code });
