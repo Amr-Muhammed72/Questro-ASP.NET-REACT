@@ -318,7 +318,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
         // Fallback if Recommender fails or returns no items
         if (recommenderResponse?.Recommendations is null || recommenderResponse.Recommendations.Count == 0)
         {
-            return await GetRecommendedAsync(safeTake, userId, cancellationToken);
+            return await GetTrendingAsync(safeTake, userId, cancellationToken);
         }
 
         // 5. Map Recommender Items to MovieListItemDto
@@ -328,6 +328,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
             if (item.itemId <= 0) continue;
 
             // Optional: Parallelize these calls to TMDB
+            if(item.itemId == null) continue;
             var details = await _tmdbService.GetMovieDetailsAsync(item.itemId, cancellationToken);
             if (details is null) continue;
 
@@ -352,7 +353,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
         if (resultList.Count == 0)
         {
-            return await GetRecommendedAsync(safeTake, userId, cancellationToken);
+            return await GetTrendingAsync(safeTake, userId, cancellationToken);
         }
 
         return Result.Success<IEnumerable<MovieListItemDto>>(resultList);
