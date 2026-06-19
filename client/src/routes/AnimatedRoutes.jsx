@@ -11,6 +11,7 @@ import SurveyCompletionGuard from './guards/SurveyCompletionGuard';
 // Shared wrapper
 import PageTransition from '../components/common/PageTransition';
 import NavBar from '../components/layout/NavBar';
+import Footer from '../components/layout/Footer';
 import Chatbot from '../features/chatbot/components/Chatbot';
 
 // ── Eagerly loaded pages ───────────────────────────────────────────────────
@@ -36,6 +37,7 @@ export default function AnimatedRoutes() {
   
   const hideNavBarPaths = ['/login', '/register', '/forgot-password', '/survey'];
   const isAuthRoute = hideNavBarPaths.includes(location.pathname);
+  const isLandingPage = location.pathname === '/';
 
   return (
     <>
@@ -107,6 +109,7 @@ export default function AnimatedRoutes() {
           </AnimatePresence>
         </Suspense>
       </SurveyCompletionGuard>
+      {!isLandingPage && <Footer />}
     </>
   );
 }

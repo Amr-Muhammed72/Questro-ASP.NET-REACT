@@ -97,12 +97,12 @@ const GlobalSearchDropdown = () => {
   const hasResults = items.length > 0;
 
   return (
-    <div className="relative flex items-center justify-end w-10 h-10" ref={containerRef}>
-      {/* Search Input Container - Absolute positioned to grow leftwards without pushing navbar items */}
+    <div className="relative flex items-center justify-end" ref={containerRef}>
+      {/* Search Input Container - Normal flow to push navbar items smoothly */}
       <motion.div 
         initial={false}
-        animate={{ width: isOpen ? (window.innerWidth < 768 ? 280 : 400) : 40 }}
-        className={`absolute right-0 top-0 flex items-center h-10 rounded-full border overflow-hidden transition-colors z-[60] shadow-lg ${isOpen ? 'bg-[#09090b]/95 backdrop-blur-2xl border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-zinc-800/50 hover:bg-zinc-800/80 border-white/10'}`}
+        animate={{ width: isOpen ? (window.innerWidth < 768 ? 240 : 300) : 40 }}
+        className={`relative flex items-center h-10 rounded-full border overflow-hidden transition-colors z-[60] shadow-lg ${isOpen ? 'bg-[#09090b]/95 backdrop-blur-2xl border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-white/5 hover:bg-white/10 border-white/10'}`}
       >
         <button 
           onClick={() => {

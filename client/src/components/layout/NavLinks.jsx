@@ -1,6 +1,11 @@
-import { NavLink } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 const NavLinks = ({ isAuthenticated }) => {
+  const location = useLocation();
+  const [hoveredPath, setHoveredPath] = useState(null);
+
   const baseLinks = [];
 
   const authLinks = [
@@ -12,23 +17,42 @@ const NavLinks = ({ isAuthenticated }) => {
   const linksToShow = isAuthenticated ? [...baseLinks, ...authLinks] : baseLinks;
 
   return (
-    <ul className="flex items-center space-x-1">
-      {linksToShow.map((link) => (
-        <li key={link.name}>
-          <NavLink
-            to={link.path}
-            className={({ isActive }) =>
-              `px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
-                isActive
-                  ? 'text-indigo-400'
-                  : 'text-zinc-300 hover:text-white hover:bg-zinc-800/50'
-              }`
-            }
-          >
-            {link.name}
-          </NavLink>
-        </li>
-      ))}
+    <ul className="flex items-center space-x-1" onMouseLeave={() => setHoveredPath(null)}>
+      {linksToShow.map((link) => {
+        const isActive = location.pathname.startsWith(link.path);
+        
+        return (
+          <li key={link.name} className="relative z-10">
+            <Link
+              to={link.path}
+              onMouseEnter={() => setHoveredPath(link.path)}
+              className={`relative px-4 py-2 rounded-full font-medium text-sm transition-colors duration-200 block ${
+                isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <span className="relative z-20 tracking-wide">{link.name}</span>
+              
+              {/* Active Indicator */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeNavIndicator"
+                  className="absolute inset-0 bg-white/10 rounded-full"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              
+              {/* Hover Indicator */}
+              {hoveredPath === link.path && !isActive && (
+                <motion.div
+                  layoutId="hoverNavIndicator"
+                  className="absolute inset-0 bg-white/5 rounded-full"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 };
