@@ -28,7 +28,9 @@ public sealed class TmdbService : ITmdbService
     {
         var query = BuildQuery(new Dictionary<string, string?>
         {
-            [TmdbConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture)
+            [TmdbConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.IncludeAdult] = "false",
+            [TmdbConstants.QueryKeys.WithoutKeywords] = TmdbConstants.ContentSafety.BannedKeywordIds
         });
 
         return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.TrendingMovieWeek)}{query}", cancellationToken);
@@ -38,7 +40,9 @@ public sealed class TmdbService : ITmdbService
     {
         var query = BuildQuery(new Dictionary<string, string?>
         {
-            [TmdbConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture)
+            [TmdbConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.IncludeAdult] = "false",
+            [TmdbConstants.QueryKeys.WithoutKeywords] = TmdbConstants.ContentSafety.BannedKeywordIds
         });
 
         return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.NowPlayingMovie)}{query}", cancellationToken);
@@ -57,7 +61,9 @@ public sealed class TmdbService : ITmdbService
             [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language,
             [TmdbConstants.QueryKeys.PrimaryReleaseYear]  = specParams.Year?.ToString(CultureInfo.InvariantCulture),
             [TmdbConstants.QueryKeys.VoteAverageGte]      = specParams.MinRating?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.VoteAverageLte]      = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture)
+            [TmdbConstants.QueryKeys.VoteAverageLte]      = specParams.MaxRating?.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.IncludeAdult]        = "false",
+            [TmdbConstants.QueryKeys.WithoutKeywords]     = TmdbConstants.ContentSafety.BannedKeywordIds
         };
 
         ApplyTmdbContentSafety(queryParams, isChildAccount);
@@ -81,7 +87,9 @@ public sealed class TmdbService : ITmdbService
             [TmdbConstants.QueryKeys.Query]               = specParams.Search,
             [TmdbConstants.QueryKeys.Page]                = (specParams.PageIndex < 1 ? 1 : specParams.PageIndex).ToString(CultureInfo.InvariantCulture),
             [TmdbConstants.QueryKeys.Year]                = specParams.Year?.ToString(CultureInfo.InvariantCulture),
-            [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language
+            [TmdbConstants.QueryKeys.WithOriginalLanguage] = specParams.Language,
+            [TmdbConstants.QueryKeys.IncludeAdult]        = "false",
+            [TmdbConstants.QueryKeys.WithoutKeywords]     = TmdbConstants.ContentSafety.BannedKeywordIds
         };
 
         // Global Shield only — include_adult=false is always applied.
@@ -114,10 +122,24 @@ public sealed class TmdbService : ITmdbService
         return GetAsync<TmdbGenreListResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.GenreMovieList)}{query}", cancellationToken);
     }
 
-    public Task<TmdbMovieDetailsResponse?> GetMovieDetailsAsync(int? tmdbId, CancellationToken cancellationToken = default)
+    public async Task<TmdbMovieDetailsResponse?> GetMovieDetailsAsync(int? tmdbId, CancellationToken cancellationToken = default)
     {
-        var query = BuildQuery(null);
-        return GetAsync<TmdbMovieDetailsResponse>($"{BuildEndpoint($"{TmdbConstants.Endpoints.Movie}/{tmdbId}")}{query}", cancellationToken);
+        var query = BuildQuery(new Dictionary<string, string?>
+        {
+            [TmdbConstants.QueryKeys.AppendToResponse] = "keywords"
+        });
+
+        var response = await GetAsync<TmdbMovieDetailsResponse>($"{BuildEndpoint($"{TmdbConstants.Endpoints.Movie}/{tmdbId}")}{query}", cancellationToken);
+
+        if (response?.Keywords?.Keywords != null)
+        {
+            if (response.Keywords.Keywords.Any(k => TmdbConstants.ContentSafety.BannedKeywordNames.Contains(k.Name)))
+            {
+                return null;
+            }
+        }
+
+        return response;
     }
 
     public Task<TmdbMovieCreditsResponse?> GetMovieCreditsAsync(int tmdbId, CancellationToken cancellationToken = default)
@@ -140,7 +162,9 @@ public sealed class TmdbService : ITmdbService
     {
         var query = BuildQuery(new Dictionary<string, string?>
         {
-            [TmdbConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture)
+            [TmdbConstants.QueryKeys.Page] = page.ToString(CultureInfo.InvariantCulture),
+            [TmdbConstants.QueryKeys.IncludeAdult] = "false",
+            [TmdbConstants.QueryKeys.WithoutKeywords] = TmdbConstants.ContentSafety.BannedKeywordIds
         });
 
         return GetAsync<TmdbPagedMovieResponse>(
@@ -276,6 +300,7 @@ public sealed class TmdbService : ITmdbService
     {
         // ── Global Shield ── always exclude adult content for every user ─────
         queryParams[TmdbConstants.QueryKeys.IncludeAdult] = "false";
+        queryParams[TmdbConstants.QueryKeys.WithoutKeywords] = TmdbConstants.ContentSafety.BannedKeywordIds;
 
         // ── Certification Cap ────────────────────────────────────────────────
         // Child path:  isChildAccount is true.
