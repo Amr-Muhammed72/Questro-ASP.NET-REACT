@@ -22,9 +22,10 @@ using Questro.Service.Services.Social;
 using Questro.Service.Services.Users;
 using Questro.Service.Abstractions.Search;
 using Questro.Service.Services.Search;
+using Questro.Service.Abstractions.RAG;
+using Questro.Service.Services.RAG;
 
 using Questro.Shared.Contracts.Email;
-using Questro.Service.Services.Games;
 using Questro.Service.Abstractions.Cache;
 using Questro.Service.Services.Cache;
 
@@ -66,6 +67,7 @@ public static class DependencyInjectionService
         services.AddScoped<IUserNetworkService, UserNetworkService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IGlobalSearchService, GlobalSearchService>();
+        services.AddScoped<IRagService, RagService>();
         services.AddScoped<NewContentNotificationJob>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionService).Assembly);

@@ -14,12 +14,14 @@ using Questro.Infrastructure.Data;
 using Questro.Infrastructure.ExternalServices.Tmdb;
 using Questro.Infrastructure.ExternalServices.RAWG;
 using Questro.Infrastructure.ExternalServices.Recommender;
+using Questro.Infrastructure.ExternalServices.RAG;
 using Questro.Infrastructure.Repositories;
 using Questro.Shared.Contracts.Email;
 using Questro.Shared.Options.Jwt;
 using Questro.Shared.Options.Tmdb;
 using Questro.Shared.Options.Rawg;
 using Questro.Shared.Options.Recommender;
+using Questro.Shared.Options.Rag;
 using System.Net;
 using System.Text;
 using StackExchange.Redis;
@@ -150,6 +152,28 @@ public static class DependencyInjectionInfrastructure
         .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(25)))
         .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+
+        // ── RAG API ──────────────────────────────────────────────────────────
+        services.AddOptions<RagOptions>()
+            .Bind(configuration.GetSection(RagOptions.SectionName));
+
+        services.AddHttpClient<IRagApiService, RagApiService>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<RagOptions>>().Value;
+            if (Uri.TryCreate(options.Url, UriKind.Absolute, out var baseUri))
+            {
+                client.BaseAddress = baseUri;
+            }
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+        })
+        .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(55)))
+        .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
+        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = configuration["Redis:ConnectionString"];
