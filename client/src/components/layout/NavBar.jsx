@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logoImg from '../../assets/logo.png';
 import NavLinks from './NavLinks';
 import GuestActions from './GuestActions';
@@ -8,12 +8,12 @@ import MobileMenu from './MobileMenu';
 import { useAuth } from '../../features/auth/store/AuthContext';
 import NotificationDropdown from '../../features/notifications/components/NotificationDropdown';
 import GlobalSearchDropdown from '../../features/search/components/GlobalSearchDropdown';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
-  const scrollDebounceTimer = useRef(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isLoggedIn: isAuthenticated } = useAuth();
 
@@ -23,11 +23,10 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
       const scrollDelta = Math.abs(currentScrollY - lastScrollY.current);
       const isAtBottom = window.innerHeight + currentScrollY >= document.documentElement.scrollHeight - 100;
 
-      setIsScrolled(currentScrollY > 50);
+      setIsScrolled(currentScrollY > 20);
 
       // Only update visibility if we've scrolled more than 10px to prevent flickering
       if (scrollDelta > 10) {
-        // Always show navbar at the top or bottom of page
         if (currentScrollY < 50 || isAtBottom) {
           setIsVisible(true);
         } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
@@ -66,60 +65,68 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
 
   return (
     <>
-      <nav
-        className={`fixed top-0 w-full z-[100] py-3 sm:py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-500 ease-out ${
-          (isVisible && !forceHidden) ? 'translate-y-0' : '-translate-y-full'
-        } ${
-          isScrolled ? 'bg-[#09090b]/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)] border-b border-white/5' : 'bg-gradient-to-b from-[#09090b]/90 via-[#09090b]/50 to-transparent border-none'
+      <div 
+        className={`fixed top-0 inset-x-0 z-[100] flex justify-center p-4 sm:p-6 transition-all duration-500 ease-in-out pointer-events-none ${
+          (isVisible && !forceHidden) ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
         }`}
       >
-        {/* Logo and Brand */}
-        <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 group" onClick={handleNavLinkClick}>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-            <img src={logoImg} alt="Questro Logo" className="w-full h-full object-contain drop-shadow-md" />
-          </div>
-          <span className="hidden sm:inline text-xl sm:text-2xl font-bold bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent group-hover:from-white group-hover:to-zinc-300 transition-all duration-200 tracking-wide">
-            Questro
-          </span>
-        </Link>
-
-        {/* Desktop Navigation */}
-        <div className="hidden lg:block flex-1 ml-12">
-          <NavLinks isAuthenticated={isAuthenticated} />
-        </div>
-
-        {/* Desktop Actions */}
-        <div className="hidden lg:flex items-center gap-4">
-          <GlobalSearchDropdown />
-          {isAuthenticated && <NotificationDropdown />}
-          {isAuthenticated ? <UserActions /> : <GuestActions />}
-        </div>
-
-        {/* Mobile Menu Toggle & Search */}
-        <div className="lg:hidden flex items-center gap-2">
-          <GlobalSearchDropdown />
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-lg hover:bg-zinc-800/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-            aria-label="Toggle menu"
-            aria-expanded={isMobileMenuOpen}
-          >
-            <div className="w-6 h-6 flex flex-col justify-center items-center gap-1.5">
-              <span className={`block w-full h-0.5 bg-zinc-100 transition-all duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`block w-full h-0.5 bg-zinc-100 transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0' : ''}`} />
-              <span className={`block w-full h-0.5 bg-zinc-100 transition-all duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+        <nav
+          className={`pointer-events-auto w-full max-w-7xl rounded-full flex justify-between items-center px-4 sm:px-6 py-3 transition-all duration-500 ease-out ${
+            isScrolled 
+              ? 'bg-[#09090b]/80 backdrop-blur-2xl shadow-[0_8px_30px_rgba(0,0,0,0.4)] border border-white/10' 
+              : 'bg-[#09090b]/20 backdrop-blur-lg border border-white/5 shadow-lg'
+          }`}
+        >
+          {/* Logo and Brand */}
+          <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group" onClick={handleNavLinkClick}>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+              <img src={logoImg} alt="Questro Logo" className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
             </div>
-          </button>
-        </div>
-      </nav>
+            <span className="hidden sm:inline text-xl sm:text-2xl font-bold bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent group-hover:from-white group-hover:to-zinc-200 transition-all duration-300 tracking-tight">
+              Questro
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex flex-1 justify-center">
+            <NavLinks isAuthenticated={isAuthenticated} />
+          </div>
+
+          {/* Desktop Actions */}
+          <div className="hidden lg:flex items-center gap-4 justify-end flex-shrink-0 min-w-[200px]">
+            <GlobalSearchDropdown />
+            {isAuthenticated && <NotificationDropdown />}
+            {isAuthenticated ? <UserActions /> : <GuestActions />}
+          </div>
+
+          {/* Mobile Menu Toggle & Search */}
+          <div className="lg:hidden flex items-center gap-3">
+            <GlobalSearchDropdown />
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors duration-200 focus:outline-none ring-1 ring-white/10"
+              aria-label="Toggle menu"
+              aria-expanded={isMobileMenuOpen}
+            >
+              <div className="w-5 h-5 flex flex-col justify-center items-center gap-1.5">
+                <span className={`block w-full h-0.5 bg-zinc-100 rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+                <span className={`block w-full h-0.5 bg-zinc-100 rounded-full transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0' : ''}`} />
+                <span className={`block w-full h-0.5 bg-zinc-100 rounded-full transition-all duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+              </div>
+            </button>
+          </div>
+        </nav>
+      </div>
 
       {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <MobileMenu
-          isAuthenticated={isAuthenticated}
-          onClose={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <MobileMenu
+            isAuthenticated={isAuthenticated}
+            onClose={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

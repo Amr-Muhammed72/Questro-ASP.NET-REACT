@@ -1,9 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../features/auth/store/AuthContext';
-import {authService} from '../../features/auth/api/authService';
+import { authService } from '../../features/auth/api/authService';
 import { useNotificationStore } from '../../features/notifications/store/useNotificationStore';
 import { useProfileStore } from '../../features/profile/store/useProfileStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MobileMenu = ({ isAuthenticated, onClose }) => {
   const navigate = useNavigate();
@@ -39,30 +40,73 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
     onClose();
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1,
+      },
+    },
+    exit: { opacity: 0, transition: { duration: 0.2 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
+  };
+
   return (
-    <div className="fixed inset-0 top-[60px] sm:top-[70px] z-50 bg-black backdrop-blur-md">
-      <div className="bg-zinc-950 border-t border-zinc-800 max-h-[calc(100vh-60px)] sm:max-h-[calc(100vh-70px)] overflow-y-auto flex flex-col">
-        <div className="px-4 py-6 space-y-3 border-b border-zinc-800">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-40 bg-black/80 backdrop-blur-xl flex justify-center items-center p-4"
+    >
+      <div className="absolute top-6 right-6">
+        <button
+          onClick={onClose}
+          className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors duration-200"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="w-full max-w-sm flex flex-col gap-6"
+      >
+        <div className="flex flex-col gap-2">
           {linksToShow.map((link) => (
-            <button
+            <motion.button
               key={link.name}
+              variants={itemVariants}
               onClick={() => handleNavClick(link.path)}
-              className="w-full text-left px-4 py-3 rounded-lg text-zinc-100 font-semibold hover:bg-zinc-800/80 transition-colors duration-200 flex items-center gap-3"
+              className="w-full text-left px-6 py-4 rounded-2xl text-2xl font-bold text-zinc-100 hover:bg-white/10 hover:translate-x-2 transition-all duration-300"
             >
               {link.name}
-            </button>
+            </motion.button>
           ))}
         </div>
 
-        <div className="px-4 py-6 space-y-3">
+        <motion.div variants={itemVariants} className="w-full h-px bg-white/10 my-4" />
+
+        <div className="flex flex-col gap-4">
           {isAuthenticated ? (
-            <>
+            <motion.div variants={itemVariants} className="flex flex-col gap-2">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-zinc-800/50 text-zinc-100 font-semibold hover:bg-zinc-800 transition-colors duration-200"
+                className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 text-zinc-100 font-semibold hover:bg-white/10 transition-colors duration-200"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden ring-1 ring-indigo-500/30">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden ring-2 ring-indigo-500/30">
                     {currentProfile?.profilePicUrl ? (
                       <img 
                         src={`http://localhost:5222${currentProfile.profilePicUrl}?t=${imageUpdateStamp}`} 
@@ -70,69 +114,80 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
                         className="w-full h-full object-cover" 
                       />
                     ) : (
-                      <span className="text-white text-sm font-bold">
+                      <span className="text-white font-bold">
                         {currentProfile?.firstName ? currentProfile.firstName.charAt(0).toUpperCase() : '?'}
                       </span>
                     )}
                   </div>
-                  <span>Profile</span>
+                  <div className="flex flex-col items-start">
+                    <span className="text-lg">{currentProfile?.firstName || 'Profile'}</span>
+                  </div>
                 </div>
-                <svg className={`w-4 h-4 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-5 h-5 transition-transform duration-300 ${isProfileOpen ? 'rotate-180 text-white' : 'text-zinc-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
               </button>
 
-              {isProfileOpen && (
-                <div className="pl-4 space-y-2">
-                  <Link
-                    to="/profile"
-                    onClick={onClose}
-                    className="block px-4 py-3 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors duration-200"
+              <AnimatePresence>
+                {isProfileOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
                   >
-                    View Profile
-                  </Link>
-                  <Link
-                    to="/profile?tab=notifications"
-                    onClick={onClose}
-                    className="flex justify-between items-center px-4 py-3 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors duration-200"
-                  >
-                    <span>Notifications</span>
-                    {unreadCount > 0 && (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors duration-200"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </>
+                    <div className="pl-6 pr-4 py-2 space-y-2 border-l-2 border-white/10 ml-6 mt-2">
+                      <Link
+                        to="/profile"
+                        onClick={onClose}
+                        className="block px-4 py-2 rounded-xl text-lg text-zinc-300 hover:text-white hover:bg-white/5 transition-colors duration-200"
+                      >
+                        View Profile
+                      </Link>
+                      <Link
+                        to="/profile?tab=notifications"
+                        onClick={onClose}
+                        className="flex justify-between items-center px-4 py-2 rounded-xl text-lg text-zinc-300 hover:text-white hover:bg-white/5 transition-colors duration-200"
+                      >
+                        <span>Notifications</span>
+                        {unreadCount > 0 && (
+                          <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-indigo-500 rounded-full">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 rounded-xl text-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors duration-200"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           ) : (
-            <>
+            <motion.div variants={itemVariants} className="flex flex-col gap-3">
               <Link
                 to="/login"
                 onClick={onClose}
-                className="block w-full text-center px-4 py-3 rounded-lg text-zinc-100 font-semibold hover:bg-zinc-800/50 transition-colors duration-200"
+                className="w-full text-center px-6 py-4 rounded-2xl text-lg text-zinc-100 font-semibold hover:bg-white/10 transition-colors duration-200 border border-white/10"
               >
                 Sign In
               </Link>
               <Link
                 to="/register"
                 onClick={onClose}
-                className="block w-full text-center px-4 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold hover:from-indigo-500 hover:to-indigo-400 transition-all duration-200"
+                className="w-full text-center px-6 py-4 rounded-2xl text-lg bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-shadow duration-200"
               >
                 Join Questro
               </Link>
-            </>
+            </motion.div>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
