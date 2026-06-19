@@ -4,16 +4,8 @@ import { ChevronLeft } from 'lucide-react';
 const StaffSkeleton = () => {
   return (
     <div className="min-h-screen bg-zinc-950 text-white relative overflow-hidden font-sans pb-10">
-      {/* ⬅️ BACK BUTTON SKELETON */}
-      <div className="relative z-50 px-6 md:px-16 pt-24">
-        <div className="flex items-center gap-2 text-zinc-700 px-4 py-2 w-fit">
-          <ChevronLeft size={20} />
-          <span className="font-medium text-sm">Back</span>
-        </div>
-      </div>
-
       {/* 🎭 HERO CONTENT SKELETON */}
-      <div className="relative z-10 px-6 md:px-16 mt-8 max-w-7xl mx-auto">
+      <div className="relative z-10 px-6 md:px-16 pt-24 md:pt-32 max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-start animate-pulse">
           
           {/* PROFILE IMAGE SKELETON */}
