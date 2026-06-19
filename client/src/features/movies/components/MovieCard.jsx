@@ -32,8 +32,8 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
   };
 
   return (
-    <Link to={`/movies/${movieId}`} className="flex flex-col group/card cursor-pointer items-center w-full">
-      <div className={`relative flex-shrink-0 hover-pro hover:scale-105 hover:z-30 rounded-xl overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900 ${containerWidthClass} aspect-[2/3] border border-zinc-700/50`}>
+    <Link to={`/movies/${movieId}`} className={`group/card flex flex-col cursor-pointer bg-[#09090b]/60 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 hover:bg-white/5 hover:border-white/20 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-1.5 transition-all duration-500 w-full ${containerWidthClass}`}>
+      <div className={`relative flex-shrink-0 rounded-[1.1rem] overflow-hidden bg-zinc-900 w-full aspect-[2/3] border border-white/5`}>
 
         {displayImage ? (
           <OptimizedImage
@@ -117,19 +117,21 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
               </div>
             )}
 
-            {movie.tmdbVoteCount > 0 && (
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 font-medium mt-1 pt-2 border-t border-white/10">
-                <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                <span>{movie.tmdbVoteCount.toLocaleString()} Votes</span>
+            {Number(movie.rating) > 0 && (
+              <div className="bg-zinc-900/80 backdrop-blur-md px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-1 shadow-lg">
+                <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-500 fill-yellow-500" />
+                <span className="text-xs font-bold text-yellow-500">{Number(movie.rating).toFixed(1)}</span>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      <h4 className={titleClass} title={movie.title}>
-        {movie.title}
-      </h4>
+      <div className="mt-3 mb-2 px-2 flex flex-col items-center justify-center text-center">
+        <h4 className="text-xs sm:text-sm text-zinc-100 font-bold line-clamp-2 leading-snug tracking-wide" title={movie.title}>
+          {movie.title}
+        </h4>
+      </div>
     </Link>
   );
 });

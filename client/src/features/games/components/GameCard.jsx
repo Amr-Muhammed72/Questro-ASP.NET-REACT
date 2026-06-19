@@ -33,8 +33,8 @@ const GameCard = memo(({ game, isRowItem = false, onRemove }) => {
   };
 
   return (
-    <Link to={`/games/${gameId}`} className="flex flex-col group/card cursor-pointer items-center w-full no-underline text-inherit">
-      <div className={`relative flex-shrink-0 hover-pro hover:scale-105 hover:z-30 rounded-xl overflow-hidden bg-zinc-900 ${containerWidthClass} aspect-[2/3] border border-zinc-700/50`}>
+    <Link to={`/games/${gameId}`} className={`group/card flex flex-col cursor-pointer bg-[#09090b]/60 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 hover:bg-white/5 hover:border-white/20 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-1.5 transition-all duration-500 w-full no-underline text-inherit ${containerWidthClass}`}>
+      <div className={`relative flex-shrink-0 rounded-[1.1rem] overflow-hidden bg-zinc-900 w-full aspect-[2/3] border border-white/5`}>
 
         {displayImage ? (
           <OptimizedImage
@@ -81,10 +81,10 @@ const GameCard = memo(({ game, isRowItem = false, onRemove }) => {
 
           {/* Bottom Section */}
           <div className="flex flex-col gap-2 transform translate-y-4 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-300 delay-150">
-            {game.rating > 0 && (
-              <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md text-yellow-400 px-2.5 py-1 rounded-full text-xs font-bold border border-yellow-500/30 shadow-lg w-fit">
-                <Star className="w-3.5 h-3.5 fill-current" />
-                {(game.rating * 2).toFixed(1)} <span className="text-[10px] text-yellow-400/70 font-normal">/10</span>
+            {Number(game.rating) > 0 && (
+              <div className="bg-zinc-900/80 backdrop-blur-md px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-1 shadow-lg w-fit">
+                <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-500 fill-yellow-500" />
+                <span className="text-xs font-bold text-yellow-500">{Number(game.rating).toFixed(1)}</span>
               </div>
             )}
 
@@ -117,9 +117,11 @@ const GameCard = memo(({ game, isRowItem = false, onRemove }) => {
         </div>
       </div>
 
-      <h4 className={titleClass} title={title}>
-        {title}
-      </h4>
+      <div className="mt-3 mb-2 px-2 flex flex-col items-center justify-center text-center">
+        <h4 className="text-xs sm:text-sm text-zinc-100 font-bold line-clamp-2 leading-snug tracking-wide" title={title}>
+          {title}
+        </h4>
+      </div>
     </Link>
   );
 });

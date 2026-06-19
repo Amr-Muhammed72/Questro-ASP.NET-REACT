@@ -63,7 +63,7 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-40 bg-black/80 backdrop-blur-xl flex justify-center items-center p-4"
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex justify-center items-center p-4"
     >
       <div className="absolute top-6 right-6">
         <button

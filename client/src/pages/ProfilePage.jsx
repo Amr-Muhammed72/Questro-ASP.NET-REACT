@@ -13,13 +13,11 @@ import {
 } from '../features/profile/api/profileService';
 import { getToken } from '../lib/apiClient';
 import ProfileHeader from '../features/profile/components/ProfileHeader';
-import ActionButtons from '../features/profile/components/ActionButtons';
 import UserLibraries from '../features/profile/components/UserLibraries';
-import FollowersFollowing from '../features/profile/components/FollowersFollowing';
+import FollowersFollowingModal from '../features/profile/components/FollowersFollowingModal';
 import EditProfileForm from '../features/profile/components/EditProfileForm';
 
-import { AlertCircle } from 'lucide-react';
-import NotificationsTab from '../features/notifications/components/NotificationsTab';
+import NotificationsModal from '../features/notifications/components/NotificationsModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProfilePage() {
@@ -46,6 +44,9 @@ export default function ProfilePage() {
   const [isFollowing, setIsFollowing]   = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showFollowModal, setShowFollowModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [followModalTab, setFollowModalTab] = useState('followers');
   const [isUpdating, setIsUpdating]     = useState(false);
 
   useEffect(() => {
@@ -173,17 +174,26 @@ export default function ProfilePage() {
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="relative min-h-screen font-sans py-10 bg-black/20">
-      <div className="absolute inset-0 -z-10" />
+    <div className="relative min-h-screen font-sans py-10 bg-[#09090b] overflow-x-hidden">
+      {/* Background Starfield */}
+      <div className="star-field">
+        <div className="star-layer" id="stars-small"></div>
+        <div className="star-layer" id="stars-medium"></div>
+        <div className="star-layer" id="stars-large"></div>
+      </div>
       
-      <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible ? 'pt-20' : 'pt-4'}`}>
-        <div className="w-full px-4 md:px-8 lg:px-12">
+      {/* Dynamic Gradients */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none opacity-60 mix-blend-screen z-0" />
+      <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none opacity-60 mix-blend-screen z-0" />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none opacity-50 mix-blend-screen z-0" />
+      
+      <div className={`relative z-10 w-full max-w-[1600px] mx-auto transition-all duration-300 flex flex-col ${isNavVisible ? 'pt-20' : 'pt-4'}`}>
+        <div className="w-full px-4 sm:px-6 md:px-10 lg:px-16">
 
           {error && (
             <div className="mb-6 flex gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <div>
                 <p className="text-red-400 font-medium">Error</p>
                 <p className="text-red-300 text-sm">{error}</p>
@@ -198,53 +208,53 @@ export default function ProfilePage() {
                   user={currentProfile}
                   isOwnProfile={isOwnProfile}
                   followStats={followStats}
-                  onFollowersClick={() => setSearchParams({ tab: 'followers' })}
-                  onFollowingClick={() => setSearchParams({ tab: 'following' })}
+                  onFollowersClick={() => {
+                    setFollowModalTab('followers');
+                    setShowFollowModal(true);
+                  }}
+                  onFollowingClick={() => {
+                    setFollowModalTab('following');
+                    setShowFollowModal(true);
+                  }}
+                  onNotificationsClick={() => setShowNotificationsModal(true)}
+                  isFollowing={isFollowing}
+                  onFollow={handleFollow}
+                  onUnfollow={handleUnfollow}
+                  onEdit={() => setShowEditModal(true)}
+                  isLoading={isLoading || isUpdating}
                 />
               </div>
-
-              <ActionButtons
-                isOwnProfile={isOwnProfile}
-                isFollowing={isFollowing}
-                onFollow={handleFollow}
-                onUnfollow={handleUnfollow}
-                onEdit={() => setShowEditModal(true)}
-                isLoading={isLoading || isUpdating}
-                onViewFollowers={() => setSearchParams({ tab: 'followers' })}
-                onViewFollowing={() => setSearchParams({ tab: 'following' })}
-                onViewLibrary={() => setSearchParams({ tab: 'library' })}
-                onViewNotifications={() => setSearchParams({ tab: 'notifications' })}
-                activeTab={activeTab}
-              />
 
               <div className="mt-8">
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={['notifications', 'followers', 'following'].includes(activeTab) ? activeTab : 'library'}
+                    key="library"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                   >
-                    {activeTab === 'notifications' && isOwnProfile ? (
-                      <NotificationsTab />
-                    ) : activeTab === 'followers' || activeTab === 'following' ? (
-                      <FollowersFollowing
-                        userId={currentProfile?.userId}
-                        isOwnProfile={isOwnProfile}
-                        activeTab={activeTab}
-                      />
-                    ) : (
-                      <UserLibraries
-                        userId={currentProfile?.userId}
-                        isOwnProfile={isOwnProfile}
-                        activeTab={activeTab === 'library' ? 'movie-watchlist' : activeTab}
-                        onTabChange={(tab) => setSearchParams({ tab })}
-                      />
-                    )}
+                    <UserLibraries
+                      userId={currentProfile?.userId}
+                      isOwnProfile={isOwnProfile}
+                      activeTab={activeTab === 'library' ? 'movie-watchlist' : activeTab}
+                      onTabChange={(tab) => setSearchParams({ tab })}
+                    />
                   </motion.div>
                 </AnimatePresence>
               </div>
+
+              <FollowersFollowingModal
+                isOpen={showFollowModal}
+                onClose={() => setShowFollowModal(false)}
+                userId={currentProfile?.userId}
+                initialTab={followModalTab}
+              />
+
+              <NotificationsModal
+                isOpen={showNotificationsModal}
+                onClose={() => setShowNotificationsModal(false)}
+              />
 
               {showEditModal && isOwnProfile && (
                 <EditProfileForm

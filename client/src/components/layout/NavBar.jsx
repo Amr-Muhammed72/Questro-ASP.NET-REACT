@@ -66,7 +66,7 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   return (
     <>
       <div 
-        className={`fixed top-0 inset-x-0 z-[100] flex justify-center p-4 sm:p-6 transition-all duration-500 ease-in-out pointer-events-none ${
+        className={`fixed top-0 inset-x-0 z-40 flex justify-center p-4 sm:p-6 transition-all duration-500 ease-in-out pointer-events-none ${
           (isVisible && !forceHidden) ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
         }`}
       >
