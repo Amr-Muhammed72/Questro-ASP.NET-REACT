@@ -1,12 +1,12 @@
 import { lazy, Suspense } from 'react';
-import { useLocation, Routes, Route, Navigate } from 'react-router-dom';
+import { useLocation, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { useAuth } from '../features/auth/store/AuthContext';
 
 // Route guards
 import GuestRoute from './guards/GuestRoute';
 import ProtectedRoute from './guards/ProtectedRoute';
 import ParentRoute from './guards/ParentRoute';
+import SurveyCompletionGuard from './guards/SurveyCompletionGuard';
 
 // Shared wrapper
 import PageTransition from '../components/common/PageTransition';
@@ -28,90 +28,83 @@ const StaffDetailsPage = lazy(() => import('../pages/StaffDetailsPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const FamilyDashboard = lazy(() => import('../features/family/components/FamilyDashboard').then(module => ({ default: module.FamilyDashboard })));
 const SurveyPage = lazy(() => import('../pages/SurveyPage'));
-
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500" />
-  </div>
-);
+import PageLoader from '../components/common/PageLoader';
 
 export default function AnimatedRoutes() {
   const location = useLocation();
-  const { isLoggedIn } = useAuth();
   
   const hideNavBarPaths = ['/login', '/register', '/forgot-password', '/survey'];
   const isAuthRoute = hideNavBarPaths.includes(location.pathname);
 
-  if (isLoggedIn && localStorage.getItem('justRegistered') === 'true' && location.pathname !== '/survey') {
-    return <Navigate to="/survey" replace />;
-  }
-
   return (
     <>
       {!isAuthRoute && <NavBar />}
-      <Suspense fallback={<PageLoader />}>
-        <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
-        <Routes location={location} key={location.pathname}>
+      <SurveyCompletionGuard>
+        <Suspense fallback={<PageLoader />}>
+          <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
+            <Routes location={location} key={location.pathname}>
 
-          <Route
-            path="/"
-            element={<PageTransition><LandingPage /></PageTransition>}
-          />
-          <Route
-            path="/home"
-            element={<PageTransition><HomePage /></PageTransition>}
-          />
+              <Route
+                path="/"
+                element={<PageTransition><LandingPage /></PageTransition>}
+              />
+              <Route
+                path="/home"
+                element={<PageTransition><HomePage /></PageTransition>}
+              />
 
-          {/* Guest-only */}
-          <Route
-            path="/login"
-            element={<GuestRoute><PageTransition><LoginPage /></PageTransition></GuestRoute>}
-          />
-          <Route
-            path="/register"
-            element={<GuestRoute><PageTransition><RegisterPage /></PageTransition></GuestRoute>}
-          />
-          <Route
-            path="/forgot-password"
-            element={<GuestRoute><PageTransition><ForgotPasswordPage /></PageTransition></GuestRoute>}
-          />
-          <Route
-            path="/survey"
-            element={<ProtectedRoute><PageTransition><SurveyPage /></PageTransition></ProtectedRoute>}
-          />
+              {/* Guest-only */}
+              <Route
+                path="/login"
+                element={<GuestRoute><PageTransition><LoginPage /></PageTransition></GuestRoute>}
+              />
+              <Route
+                path="/register"
+                element={<GuestRoute><PageTransition><RegisterPage /></PageTransition></GuestRoute>}
+              />
+              <Route
+                path="/forgot-password"
+                element={<GuestRoute><PageTransition><ForgotPasswordPage /></PageTransition></GuestRoute>}
+              />
+              
+              {/* Protected Routes */}
+              <Route
+                path="/survey"
+                element={<ProtectedRoute><PageTransition><SurveyPage /></PageTransition></ProtectedRoute>}
+              />
+              <Route
+                path="/movies"
+                element={<ProtectedRoute><PageTransition><MoviesPage /></PageTransition></ProtectedRoute>}
+              />
+              <Route
+                path="/movies/:tmdbId"
+                element={<ProtectedRoute><PageTransition><MovieDetailsPage /></PageTransition></ProtectedRoute>}
+              />
+              <Route
+                path="/games"
+                element={<ProtectedRoute><PageTransition><GamesPage /></PageTransition></ProtectedRoute>}
+              />
+              <Route
+                path="/games/:id"
+                element={<ProtectedRoute><PageTransition><GameDetailsPage /></PageTransition></ProtectedRoute>}
+              />
+              <Route
+                path="/staff/:id"
+                element={<ProtectedRoute><PageTransition><StaffDetailsPage /></PageTransition></ProtectedRoute>}
+              />
+              <Route
+                path="/users/:userId"
+                element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>}
+              />
+              <Route
+                path="/family-management"
+                element={<ParentRoute><PageTransition><FamilyDashboard /></PageTransition></ParentRoute>}
+              />
 
-          <Route
-            path="/movies"
-            element={<ProtectedRoute><PageTransition><MoviesPage /></PageTransition></ProtectedRoute>}
-          />
-          <Route
-            path="/movies/:tmdbId"
-            element={<ProtectedRoute><PageTransition><MovieDetailsPage /></PageTransition></ProtectedRoute>}
-          />
-          <Route
-            path="/games"
-            element={<ProtectedRoute><PageTransition><GamesPage /></PageTransition></ProtectedRoute>}
-          />
-          <Route
-            path="/games/:id"
-            element={<ProtectedRoute><PageTransition><GameDetailsPage /></PageTransition></ProtectedRoute>}
-          />
-          <Route
-            path="/staff/:id"
-            element={<ProtectedRoute><PageTransition><StaffDetailsPage /></PageTransition></ProtectedRoute>}
-          />
-          <Route
-            path="/users/:userId"
-            element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>}
-          />
-          <Route
-            path="/family-management"
-            element={<ParentRoute><PageTransition><FamilyDashboard /></PageTransition></ParentRoute>}
-          />
-
-        </Routes>
-      </AnimatePresence>
-    </Suspense>
+            </Routes>
+          </AnimatePresence>
+        </Suspense>
+      </SurveyCompletionGuard>
     </>
   );
 }

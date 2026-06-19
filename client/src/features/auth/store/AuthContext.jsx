@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { useQueryClient } from '@tanstack/react-query';
 import { useProfileStore } from '../../profile/store/useProfileStore';
 import { useFamilyStore } from '../../family/store/useFamilyStore';
 import { setToken } from '../../../lib/apiClient';
@@ -11,6 +12,7 @@ export const AuthProvider = ({ children }) => {
     return !!localStorage.getItem('accessToken');
   });
   const { clearProfile } = useProfileStore();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -48,6 +50,7 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.clear();
     setToken(null);
     clearProfile();
+    queryClient.clear();
     setIsLoggedIn(false);
     
     // Clear family restrictions on logout

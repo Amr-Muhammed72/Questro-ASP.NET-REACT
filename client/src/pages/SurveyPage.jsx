@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Check, ChevronRight } from 'lucide-react';
+import { AlertCircle, Check, ChevronRight, LogOut } from 'lucide-react';
 import { useSurveyGenres } from '../features/survey/hooks/useSurveyGenres';
 import { useSurveyForm } from '../features/survey/hooks/useSurveyForm';
+import { useAuth } from '../features/auth/store/AuthContext';
 import SurveyStepIndicator from '../features/survey/components/SurveyStepIndicator';
 import MovieGenresStep from '../features/survey/components/MovieGenresStep';
 import GameGenresStep from '../features/survey/components/GameGenresStep';
@@ -11,6 +12,7 @@ import MovieRatingStep from '../features/survey/components/MovieRatingStep';
 import GameRatingStep from '../features/survey/components/GameRatingStep';
 
 export default function SurveyPage() {
+  const { logout } = useAuth();
   const { movieGenres, gameGenres, isLoading: isGenresLoading, error: genresError } = useSurveyGenres();
   const {
     step,
@@ -27,7 +29,16 @@ export default function SurveyPage() {
   const combinedError = genresError || formError;
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 md:p-8 font-sans">
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 md:p-8 font-sans relative">
+      <div className="absolute top-4 right-4 md:top-8 md:right-8">
+        <button 
+          onClick={logout} 
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors border border-zinc-800/50 hover:border-zinc-700"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
+      </div>
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
