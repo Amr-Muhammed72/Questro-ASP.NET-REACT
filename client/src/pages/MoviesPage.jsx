@@ -10,6 +10,7 @@ import { ActiveFiltersBar } from '../components/common/ActiveFiltersBar';
 import BrowseViewWrapper from '../features/movies/components/BrowseViewWrapper';
 import { useMoviesDiscovery } from '../features/movies/hooks/useMoviesDiscovery';
 import SearchView from '../features/movies/components/SearchView';
+import HeroBackground from '../components/ui/HeroBackground';
 
 const MoviesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -111,28 +112,38 @@ const MoviesPage = () => {
   }, [activeView]);
 
   return (
-    <div className="relative min-h-screen font-sans pb-20">
-      <div className="absolute inset-0 bg-black/20 z-0"></div>
+    <div className="relative min-h-screen font-sans pb-20 bg-[#09090b]">
       
-      <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible && !areFiltersOpen ? 'pt-20' : 'pt-4'}`}>
+      <div className="relative z-10 w-full transition-all duration-300 flex flex-col">
 
-        <div className="w-full relative flex flex-col items-center justify-center min-h-[50vh] md:min-h-[60vh] py-12 px-4 overflow-hidden mb-8">
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] "></div>
-          </div>
+        {/* Hero Section Container */}
+        <div className={`w-full relative flex flex-col items-center justify-center min-h-[50vh] md:min-h-[65vh] px-4 overflow-hidden mb-8 ${isNavVisible && !areFiltersOpen ? 'pt-32 pb-16' : 'pt-16 pb-12'}`}>
+          <HeroBackground type="movies" />
 
-          <div className="relative z-10 w-full max-w-4xl flex flex-col items-center mt-[-4rem]">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-2 drop-shadow-2xl text-center leading-tight">
-              Discover The Perfect Movie <br className="hidden sm:block" /> With An Effortless Search And Selection
+          <div className="relative z-10 w-full max-w-4xl flex flex-col items-center mt-[-2rem]">
+            
+            <div className="mb-6 px-5 py-1.5 rounded-full border border-zinc-700/60 bg-zinc-900/60 backdrop-blur-md text-xs font-bold tracking-[0.2em] text-zinc-300 uppercase">
+              Ultimate Movie Library
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 drop-shadow-2xl text-center leading-tight">
+              Discover The Perfect Movie <br className="hidden sm:block" /> With An Effortless Search
             </h1>
+            
+            <p className="text-zinc-300 text-center max-w-2xl text-sm sm:text-base md:text-lg mb-6 drop-shadow-md">
+              Explore thousands of movies tailored to your taste with our powerful filters.
+            </p>
 
             <ActiveFiltersBar searchParams={searchParams} setSearchParams={setSearchParams} />
 
-            <div className="relative w-full max-w-3xl flex flex-col sm:flex-row items-center gap-4 mt-6">
-              <div className="relative w-full">
+            <div className="relative w-full max-w-3xl mt-4">
+              <div className="relative flex items-center w-full bg-zinc-900/80 border border-zinc-700 rounded-full p-1.5 shadow-2xl backdrop-blur-md transition-all focus-within:border-zinc-500">
+                <div className="pl-4 text-zinc-400 pointer-events-none">
+                  <Search className="w-5 h-5" />
+                </div>
                 <input
                   type="text"
-                  placeholder="What are you looking for?"
+                  placeholder="Search for movies, genres..."
                   value={localSearch}
                   onChange={(e) => setLocalSearch(e.target.value)}
                   onKeyDown={(e) => {
@@ -145,15 +156,12 @@ const MoviesPage = () => {
                       });
                     }
                   }}
-                  className="w-full bg-zinc-900/60 border border-zinc-700 rounded-full py-3 sm:py-4 pl-12 pr-12 text-sm sm:text-base md:text-lg text-white placeholder-zinc-500 focus:ring-1 focus:ring-white focus:border-zinc-500 focus:outline-none transition-all backdrop-blur-md"
+                  className="w-full bg-transparent border-none py-3 px-3 text-base md:text-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-0"
                 />
-                <div className="absolute left-4 sm:left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-500 pointer-events-none">
-                  <Search className="w-5 h-5" />
-                </div>
                 {localSearch && (
                   <button
                     onClick={() => setLocalSearch('')}
-                    className="absolute right-4 sm:right-5 top-1/2 transform -translate-y-1/2 rounded-full p-1 hover:bg-zinc-800 transition-colors"
+                    className="mr-2 rounded-full p-1 hover:bg-zinc-800 transition-colors"
                     aria-label="Clear search"
                   >
                     <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -161,15 +169,14 @@ const MoviesPage = () => {
                     </svg>
                   </button>
                 )}
+                <button
+                  onClick={() => setAreFiltersOpen(true)}
+                  className="flex-shrink-0 flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black hover:bg-zinc-200 transition-colors shadow-md"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filters
+                </button>
               </div>
-
-              <button
-                onClick={() => setAreFiltersOpen(true)}
-                className="flex-shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/80 px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold text-zinc-100 hover:bg-zinc-700 hover:border-zinc-500 transition-all"
-              >
-                <SlidersHorizontal className="h-5 w-5" />
-                Filter
-              </button>
             </div>
           </div>
         </div>
