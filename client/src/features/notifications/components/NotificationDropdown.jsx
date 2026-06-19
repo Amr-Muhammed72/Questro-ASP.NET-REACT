@@ -102,7 +102,7 @@ const NotificationDropdown = () => {
       >
         <Bell className="w-5 h-5 text-zinc-300" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+          <span className="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}

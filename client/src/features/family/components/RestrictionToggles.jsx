@@ -1,50 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ShieldAlert } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import movieService from '../../movies/api/movieService';
 import gameService from '../../games/api/gameService';
-
-const movieRatingCaps = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
-// We use integer values (0-5 scale) for maxMetacriticRating
-const gameRatingCaps = [
-  { value: 1, label: 'Poor (1+)' },
-  { value: 2, label: 'Fair (2+)' },
-  { value: 3, label: 'Good (3+)' },
-  { value: 4, label: 'Great (4+)' },
-  { value: 5, label: 'Masterpiece (5)' },
-];
 
 export const RestrictionToggles = ({
   blockedMovieGenreIds = [],
   onChangeBlockedMovieGenres,
   blockedGameGenreIds = [],
   onChangeBlockedGameGenres,
-  maxContentRating,
-  onChangeMaxContentRating,
-  maxMetacriticRating,
-  onChangeMaxMetacriticRating,
 }) => {
-  const [movieGenres, setMovieGenres] = useState([]);
-  const [gameGenres, setGameGenres] = useState([]);
-  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
+  const { data: movieGenres = [], isLoading: isMoviesLoading, error: moviesError } = useQuery({
+    queryKey: ['movieGenres'],
+    queryFn: movieService.getGenres,
+  });
 
-  useEffect(() => {
-    const fetchGenres = async () => {
-      try {
-        const [moviesRes, gamesRes] = await Promise.all([
-          movieService.getGenres(),
-          gameService.getGenres()
-        ]);
-        setMovieGenres(moviesRes || []);
-        setGameGenres(gamesRes || []);
-      } catch (error) {
-        console.error('Failed to fetch genres for restrictions:', error);
-      } finally {
-        setIsLoadingGenres(false);
-      }
-    };
+  const { data: gameGenres = [], isLoading: isGamesLoading, error: gamesError } = useQuery({
+    queryKey: ['gameGenres'],
+    queryFn: gameService.getGenres,
+  });
 
-    fetchGenres();
-  }, []);
+  const isLoadingGenres = isMoviesLoading || isGamesLoading;
+
 
   const toggleMovieGenre = (id) => {
     if (blockedMovieGenreIds.includes(id)) {
@@ -78,9 +55,10 @@ export const RestrictionToggles = ({
         {/* Blocked Movie Genres */}
         <div>
           <h4 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wider">Blocked Movie Genres</h4>
+          {moviesError && <div className="text-red-400 text-sm mb-2">Error loading movie genres: {moviesError.message || 'Unknown error'}</div>}
           <div className="flex flex-wrap gap-2">
-            {isLoadingGenres && <span className="text-sm text-zinc-500">Loading...</span>}
-            {movieGenres.map((genre) => (
+            {isMoviesLoading && <span className="text-sm text-zinc-500">Loading...</span>}
+            {Array.isArray(movieGenres) && movieGenres.map((genre) => (
               <button
                 key={genre.genreId}
                 type="button"
@@ -100,9 +78,10 @@ export const RestrictionToggles = ({
         {/* Blocked Game Genres */}
         <div>
           <h4 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wider">Blocked Game Genres</h4>
+          {gamesError && <div className="text-red-400 text-sm mb-2">Error loading game genres: {gamesError.message || 'Unknown error'}</div>}
           <div className="flex flex-wrap gap-2">
-            {isLoadingGenres && <span className="text-sm text-zinc-500">Loading...</span>}
-            {gameGenres.map((genre) => (
+            {isGamesLoading && <span className="text-sm text-zinc-500">Loading...</span>}
+            {Array.isArray(gameGenres) && gameGenres.map((genre) => (
               <button
                 key={genre.id}
                 type="button"
@@ -118,6 +97,7 @@ export const RestrictionToggles = ({
             ))}
           </div>
         </div>
+
 
       </div>
     </div>
