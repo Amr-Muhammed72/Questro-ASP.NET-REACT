@@ -7,6 +7,7 @@ import UserActions from './UserActions';
 import MobileMenu from './MobileMenu';
 import { useAuth } from '../../features/auth/store/AuthContext';
 import NotificationDropdown from '../../features/notifications/components/NotificationDropdown';
+import GlobalSearchDropdown from '../../features/search/components/GlobalSearchDropdown';
 
 const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -89,12 +90,14 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
 
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-4">
+          <GlobalSearchDropdown />
           {isAuthenticated && <NotificationDropdown />}
           {isAuthenticated ? <UserActions /> : <GuestActions />}
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <div className="lg:hidden flex items-center gap-4">
+        {/* Mobile Menu Toggle & Search */}
+        <div className="lg:hidden flex items-center gap-2">
+          <GlobalSearchDropdown />
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 rounded-lg hover:bg-zinc-800/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"

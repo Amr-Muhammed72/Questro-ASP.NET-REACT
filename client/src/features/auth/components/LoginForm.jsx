@@ -39,11 +39,7 @@ const LoginForm = () => {
       setToken(response.accessToken);
       login(response.accessToken);
 
-      if (localStorage.getItem('justRegistered') === 'true') {
-        navigate('/survey');
-      } else {
-        navigate('/home');
-      }
+      navigate('/home');
     } catch (error) {
       // apiClient interceptor rejects with error.response?.data or error
       const errorData = error.response?.data || error;

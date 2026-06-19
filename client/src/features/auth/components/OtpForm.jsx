@@ -18,8 +18,6 @@ const OtpForm = ({ email, registrationData, onSuccess }) => {
     try {
       let data = await verifyOtp(email, otp, registrationData);
 
-      localStorage.setItem('justRegistered', 'true');
-
       // Auto-login if registrationData has password and we didn't get a token
       if ((!data || !data.accessToken) && registrationData?.password) {
         try {

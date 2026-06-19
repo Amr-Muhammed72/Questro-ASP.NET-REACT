@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { submitSurvey } from '../api/surveyService';
 import { useProfileStore } from '../../profile/store/useProfileStore';
 import { rateMovie } from '../../movies/api/movieInteractionService';
 import { rateGame } from '../../games/api/gameInteractionService';
+import { gameService } from '../../games/api/gameService';
+import { getMovieDetails } from '../../movies/api/movieService';
 
 export const useSurveyForm = () => {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { setMyProfile } = useProfileStore();
 
   const [formData, setFormData] = useState({
@@ -46,22 +51,34 @@ export const useSurveyForm = () => {
         dislikedGameGenres: payload.dislikedGameGenres
       });
       
-      // Submit movie ratings in parallel
+      let ratingsFailed = false;
+
+      // Submit movie ratings in parallel (don't block on error)
       if (formData.movieRatings.length > 0) {
-        await Promise.all(
-          formData.movieRatings.map((rating) => 
-            rateMovie({ movieId: rating.id, stars: rating.stars })
-          )
+        const movieResults = await Promise.allSettled(
+          formData.movieRatings.map(async (rating) => {
+            try { await getMovieDetails(rating.id); } catch(e) { console.error('Failed to sync movie', e); }
+            return rateMovie({ movieId: rating.id, stars: rating.stars });
+          })
         );
+        if (movieResults.some(r => r.status === 'rejected')) ratingsFailed = true;
       }
 
-      // Submit game ratings in parallel
+      // Submit game ratings in parallel (don't block on error)
       if (formData.gameRatings.length > 0) {
-        await Promise.all(
-          formData.gameRatings.map((rating) => 
-            rateGame({ gameId: rating.id, stars: rating.stars })
-          )
+        const gameResults = await Promise.allSettled(
+          formData.gameRatings.map(async (rating) => {
+            try { await gameService.getGameDetails(rating.id); } catch(e) { console.error('Failed to sync game', e); }
+            return rateGame({ gameId: rating.id, stars: rating.stars });
+          })
         );
+        if (gameResults.some(r => r.status === 'rejected')) ratingsFailed = true;
+      }
+      
+      if (ratingsFailed) {
+        toast.warning('Survey completed, but some ratings failed to save.');
+      } else {
+        toast.success('Survey completed successfully!');
       }
       
       if (updatedProfileResponse && updatedProfileResponse.isSuccess) {
@@ -70,7 +87,7 @@ export const useSurveyForm = () => {
         setMyProfile(updatedProfileResponse.data);
       }
       
-      localStorage.removeItem('justRegistered');
+      queryClient.invalidateQueries({ queryKey: ['surveyCompletionStatus'] });
       navigate('/home');
     } catch (err) {
       console.error(err);
@@ -90,7 +107,7 @@ export const useSurveyForm = () => {
   const isStepValid = () => {
     if (step === 1) return formData.likedMovieGenres.length >= 1 && formData.likedMovieGenres.length <= 3 && formData.dislikedMovieGenres.length <= 3;
     if (step === 2) return formData.likedGameGenres.length >= 1 && formData.likedGameGenres.length <= 3 && formData.dislikedGameGenres.length <= 3;
-    if (step === 3) return formData.country !== '';
+    if (step === 3) return true; // Country is optional
     if (step === 4) return formData.movieRatings.length >= 2;
     if (step === 5) return formData.gameRatings.length >= 2;
     return true;

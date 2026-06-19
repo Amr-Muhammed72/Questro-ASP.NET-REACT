@@ -229,15 +229,9 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
                     <div className="flex flex-wrap items-center gap-4">
                       <Link
                         to={`/${activeItem.type === 'movie' ? 'movies' : 'games'}/${activeItem.linkId}`}
-                        className="group flex items-center gap-2.5 px-8 py-3.5 bg-white text-black font-bold rounded-full hover:bg-zinc-200 transition-all shadow-lg hover:-translate-y-0.5"
+                        className="group flex items-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-full hover:from-indigo-400 hover:to-purple-500 transition-all shadow-[0_8px_20px_-6px_rgba(99,102,241,0.6)] hover:shadow-[0_12px_25px_-6px_rgba(99,102,241,0.8)] hover:-translate-y-0.5"
                       >
-                        <Play className="w-4 h-4 fill-current" /> Play Trailer
-                      </Link>
-                      <Link
-                        to={`/${activeItem.type === 'movie' ? 'movies' : 'games'}/${activeItem.linkId}`}
-                        className="flex items-center gap-2.5 px-8 py-3.5 bg-zinc-800/60 text-white backdrop-blur-md font-medium rounded-full hover:bg-zinc-700/80 transition-all border border-white/10 hover:border-white/20"
-                      >
-                        <Info className="w-4 h-4" /> More Info
+                        <Info className="w-5 h-5" /> More Info
                       </Link>
                     </div>
                   </motion.div>

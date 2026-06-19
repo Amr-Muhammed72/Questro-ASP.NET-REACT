@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../features/auth/store/AuthContext';
 import { Gamepad2, Film, Shield, ChevronRight, Star } from 'lucide-react';
-import { useHomeMedia } from '../hooks/useHomeMedia';
+import { useHomeMedia } from '../features/home/hooks/useHomeMedia';
 
 const LandingPage = () => {
   const navigate = useNavigate();

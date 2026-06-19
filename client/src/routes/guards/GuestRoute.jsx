@@ -5,9 +5,6 @@ const GuestRoute = ({ children }) => {
   const { isLoggedIn } = useAuth();
   
   if (isLoggedIn) {
-    if (localStorage.getItem('justRegistered') === 'true') {
-      return <Navigate to="/survey" replace />;
-    }
     return <Navigate to="/home" replace />;
   }
   

@@ -55,6 +55,15 @@ export const gameService = {
   },
 
   /**
+   * Fetch personalised recommendations for the authenticated user
+   */
+  getRecommendedForMe: async (params = {}) => {
+    const response = await apiClient.get('/Games/recommended-for-me', { params });
+    // Parse games as a paged response: result.data
+    return response.data?.data || [];
+  },
+
+  /**
    * Discover games with filters and pagination
    * @param {Object} filters - Filter parameters (search, genreId, platformId, year, minRating, maxRating, sort)
    * @param {number} pageIndex
