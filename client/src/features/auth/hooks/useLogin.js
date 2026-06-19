@@ -13,13 +13,13 @@ export const useLogin = () => {
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {
-      const errorData = err.response?.data;
-      let errorMessage = errorData?.en || errorData?.description || 'Invalid email or password.';
+      const errorData = err.response?.data || err;
+      let errorMessage = errorData?.en || errorData?.description || errorData?.message || 'Invalid email or password.';
       
       if (errorData?.code === 'User.LockedOut') {
         errorMessage = 'Your account has been locked. Please try again later.';
       } else if (errorData?.code === 'User.InvalidCredentials') {
-        errorMessage = 'Authentication failed. Please check your credentials.';
+        errorMessage = errorData?.en || 'Authentication failed. Please check your credentials.';
       }
       
       setError({ message: errorMessage, code: errorData?.code });

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { useLocation, Routes, Route } from 'react-router-dom';
+import { useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { useAuth } from '../features/auth/store/AuthContext';
 
 // Route guards
 import GuestRoute from './guards/GuestRoute';
@@ -19,9 +20,6 @@ import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 
-// ── Lazily loaded pages ────────────────────────────────────────────────────
-// Heavy feature pages — downloaded only when the user navigates to them.
-// Vite will create separate JS chunks for each, keeping the initial bundle small.
 const MoviesPage  = lazy(() => import('../pages/MoviesPage'));
 const MovieDetailsPage = lazy(() => import('../pages/MovieDetailsPage'));
 const GamesPage   = lazy(() => import('../pages/GamesPage'));
@@ -29,8 +27,8 @@ const GameDetailsPage = lazy(() => import('../pages/GameDetailsPage'));
 const StaffDetailsPage = lazy(() => import('../pages/StaffDetailsPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const FamilyDashboard = lazy(() => import('../features/family/components/FamilyDashboard').then(module => ({ default: module.FamilyDashboard })));
+const SurveyPage = lazy(() => import('../pages/SurveyPage'));
 
-// ── Full-page loading fallback ─────────────────────────────────────────────
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-zinc-950">
     <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500" />
@@ -39,19 +37,22 @@ const PageLoader = () => (
 
 export default function AnimatedRoutes() {
   const location = useLocation();
-  const hideNavBarPaths = ['/login', '/register', '/forgot-password'];
+  const { isLoggedIn } = useAuth();
+  
+  const hideNavBarPaths = ['/login', '/register', '/forgot-password', '/survey'];
   const isAuthRoute = hideNavBarPaths.includes(location.pathname);
+
+  if (isLoggedIn && localStorage.getItem('justRegistered') === 'true' && location.pathname !== '/survey') {
+    return <Navigate to="/survey" replace />;
+  }
 
   return (
     <>
       {!isAuthRoute && <NavBar />}
-      {/* Suspense must wrap AnimatePresence so lazy chunks have a fallback
-          while they are being fetched. */}
       <Suspense fallback={<PageLoader />}>
         <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
         <Routes location={location} key={location.pathname}>
 
-          {/* Public */}
           <Route
             path="/"
             element={<PageTransition><LandingPage /></PageTransition>}
@@ -74,8 +75,11 @@ export default function AnimatedRoutes() {
             path="/forgot-password"
             element={<GuestRoute><PageTransition><ForgotPasswordPage /></PageTransition></GuestRoute>}
           />
+          <Route
+            path="/survey"
+            element={<ProtectedRoute><PageTransition><SurveyPage /></PageTransition></ProtectedRoute>}
+          />
 
-          {/* Protected — lazy-loaded */}
           <Route
             path="/movies"
             element={<ProtectedRoute><PageTransition><MoviesPage /></PageTransition></ProtectedRoute>}
