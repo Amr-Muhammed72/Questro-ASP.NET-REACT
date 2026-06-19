@@ -45,4 +45,22 @@ public sealed class TmdbMovieDetailsResponse
 
     [JsonPropertyName("genres")]
     public List<TmdbGenreDto> Genres { get; set; } = new();
+
+    [JsonPropertyName("keywords")]
+    public TmdbKeywordsResponse? Keywords { get; set; }
+}
+
+public sealed class TmdbKeywordsResponse
+{
+    [JsonPropertyName("keywords")]
+    public List<TmdbKeywordDto> Keywords { get; set; } = new();
+}
+
+public sealed class TmdbKeywordDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
 }

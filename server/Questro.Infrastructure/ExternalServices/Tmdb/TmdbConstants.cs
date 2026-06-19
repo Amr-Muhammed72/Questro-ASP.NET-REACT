@@ -34,6 +34,24 @@ internal static class TmdbConstants
         // Child Shield — certification filter (Discover only)
         public const string CertificationCountry = "certification_country";
         public const string CertificationLte = "certification.lte";
+        public const string WithoutKeywords = "without_keywords";
+        public const string AppendToResponse = "append_to_response";
+    }
+
+    internal static class ContentSafety
+    {
+        public const string BannedKeywordIds = "156343,190453,161176,104514,163013,10036";
+        public static readonly HashSet<string> BannedKeywordNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "softcore",
+            "intimacy",
+            "unsimulated sex",
+            "erotica",
+            "porn",
+            "pornography",
+            "sex",
+            "adult film"
+        };
     }
 
     internal static class QueryValues
