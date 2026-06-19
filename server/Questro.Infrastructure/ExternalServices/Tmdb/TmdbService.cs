@@ -24,7 +24,7 @@ public sealed class TmdbService : ITmdbService
         _logger = logger;
     }
 
-    public Task<TmdbPagedMovieResponse?> GetTrendingMoviesWeekAsync(int page = 1, CancellationToken cancellationToken = default)
+    public async Task<TmdbPagedMovieResponse?> GetTrendingMoviesWeekAsync(int page = 1, CancellationToken cancellationToken = default)
     {
         var query = BuildQuery(new Dictionary<string, string?>
         {
@@ -33,10 +33,11 @@ public sealed class TmdbService : ITmdbService
             [TmdbConstants.QueryKeys.WithoutKeywords] = TmdbConstants.ContentSafety.BannedKeywordIds
         });
 
-        return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.TrendingMovieWeek)}{query}", cancellationToken);
+        var response = await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.TrendingMovieWeek)}{query}", cancellationToken);
+        return FilterBannedMovies(response);
     }
 
-    public Task<TmdbPagedMovieResponse?> GetNowPlayingMoviesAsync(int page = 1, CancellationToken cancellationToken = default)
+    public async Task<TmdbPagedMovieResponse?> GetNowPlayingMoviesAsync(int page = 1, CancellationToken cancellationToken = default)
     {
         var query = BuildQuery(new Dictionary<string, string?>
         {
@@ -45,7 +46,8 @@ public sealed class TmdbService : ITmdbService
             [TmdbConstants.QueryKeys.WithoutKeywords] = TmdbConstants.ContentSafety.BannedKeywordIds
         });
 
-        return GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.NowPlayingMovie)}{query}", cancellationToken);
+        var response = await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.NowPlayingMovie)}{query}", cancellationToken);
+        return FilterBannedMovies(response);
     }
 
     public async Task<TmdbPagedMovieResponse?> DiscoverMoviesAsync(
@@ -69,7 +71,8 @@ public sealed class TmdbService : ITmdbService
         ApplyTmdbContentSafety(queryParams, isChildAccount);
 
         var query = BuildQuery(queryParams);
-        return await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.DiscoverMovie)}{query}", cancellationToken);
+        var response = await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.DiscoverMovie)}{query}", cancellationToken);
+        return FilterBannedMovies(response);
     }
 
     public async Task<TmdbPagedMovieResponse?> SearchMoviesAsync(
@@ -97,7 +100,8 @@ public sealed class TmdbService : ITmdbService
         ApplyTmdbContentSafety(queryParams, isChildAccount);
 
         var query = BuildQuery(queryParams);
-        return await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchMovie)}{query}", cancellationToken);
+        var response = await GetAsync<TmdbPagedMovieResponse>($"{BuildEndpoint(TmdbConstants.Endpoints.SearchMovie)}{query}", cancellationToken);
+        return FilterBannedMovies(response);
     }
 
     public async Task<TmdbPagedPersonResponse?> SearchPersonsAsync(
@@ -131,6 +135,11 @@ public sealed class TmdbService : ITmdbService
 
         var response = await GetAsync<TmdbMovieDetailsResponse>($"{BuildEndpoint($"{TmdbConstants.Endpoints.Movie}/{tmdbId}")}{query}", cancellationToken);
 
+        if (response != null && TmdbConstants.ContentSafety.BannedMovieIds.Contains(response.Id))
+        {
+            return null;
+        }
+
         if (response?.Keywords?.Keywords != null)
         {
             if (response.Keywords.Keywords.Any(k => TmdbConstants.ContentSafety.BannedKeywordNames.Contains(k.Name)))
@@ -158,7 +167,7 @@ public sealed class TmdbService : ITmdbService
             cancellationToken);
     }
 
-    public Task<TmdbPagedMovieResponse?> GetSimilarMoviesAsync(int tmdbId, int page = 1, CancellationToken cancellationToken = default)
+    public async Task<TmdbPagedMovieResponse?> GetSimilarMoviesAsync(int tmdbId, int page = 1, CancellationToken cancellationToken = default)
     {
         var query = BuildQuery(new Dictionary<string, string?>
         {
@@ -167,9 +176,10 @@ public sealed class TmdbService : ITmdbService
             [TmdbConstants.QueryKeys.WithoutKeywords] = TmdbConstants.ContentSafety.BannedKeywordIds
         });
 
-        return GetAsync<TmdbPagedMovieResponse>(
+        var response = await GetAsync<TmdbPagedMovieResponse>(
             $"{BuildEndpoint($"{TmdbConstants.Endpoints.Movie}/{tmdbId}/{TmdbConstants.Endpoints.Similar}")}{query}",
             cancellationToken);
+        return FilterBannedMovies(response);
     }
 
     public Task<TmdbMovieWatchProvidersResponse?> GetMovieWatchProvidersAsync(int tmdbId, CancellationToken cancellationToken = default)
@@ -194,6 +204,16 @@ public sealed class TmdbService : ITmdbService
         return GetAsync<TmdbPersonMovieCreditsResponse>(
             $"{BuildEndpoint($"{TmdbConstants.Endpoints.Person}/{tmdbId}/{TmdbConstants.Endpoints.Credits}")}{query}",
             cancellationToken);
+    }
+
+    private static TmdbPagedMovieResponse? FilterBannedMovies(TmdbPagedMovieResponse? response)
+    {
+        if (response?.Results != null)
+        {
+            response.Results.RemoveAll(m => TmdbConstants.ContentSafety.BannedMovieIds.Contains(m.Id));
+        }
+
+        return response;
     }
 
     private async Task<T?> GetAsync<T>(string pathAndQuery, CancellationToken cancellationToken)
