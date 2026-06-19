@@ -13,5 +13,5 @@ public interface IMovieInteractionService
     Task<Result<MovieReviewDto>> AddReviewAsync(int tmdbId, long userId, string body, CancellationToken cancellationToken = default);
     Task<Result<MovieReviewDto>> UpdateReviewAsync(int tmdbId, long userId, string body, CancellationToken cancellationToken = default);
     Task<Result<bool>> DeleteReviewAsync(int tmdbId, long userId, CancellationToken cancellationToken = default);
-    Task<Result<MovieInteractionStatusDto>> MarkWatchedAsync(int tmdbId, long userId, CancellationToken cancellationToken = default);
+    Task<Result<MovieInteractionStatusDto>> ToggleWatchedAsync(int tmdbId, long userId, CancellationToken cancellationToken = default);
 }

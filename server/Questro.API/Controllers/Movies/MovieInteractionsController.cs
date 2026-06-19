@@ -97,7 +97,7 @@ public class MovieInteractionsController : ControllerBase
     }
 
     [HttpPost("{movieId:int}/watched")]
-    public async Task<IActionResult> MarkWatched([FromRoute] int movieId, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> ToggleWatched([FromRoute] int movieId, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue)
@@ -105,7 +105,7 @@ public class MovieInteractionsController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _movieInteractionService.MarkWatchedAsync(movieId, userId.Value, cancellationToken);
+        var result = await _movieInteractionService.ToggleWatchedAsync(movieId, userId.Value, cancellationToken);
         if (result.IsFailure)
         {
             var errorResponse = new

@@ -392,7 +392,7 @@ public sealed class MovieInteractionService : IMovieInteractionService
         return Result.Success(true);
     }
 
-    public async Task<Result<MovieInteractionStatusDto>> MarkWatchedAsync(int tmdbId, long userId, CancellationToken cancellationToken = default)
+    public async Task<Result<MovieInteractionStatusDto>> ToggleWatchedAsync(int tmdbId, long userId, CancellationToken cancellationToken = default)
     {
         if (userId <= 0)
         {
@@ -412,7 +412,19 @@ public sealed class MovieInteractionService : IMovieInteractionService
 
         var movie = ensureLocalMovieResult.Value;
 
-        await EnsureWatchedAndCleanupWatchlistAsync(userId, movie.MovieId, cancellationToken);
+        var existingWatched = await _userMovieWatchedRepository.GetEntityWithSpecAsync(
+            new UserMovieWatchedByUserAndMovieSpecification(userId, movie.MovieId),
+            cancellationToken);
+
+        if (existingWatched is null)
+        {
+            await EnsureWatchedAndCleanupWatchlistAsync(userId, movie.MovieId, cancellationToken);
+        }
+        else
+        {
+            _userMovieWatchedRepository.Remove(existingWatched);
+        }
+
         await _unitOfWork.CompleteAsync(cancellationToken);
         await TriggerGamificationCheckAsync(userId);
 
