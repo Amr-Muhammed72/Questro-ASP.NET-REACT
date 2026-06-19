@@ -4,9 +4,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useProfileStore } from '../../profile/store/useProfileStore';
 import { getMyProfile } from '../../profile/api/profileService';
+import NotificationsModal from './NotificationsModal';
 
 const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [userId, setUserId] = useState(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -107,9 +109,9 @@ const NotificationDropdown = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-zinc-900/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-          <div className="p-4 border-b border-white/10 bg-zinc-900/50">
-            <h3 className="text-lg font-semibold text-white">Notifications</h3>
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-[32px] bg-[#09090b]/80 backdrop-blur-2xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.4)] overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-5 border-b border-white/5 bg-[#09090b]/40">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent">Notifications</h3>
           </div>
           
           <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -122,7 +124,7 @@ const NotificationDropdown = () => {
                     className={`relative p-4 cursor-pointer transition-all duration-200 flex gap-4 ${
                       !notification.isRead 
                         ? 'bg-purple-500/10 hover:bg-purple-500/20 shadow-[inset_4px_0_0_0_rgba(168,85,247,1)]' 
-                        : 'hover:bg-zinc-800/50'
+                        : 'bg-white/[0.01] hover:bg-white/[0.05]'
                     }`} 
                   >
                     <div className="flex-shrink-0 mt-1 relative">
@@ -158,23 +160,24 @@ const NotificationDropdown = () => {
             )}
           </div>
           
-          <div className="p-3 border-t border-white/10 bg-zinc-900/80 mt-auto">
-            <Link
-              to={`/users/${userId || ''}?tab=notifications`}
-              onClick={(e) => {
-                if (!userId) {
-                  e.preventDefault();
-                  return;
-                }
+          <div className="p-3 border-t border-white/5 bg-[#09090b]/40 mt-auto">
+            <button
+              onClick={() => {
                 setIsOpen(false);
+                setIsModalOpen(true);
               }}
-              className="block w-full text-center py-2 text-sm font-bold text-purple-400 hover:text-purple-300 hover:bg-white/5 rounded-lg transition-colors"
+              className="block w-full text-center py-2 text-sm font-bold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-2xl transition-colors active:scale-95"
             >
               View All Notifications
-            </Link>
+            </button>
           </div>
         </div>
       )}
+
+      <NotificationsModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </div>
   );
 };

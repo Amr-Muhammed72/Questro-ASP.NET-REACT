@@ -200,21 +200,30 @@ const UserLibraries = memo(({ userId, isOwnProfile = false, activeTab: initialTa
     <div className="space-y-6">
       {/* Section Title + Tabs */}
       <div>
-        <h2 className="text-2xl font-bold text-white mb-4">My Collections</h2>
-        <div className="flex flex-wrap gap-2">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30'
-                  : 'bg-zinc-900/60 border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800/60 hover:border-indigo-500/30'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">My Collections</h2>
+        <div className="flex flex-wrap items-center gap-6 border-b border-white/5">
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`relative pb-4 text-sm font-semibold transition-colors ${
+                  isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {tab.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
