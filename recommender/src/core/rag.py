@@ -3,7 +3,6 @@ import json
 import os
 import numpy as np
 import torch 
-from .util import normalize_text
 from sentence_transformers import SentenceTransformer
 import sqlite3
 
@@ -85,12 +84,10 @@ class CrossDomainRAGIndex:
     def retrieve(self, query: str, top_k: int = 5, blocked_genres: list = None, allow_adult: bool = False) -> list:
         """Retrieves the top_k most similar items to the user's query, applying local filters."""
         
-        clean_query = normalize_text(query)
-        
-        if isinstance(clean_query, list):
-            clean_query = " ".join([str(item) for item in clean_query])
+        if isinstance(query, list):
+            clean_query = " ".join([str(item) for item in query])
         else:
-            clean_query = str(clean_query)
+            clean_query = str(query)
         
         query_embedding = self.model.encode([clean_query], convert_to_numpy=True)
         query_embedding = np.atleast_2d(query_embedding).astype(np.float32)
