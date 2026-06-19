@@ -249,6 +249,10 @@ INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\librarie
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\libraries\pgflibraryarrows.code.tex
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\frontendlayer\tikz\libraries\tikzlibrarypositioning.code.tex
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\frontendlayer\tikz\libraries\tikzlibrarypositioning.code.tex
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\frontendlayer\tikz\libraries\tikzlibraryfit.code.tex
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\frontendlayer\tikz\libraries\tikzlibraryfit.code.tex
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\frontendlayer\tikz\libraries\tikzlibrarybackgrounds.code.tex
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\generic\pgf\frontendlayer\tikz\libraries\tikzlibrarybackgrounds.code.tex
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\latex\listings\listings.sty
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\latex\listings\listings.sty
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\tex\latex\listings\lstpatch.sty
@@ -731,6 +735,9 @@ INPUT .\chapters\chapter6.tex
 INPUT .\chapters\chapter6.tex
 INPUT chapters\chapter6.tex
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmtt12.tfm
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\amsfonts\cmextra\cmex7.tfm
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\amsfonts\symbols\msam5.tfm
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\amsfonts\symbols\msbm5.tfm
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmbx10.tfm
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmbx7.tfm
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmbx8.tfm
@@ -741,6 +748,8 @@ INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmsy
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmex10.tfm
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\amsfonts\symbols\msam10.tfm
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\amsfonts\symbols\msbm10.tfm
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmtt10.tfm
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmbx5.tfm
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmtt10.tfm
 INPUT .\chapters\chapter7.tex
 INPUT .\chapters\chapter7.tex
@@ -774,6 +783,8 @@ INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfo
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr10.pfb
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr12.pfb
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr12.pfb
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr7.pfb
+INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr7.pfb
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr8.pfb
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr8.pfb
 INPUT C:\Users\bluocaroot\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmsy10.pfb

@@ -83,6 +83,85 @@ Microsoft SQL Server 2022 is the system of record, accessed through EF Core 8 us
 \label{sec:recommender_impl}
 The recommender is the analytical centerpiece of Questro. It is implemented as a standalone Python service that loads a pre-trained PyTorch model once at start-up and serves stateless inference requests over HTTP. The model, \textbf{CL-EPIDTN} (Contrastive Learning-Enhanced Personalized Interaction Dual Tower Network), is a dual-tower neural architecture trained with a multi-objective contrastive criterion over a unified cross-domain corpus. Its design is heavily inspired by the contrastive dual-tower recommender of Yang \textit{et al.}~\cite{yang2025clepidtn}, which we adapt and extend to Questro's cross-domain movie--game setting. The end-to-end model is depicted in Figure~\ref{fig:clepidtn_architecture}; the service topology is shown in Figure~\ref{fig:questro_api_architecture}.
 
+\subsection{Data-Flow Overview}
+\label{sec:clepidtn_dataflow_sec}
+Figure~\ref{fig:clepidtn_dataflow} traces a single record from its raw source all the way to a served recommendation, organized into four processing stages.
+
+\textbf{(1)~Preprocessing} ingests the raw interaction logs and keeps only positive, learnable signal: MovieLens ratings are filtered to $\geq 3.5$ stars and Steam rows to recommended titles with at least one hour played; items with fewer than five interactions are pruned as noise; every $(\text{user},\text{item})$ pair is deduplicated to its most recent event; the resulting per-user event stream is cut into left-padded sequences of length~30; and a leakage-resistant temporal split reserves each user's last and penultimate events for testing and validation.
+
+\textbf{(2)~Enrichment and encoding} joins each item to its TMDB or RAWG metadata, back-fills plot overviews from the TMDB API, compiles the per-item token string (genre, genre-bridge, tag, description, and title tokens), flags adult content, and encodes every item's combined text into a 384-dimensional MiniLM embedding.
+
+\textbf{(3)~Model training} feeds the prepared sequences through the dual-tower network and optimizes the combined InfoNCE\,$+$\,SSL\,$+$\,AMM objective for ten epochs under a one-cycle learning-rate schedule.
+
+\textbf{(4)~Inference and serving} runs the trained item tower over the entire catalogue to materialize the dense item index, converts an incoming user profile into signed interaction weights, scores candidates by the user--item inner product augmented with the content, text, and title boosts, and finally applies genre filtering, the title-family boost, and reciprocal-rank fusion with the collaborative-filtering channel before returning the top-$k$ list. The subsections that follow detail each of these stages in turn.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\footnotesize,
+        dfbox/.style={rectangle, rounded corners, draw, fill=blue!5, align=center, text width=2.7cm, minimum height=1.35cm, inner sep=3pt},
+        hd/.style={font=\bfseries},
+        grp/.style={rectangle, rounded corners, draw, thick, inner sep=5mm},
+        flow/.style={->, >=stealth, very thick},
+        hstep/.style={->, >=stealth},
+    ]
+        \node[cylinder, shape border rotate=90, aspect=0.25, draw, fill=blue!12, align=center, text width=2.6cm, minimum height=1.2cm] (src) at (0,1.5) {Cross-Domain Sources};
+
+        % Stage 1: Preprocessing
+        \node[hd] (ha) at (0,-1.1) {Preprocessing};
+        \node[dfbox] (a1) at (-6.6,-2.1) {Filter \& clean};
+        \node[dfbox] (a2) at (-3.3,-2.1) {Prune sparse items};
+        \node[dfbox] (a3) at (0,-2.1) {Deduplicate};
+        \node[dfbox] (a4) at (3.3,-2.1) {Build sequences (len.\ 30)};
+        \node[dfbox] (a5) at (6.6,-2.1) {Temporal split};
+        \foreach \i/\j in {a1/a2,a2/a3,a3/a4,a4/a5} \draw[hstep] (\i.east) -- (\j.west);
+
+        % Stage 2: Enrichment & Encoding
+        \node[hd] (hb) at (0,-5.0) {Enrichment \& Encoding};
+        \node[dfbox] (b1) at (-6.6,-6.0) {HF metadata join};
+        \node[dfbox] (b2) at (-3.3,-6.0) {TMDB overviews};
+        \node[dfbox] (b3) at (0,-6.0) {Token strings};
+        \node[dfbox] (b4) at (3.3,-6.0) {Adult flagging};
+        \node[dfbox] (b5) at (6.6,-6.0) {MiniLM text embeddings};
+        \foreach \i/\j in {b1/b2,b2/b3,b3/b4,b4/b5} \draw[hstep] (\i.east) -- (\j.west);
+
+        % Stage 3: Model Training
+        \node[hd] (hc) at (0,-8.9) {Model Training};
+        \node[dfbox] (c1) at (-4.95,-9.9) {User tower (Transformer)};
+        \node[dfbox] (c2) at (-1.65,-9.9) {Item tower};
+        \node[dfbox] (c3) at (1.65,-9.9) {Loss: InfoNCE, SSL, AMM};
+        \node[dfbox] (c4) at (4.95,-9.9) {OneCycleLR, 10 epochs};
+        \foreach \i/\j in {c1/c2,c2/c3,c3/c4} \draw[hstep] (\i.east) -- (\j.west);
+
+        % Stage 4: Inference & Serving
+        \node[hd] (he) at (0,-12.8) {Inference \& Serving};
+        \node[dfbox] (d1) at (-4.95,-13.8) {Build item index};
+        \node[dfbox] (d2) at (-1.65,-13.8) {Profile $\to$ weights};
+        \node[dfbox] (d3) at (1.65,-13.8) {Score with content, text \& title boosts};
+        \node[dfbox] (d4) at (4.95,-13.8) {Genre filter $+$ RRF fusion};
+        \foreach \i/\j in {d1/d2,d2/d3,d3/d4} \draw[hstep] (\i.east) -- (\j.west);
+
+        \begin{scope}[on background layer]
+            \node[grp, fit=(ha)(a1)(a5)] (A) {};
+            \node[grp, fit=(hb)(b1)(b5)] (B) {};
+            \node[grp, fit=(hc)(c1)(c4)] (C) {};
+            \node[grp, fit=(he)(d1)(d4)] (D) {};
+        \end{scope}
+
+        \node[dfbox, fill=green!12] (out) at (0,-16.6) {Recommendations (top-$k$)};
+
+        \draw[flow] (src.south) -- (A.north);
+        \draw[flow] (A.south) -- (B.north);
+        \draw[flow] (B.south) -- (C.north);
+        \draw[flow] (C.south) -- (D.north);
+        \draw[flow] (D.south) -- (out.north);
+    \end{tikzpicture}
+    }
+    \caption{CL-EPIDTN end-to-end data flow, from raw cross-domain sources to served recommendations.}
+    \label{fig:clepidtn_dataflow}
+\end{figure}
+
 \subsection{Offline Data Engineering and Enrichment}
 \label{sec:offline_data}
 CL-EPIDTN is trained on a unified corpus assembled offline by \texttt{cl\_epidtn\_recommender\_improved\_8.py}. Two public interaction sources are fused:
@@ -331,6 +410,70 @@ The contextual reading of Table~\ref{tab:clepidtn_measured} is therefore as foll
 \section{RAG Chatbot Implementation}
 \label{sec:rag_impl}
 The conversational assistant is a Retrieval-Augmented Generation pipeline implemented as a Flask microservice (\texttt{recommender/app.py}) backed by the \texttt{CrossDomainRAGIndex} class. It grounds a Large Language Model in Questro's own catalog so that responses are factual rather than hallucinated, and it enforces child-safety \textbf{before} any candidate reaches the model or the LLM.
+
+\subsection{Data-Flow Overview}
+\label{sec:rag_dataflow_sec}
+Figure~\ref{fig:rag_dataflow} shows how data moves through the chatbot, from offline index construction to a grounded answer, in three stages.
+
+\textbf{Offline indexing} unifies the movie and game catalogues, normalizes their text with spaCy lemmatization, assembles a single \texttt{embedding\_text} field per item (narrative plus a ``Themes and tags'' suffix), encodes it with the MPNet sentence encoder, $L_2$-normalizes the resulting vectors, and writes them into a FAISS HNSW graph ($M=32$) alongside a SQLite metadata table.
+
+\textbf{Online retrieval} embeds the user's natural-language query with the same encoder, searches the index while over-fetching ten times the requested result count, discards at the vector boundary any candidate that violates the requesting profile's maturity (\texttt{is\_adult}) or blocked-genre rules, and then selects a domain-diverse subset so that both movies and games are represented.
+
+\textbf{Personalization and generation} re-ranks the survivors through the recommender's \texttt{/recommend/rerank} endpoint, assembles the ranked items together with the user profile and any blocking constraints into a grounded prompt, and dispatches it to Google Gemini, which returns the final conversational response constrained to the supplied context. The subsections below expand each of these steps.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.8\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\footnotesize,
+        dfbox/.style={rectangle, rounded corners, draw, fill=blue!5, align=center, text width=2.7cm, minimum height=1.35cm, inner sep=3pt},
+        hd/.style={font=\bfseries},
+        grp/.style={rectangle, rounded corners, draw, thick, inner sep=5mm},
+        flow/.style={->, >=stealth, very thick},
+        hstep/.style={->, >=stealth},
+    ]
+        \node[cylinder, shape border rotate=90, aspect=0.25, draw, fill=blue!12, align=center, text width=2.6cm, minimum height=1.2cm] (src) at (0,1.5) {Unified Catalogue (TMDB $+$ RAWG)};
+
+        % Stage 1: Offline indexing
+        \node[hd] (ha) at (0,-1.1) {Offline Indexing};
+        \node[dfbox] (a1) at (-4.95,-2.1) {Preprocess \& unify (spaCy)};
+        \node[dfbox] (a2) at (-1.65,-2.1) {Build \texttt{embedding\_text}};
+        \node[dfbox] (a3) at (1.65,-2.1) {MPNet encode $+$ $L_2$-norm};
+        \node[dfbox] (a4) at (4.95,-2.1) {FAISS HNSW ($M{=}32$) $+$ SQLite};
+        \foreach \i/\j in {a1/a2,a2/a3,a3/a4} \draw[hstep] (\i.east) -- (\j.west);
+
+        % Stage 2: Online retrieval
+        \node[hd] (hb) at (0,-5.0) {Online Retrieval};
+        \node[dfbox] (b1) at (-4.95,-6.0) {Embed query (MPNet)};
+        \node[dfbox] (b2) at (-1.65,-6.0) {FAISS search ($10\times$ over-fetch)};
+        \node[dfbox] (b3) at (1.65,-6.0) {Parental filter (\texttt{is\_adult}, genres)};
+        \node[dfbox] (b4) at (4.95,-6.0) {Domain-diversity select};
+        \foreach \i/\j in {b1/b2,b2/b3,b3/b4} \draw[hstep] (\i.east) -- (\j.west);
+
+        % Stage 3: Personalize & generate
+        \node[hd] (hc) at (0,-8.9) {Personalize \& Generate};
+        \node[dfbox] (c1) at (-3.3,-9.9) {ML rerank (\texttt{/recommend/\allowbreak rerank})};
+        \node[dfbox] (c2) at (0,-9.9) {Build grounded prompt};
+        \node[dfbox] (c3) at (3.3,-9.9) {Gemini generate};
+        \foreach \i/\j in {c1/c2,c2/c3} \draw[hstep] (\i.east) -- (\j.west);
+
+        \begin{scope}[on background layer]
+            \node[grp, fit=(ha)(a1)(a4)] (A) {};
+            \node[grp, fit=(hb)(b1)(b4)] (B) {};
+            \node[grp, fit=(hc)(c1)(c3)] (C) {};
+        \end{scope}
+
+        \node[dfbox, fill=green!12] (out) at (0,-12.6) {Grounded chat response};
+
+        \draw[flow] (src.south) -- (A.north);
+        \draw[flow] (A.south) -- (B.north);
+        \draw[flow] (B.south) -- (C.north);
+        \draw[flow] (C.south) -- (out.north);
+    \end{tikzpicture}
+    }
+    \caption{RAG chatbot data flow, from offline index construction to a grounded, personalized response.}
+    \label{fig:rag_dataflow}
+\end{figure}
 
 \subsection{Embedding Space and Memory-Mapped Vector Index}
 At index-build time every catalog item's \texttt{embedding\_text}---constructed in the preprocessing pipeline by concatenating the narrative with a ``Themes and tags:'' suffix---is encoded by the \texttt{multi-\allowbreak qa-\allowbreak mpnet-\allowbreak base-\allowbreak dot-\allowbreak v1} sentence encoder \cite{reimers2019sentencebert}, which is purpose-trained for semantic question--answer retrieval. The vectors are $L_2$-normalized (so inner-product search is equivalent to cosine similarity) and added to a FAISS \texttt{IndexHNSWFlat} graph with $M = 32$ \cite{johnson2019billion}. The index is persisted to \texttt{faiss\_index.bin} and the item metadata to a SQLite database (\texttt{metadata.db}). At server start-up the index is loaded with \texttt{faiss.IO\_FLAG\_MMAP}, memory-mapping the (multi-gigabyte) graph from SSD so that boot is fast and resident memory stays low, while SQLite provides $O(1)$ keyed metadata lookups.
