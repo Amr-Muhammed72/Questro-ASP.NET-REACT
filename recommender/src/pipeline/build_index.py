@@ -10,16 +10,15 @@ from src.core.rag import CrossDomainRAGIndex
 from src.core.util import generate_recommendation_prompt, clean_disk
 from src.pipeline.preprocess import unify_and_format_domain
 
-INDEX_FILE = "../../vector_store/faiss_index.bin"
-META_FILE = "../../vector_store/metadata.db"
+INDEX_FILE = "./vector_store/faiss_index.bin"
+META_FILE = "./vector_store/metadata.db"
 
 def get_unified_records(datasets: dict) -> list:
     
-    steam_clean = unify_and_format_domain(datasets['steam'], "steam")
     tmdb_clean  = unify_and_format_domain(datasets['tmdb'], "tmdb")
     rawg_clean  = unify_and_format_domain(datasets['rawg'], "rawg")
-    
-    unified_df = pd.concat([steam_clean, tmdb_clean, rawg_clean], ignore_index=True)
+
+    unified_df = pd.concat([tmdb_clean, rawg_clean], ignore_index=True)
     
     print("Building final embedding strings...")
 

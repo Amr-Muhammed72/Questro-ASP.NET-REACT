@@ -13,31 +13,8 @@ def unify_and_format_domain(df: pd.DataFrame, domain: str) -> pd.DataFrame:
     """
     df = df.copy()
     df['domain'] = domain
-    
-    if domain == "steam":
-        df['id'] = 'steam_' + df['appID'].astype(str)
-        df['type'] = 'game'
-        df['title'] = df['name'].fillna('')
-        
-        df['creators'] = df['developers'].astype(str).str.replace(r"[\[\]']", '', regex=True).fillna('')
-        
-        clean_tags = df['tags'].astype(str).str.replace(r"[\[\]']", '', regex=True).fillna('')
-        clean_genres = df['genres'].astype(str).str.replace(r"[\[\]']", '', regex=True).fillna('')
-        df['themes'] = clean_tags + ", " + clean_genres
-        
-        df['narrative'] = df['short_description'].fillna('')
-        
-        adult_tags = df['tags'].astype(str).str.contains(r'\b(NSFW|Nudity|Sexual Content|Hentai|Adult|sex)\b', case=False, na=False)
-        req_age = pd.to_numeric(df.get('required_age', pd.Series(0, index=df.index)), errors='coerce').fillna(0)
-        df['is_adult'] = (req_age >= 18) | adult_tags
 
-        if 'positive' in df.columns and 'negative' in df.columns:
-            total_reviews = pd.to_numeric(df['positive'], errors='coerce').fillna(0) + pd.to_numeric(df['negative'], errors='coerce').fillna(0)
-            df = df[total_reviews >= 5]
-        elif 'recommendations' in df.columns:
-            df = df[pd.to_numeric(df['recommendations'], errors='coerce').fillna(0) >= 5]
-        
-    elif domain == "tmdb":
+    if domain == "tmdb":
         df['id'] = 'tmdb_' + df['id'].astype(str)
         df['type'] = 'movie'
         df['title'] = df['title'].fillna('')

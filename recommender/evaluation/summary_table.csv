@@ -1,0 +1,13 @@
+category,query_count,mixed_pct,avg_latency_s,avg_review_count,queries_with_profile,errors
+Profile Coherent,30,66.7,6.44,281.0,30,0
+Cross-Domain,20,100.0,6.73,472.0,20,0
+Title-Based,15,80.0,9.14,388.0,15,0
+Ground Truth,20,70.0,6.45,436.0,20,0
+No Profile,15,73.3,4.3,396.0,0,0
+Edge Case,15,73.3,6.11,206.0,12,0
+,,,,,,
+TOTAL,115,76.5,6.52,360.0,97,0
+avg_similarity_dist,1.0815,,,,,
+avg_quality_score,6.57,,,,,
+ground_truth_hit_rate,75.0%,,,,,
+repeat_items_count,195,,,,,

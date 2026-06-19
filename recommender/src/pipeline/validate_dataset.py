@@ -22,11 +22,6 @@ DATASETS = [
         "required_cols": {"id", "title", "overview", "genres", "keywords", "production_companies"},
     },
     {
-        "name": "Steam (FronkonGames/steam-games-dataset)",
-        "hf_repo": "FronkonGames/steam-games-dataset",
-        "required_cols": {"appID", "name", "developers", "tags", "genres", "short_description"},
-    },
-    {
         "name": "RAWG (atalaydenknalbant/rawg-games-dataset)",
         "hf_repo": "atalaydenknalbant/rawg-games-dataset",
         "required_cols": {"id", "name", "developers", "genres", "tags"},

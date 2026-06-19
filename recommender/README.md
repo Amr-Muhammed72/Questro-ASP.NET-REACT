@@ -92,7 +92,7 @@ curl -X POST http://localhost:5000/api/recommend  -H "Content-Type: application/
     {
       "score": 0.872451,
       "data": {
-        "id": "steam_208650",
+        "id": "rawg_208650",
         "title": "Batman: Arkham Knight",
         "type": "game",
         "themes": "Action, Open World",
@@ -114,7 +114,7 @@ To ensure production-grade stability and fast server boot times, the system arch
 0. **Data Cleansing & Preprocessing (`src/pipeline/preprocess.py`):** Before building the index, the pipeline automatically cleanses the raw datasets. It removes low-quality entries (e.g., games with < 5 reviews), drops noise (e.g., itch.io self-published prototypes), and computes an enhanced `is_adult` flag using regex across descriptions and themes to catch mislabeled explicit content.
 1. **Vector Storage (`faiss_index.bin`):** Uses FAISS Memory Mapping (`faiss.IO_FLAG_MMAP`) to allow the cleansed vector embeddings to stream directly from the SSD rather than loading into RAM.
 2. **Metadata Storage (`metadata.db`):** Uses SQLite to store the large text payloads indexed by FAISS IDs. Performs $O(1)$ disk lookups to retrieve item data without holding massive JSON arrays in RAM.
-3. **ML Integration:** RAG acts as the orchestrator. It executes the vector search, filters out unwanted content *locally*, and maps its internal domain IDs (`steam_123`, `tmdb_456`) to the ML API formats (`game_123`, `movie_456`). It dynamically expands the ML model's tensors by injecting unknown items via `POST /catalog/add`, then fetches personalized scores from the ML microservice (`http://<ML_HOST>:7749/recommend/rerank`).
+3. **ML Integration:** RAG acts as the orchestrator. It executes the vector search, filters out unwanted content *locally*, and maps its internal domain IDs (`rawg_123`, `tmdb_456`) to the ML API formats (`game_123`, `movie_456`). It dynamically expands the ML model's tensors by injecting unknown items via `POST /catalog/add`, then fetches personalized scores from the ML microservice (`http://<ML_HOST>:7749/recommend/rerank`).
 
 ---
 
@@ -125,7 +125,7 @@ To ensure production-grade stability and fast server boot times, the system arch
 | **Server start** | `waitress-serve --listen=0.0.0.0:5000 app:app` (Windows) or `gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app` (Linux) |
 | **Environment Variables** | `ML_API_URL` (default: `http://localhost:8000`), `PORT` (default: `5000`), `CLIENT_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL` |
 | **Artifacts dir** | `./vector_store/` containing: `faiss_index.bin`, `metadata.db` |
-| **Dependencies** | `pip install -r requirements.txt` (requires downloading FAISS, sentence-transformers, spacy) |
+| **Dependencies** | `pip install -r requirements.txt` (requires downloading FAISS, sentence-transformers) |
 | **RAM Requirements** | Serving: ~1GB RAM. Building Index: Minimum 8GB RAM + Optional CUDA GPU. |
 | **Run tests** | `python src/tests/run_retrieval.py ; python src/tests/evaluate_metrics.py ; python src/tests/plot_results.py` |
 
@@ -154,4 +154,4 @@ A: The RAG API handles this gracefully. It will catch the connection error, prin
 A: Vector databases over-fetch. If we asked FAISS for 5 items, and all 5 were "Horror" games, sending them to the ML API would result in 0 items returning to the user. By filtering locally in `rag.py`, we can keep pulling from the index until we hit `k` safe items, guaranteeing a populated prompt.
 
 **Q: How does `allow_adult` work?**
-A: It relies on hard metadata flags (`is_adult`) created during the ETL pipeline (`src/pipeline/preprocess.py`). It explicitly checks native adult tags (like ESRB/Steam mature ratings) **AND** performs regex-based scanning across narratives and themes to identify explicit keywords (e.g., sex, hentai, nsfw). This dual-check prevents semantic search from surfacing explicit content if the user hasn't allowed it, even if the source dataset (like TMDB) failed to flag it.
+A: It relies on hard metadata flags (`is_adult`) created during the ETL pipeline (`src/pipeline/preprocess.py`). It explicitly checks native adult tags (like ESRB mature ratings) **AND** performs regex-based scanning across narratives and themes to identify explicit keywords (e.g., sex, hentai, nsfw). This dual-check prevents semantic search from surfacing explicit content if the user hasn't allowed it, even if the source dataset (like TMDB) failed to flag it.

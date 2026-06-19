@@ -1,0 +1,26 @@
+GROUND-TRUTH MISSES
+============================================================
+
+[GT-01] [user=sam]  Cyberpunk open world RPG in a dystopian megacity with hacking, gangs, and body augmentation
+  Returned: XXX_CYBERRAT_XXX, Streets of Rogue, cyberpunkdreams, STOLEN CITY, BadLads, Biomutant, Cyber Hunter, Crime Cities, Gamedec, Fabricated City, BROKE PROTOCOL: Online City RPG, BloodNet, BOMJMAN, Disjunction, Elite Hacker: Retro Hacking Evolution: Grand Theft Transsexual Uplink Matrix Terminator SEO Words, Necropolis, OSLO:2084, Antihero, Technobabylon, City of Brass
+
+[GT-03] [user=maria]  Desert planet spice prophecy chosen one epic sci-fi — feudal houses and political warfare
+  Returned: R.A.W. Realms of Ancient War, Crowntakers, King's Bounty II, War Wind, FINAL FANTASY BRAVE EXVIUS, Exiled Kingdoms, The Lords of the Earth Flame, Battle Mages, Operencia: The Stolen Sun, Dungeons & Dragons, The Tomorrow War, Medieval Dynasty, Ascension to the Throne, Fantasy Wars, Rise of Kingdoms, The Settlers: Heritage of Kings, The Promised Land, A Game of Thrones - Genesis, Medieval: Total War, Medieval: Total War - Collection
+
+[GT-05] [user=dr_chen]  Scottish warrior rallies clans against English occupiers — medieval epic about freedom
+  Returned: Blocks!: Hammer of the Scots, Defend The Highlands, Call Of The Mighty Warriors, Defend the Highlands: World Tour, Highland Warriors, In the Name of the King: A Dungeon Siege Tale, Highlander, Pendragon Rising, Comrades and Barons: Gates of Freedom, Warcraft: Orcs & Humans, Medieval Wars, Haimrik, Total War Saga: Thrones of Britannia, Reign Of Kings, Hero of the Kingdom: The Lost Tales 1, Knights and Merchants, Knights and Merchants: The Peasants Rebellion, Outlaw King, King Arthur: Fallen Champions, Robert the Bruce
+
+[GT-18] [user=taylor]  Exploration mystery game with a solar system, time loop, ancient civilization, and no combat
+  Returned: Ancient Planet, Star Conflict, Age of Wonders: Planetfall, Darkstar One, Endless Space, Imagine Earth, Ancient Planet Tower Defense, Interplanetary, Warhammer 40,000: Gladius - Relics of War, Guardians of Orion, Egypt Old Kingdom, Age of Wonders, Stellar Echoes, Star Ruler, Age of Civilizations II, Sins of a Solar Empire: Rebellion, Orion Sandbox Enhanced, Greed: Black Border, Star Explorers, Space Empires V
+
+[GT-19] [user=alex]  Insect kingdom metroidvania — hollow world, dead civilization, knight with a nail weapon
+  Returned: Earth Defense Force: Insect Armageddon, Insect Adventure, Underground Defense Force -Sword and Sorcery and Swarm of Insects-, Insect Adventure Demo, Insect Swarm, Swarm Simulator: Evolution, Entomophobia, Attack Of Insects, Impossible Creatures, Insecticide: Episode 1, Bug Fables: The Everlasting Sapling, Toki Tori 2+, Mosquitoes and zombies, Total Annihilation: Kingdoms + Iron Plague, Dezinsector, Insects Awaken, Disney•Pixar A Bug's Life, Bee: The Knight, Insecticide Part 1, Mosquito
+
+[NP-11] [no-profile]  Cyberpunk open world RPG in a dystopian megacity with hacking, gangs, and body augmentation
+  Returned: BROKE PROTOCOL: Online City RPG, Elite Hacker: Retro Hacking Evolution: Grand Theft Transsexual Uplink Matrix Terminator SEO Words, Streets of Rogue, Antihero, Crime Cities, City of Brass, BOMJMAN, OSLO:2084, Necropolis, Technobabylon, XXX_CYBERRAT_XXX, cyberpunkdreams, Gamedec, BadLads, Cyber Hunter, Biomutant, BloodNet, Disjunction, STOLEN CITY, Fabricated City
+
+[NP-12] [no-profile]  Desert planet spice prophecy chosen one epic sci-fi — feudal houses and political warfare
+  Returned: Medieval: Total War - Collection, Medieval: Total War, The Promised Land, The Tomorrow War, Fantasy Wars, Operencia: The Stolen Sun, Ascension to the Throne, R.A.W. Realms of Ancient War, King's Bounty II, Rise of Kingdoms, Battle Mages, FINAL FANTASY BRAVE EXVIUS, Exiled Kingdoms, Crowntakers, A Game of Thrones - Genesis, Medieval Dynasty, The Settlers: Heritage of Kings, War Wind, The Lords of the Earth Flame, Dungeons & Dragons
+
+[NP-14] [no-profile]  Scottish warrior rallies clans against English occupiers — medieval epic about freedom
+  Returned: Blocks!: Hammer of the Scots, Highland Warriors, Outlaw King, Knights and Merchants: The Peasants Rebellion, Robert the Bruce, Defend the Highlands: World Tour, Total War Saga: Thrones of Britannia, Medieval Wars, In the Name of the King: A Dungeon Siege Tale, Call Of The Mighty Warriors, Highlander, Pendragon Rising, Defend The Highlands, Reign Of Kings, King Arthur: Fallen Champions, Haimrik, Hero of the Kingdom: The Lost Tales 1, Comrades and Barons: Gates of Freedom, Warcraft: Orcs & Humans, Knights and Merchants

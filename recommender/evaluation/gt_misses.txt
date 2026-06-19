@@ -1,0 +1,20 @@
+GROUND-TRUTH MISSES
+============================================================
+
+[GT-01] [user=sam]  Cyberpunk open world RPG in a dystopian megacity with hacking, gangs, and body augmentation
+  Returned: Streets of Rogue, Necropolis, CASE: Animatronics, Anarchy Online, Shadowrun: Hong Kong - Extended Edition, Ghost 1.0, BloodNet, Gamedec, BROKE PROTOCOL: Online City RPG, Hacker Evolution: Untold, BOMJMAN, .hack//Infection Part 1, Cyber Manhunt, Technobabylon, City of Brass, Crime Cities, Antihero, Gangsters: Organized Crime
+
+[GT-05] [user=dr_chen]  Scottish warrior rallies clans against English occupiers — medieval epic about freedom
+  Returned: Battle of the Warriors, King's Bounty: Warriors of the North, The Banner Saga, Knights and Merchants, Outlaw King, Robert the Bruce, King Arthur: Knight's Tale, The Last Warrior, King Arthur: Fallen Champions, King Arthur - The Role-playing Wargame, Medieval: Total War - Collection, Hero of the Kingdom: The Lost Tales 1, Knights and Merchants: The Peasants Rebellion, In the Name of the King: A Dungeon Siege Tale, Highlander, Total War Saga: Thrones of Britannia, Reign Of Kings, Brave
+
+[GT-09] [user=dr_chen]  Anime-style turn-based WW2 strategy in a fictional European nation with a small squad
+  Returned: Order of Battle: World War II, Soldiers: Heroes of World War II, Warside, Z Steel Soldiers, Sniper Elite: Nazi Zombie Army, Codename: Panzers, Phase One, Company of Heroes: Opposing Fronts, Call of Duty: World at War - Final Fronts, Silent Storm Gold Edition, Commandos 2: Men of Courage, Panzer Corps, Phantom Brigade, Steel Division 2, Battle Group 2, Partisans 1941, WARSAW, Commandos: Behind Enemy Lines, Wargame: European Escalation, Enemy Front, War Mongrels
+
+[GT-18] [user=taylor]  Exploration mystery game with a solar system, time loop, ancient civilization, and no combat
+  Returned: Guardians of Orion, Sins of a Solar Empire: Rebellion, Solar 2, Stationeers, Ancient Planet, SATAZIUS, Imagine Earth, Star Conflict, Endless Space, Interplanetary, Greed: Black Border, Egypt Old Kingdom, Darkstar One, Age of Wonders: Planetfall, Warhammer 40,000: Gladius - Relics of War, Orion Sandbox Enhanced, Fallen Earth Free2Play, Star Ruler, Age of Wonders, Age of Civilizations II
+
+[GT-20] [user=dr_chen]  Strategic turn-based WW2 game — Estonia, small nation, soldiers fighting both Soviet and Nazi forces
+  Returned: Order of Battle: World War II, Soldiers: Heroes of World War II, Memoir '44 Online, Red Orchestra: Ostfront 41-45, Men of War: Condemned Heroes, Theatre of War 2: Kursk 1943, Company of Heroes: Opposing Fronts, Panzer Corps, Steel Division 2, Stalingrad, Partisans 1941, Unity of Command: Stalingrad Campaign, WARSAW, KARDS, Commandos: Behind Enemy Lines, War of the Dead, Wargame: European Escalation, War Mongrels, Wargame: Airland Battle
+
+[NP-11] [no-profile]  Cyberpunk open world RPG in a dystopian megacity with hacking, gangs, and body augmentation
+  Returned: BROKE PROTOCOL: Online City RPG, Streets of Rogue, Antihero, Crime Cities, City of Brass, BOMJMAN, Necropolis, Technobabylon, Gamedec, Cyber Hunter, Biomutant, BloodNet, Cyber Manhunt, Anarchy Online, CASE: Animatronics, Ghost 1.0, Shadowrun: Hong Kong - Extended Edition, Gangsters: Organized Crime, .hack//Infection Part 1, Hacker Evolution: Untold
