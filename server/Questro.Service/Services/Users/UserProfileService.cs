@@ -1,8 +1,13 @@
 using Microsoft.AspNetCore.Identity;
+using Questro.Core.Entities.Games;
+using Questro.Core.Entities.Movies;
 using Questro.Core.Entities.Social;
 using Questro.Core.Entities.UserManagement;
 using Questro.Core.Entities.Users;
+using Questro.Core.Specifications.Games;
+using Questro.Core.Specifications.Movies;
 using Questro.Core.Specifications.Social;
+using Questro.Core.Specifications.User;
 using Questro.Infrastructure.Abstractions;
 using Questro.Service.Abstractions.Users;
 using Questro.Shared.Contracts.Users;
@@ -17,15 +22,21 @@ public class UserProfileService : IUserProfileService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IGenericRepository<UserFollow> _followRepo;
     private readonly IFileService _fileService;
+    private readonly IGenericRepository<UserMovieRate> _userMovieRateRepo;
+    private readonly IGenericRepository<UserGameRate> _userGameRateRepo;
 
     public UserProfileService(
         UserManager<ApplicationUser> userManager,
         IGenericRepository<UserFollow> followRepo,
-        IFileService fileService)
+        IFileService fileService,
+        IGenericRepository<UserMovieRate> userMovieRateRepo,
+        IGenericRepository<UserGameRate> userGameRateRepo)
     {
         _userManager = userManager;
         _followRepo = followRepo;
         _fileService = fileService;
+        _userMovieRateRepo = userMovieRateRepo;
+        _userGameRateRepo = userGameRateRepo;
     }
 
     public async Task<Result<UserProfileDto>> GetProfileAsync(long targetUserId, long? currentUserId, CancellationToken cancellationToken = default)
@@ -154,10 +165,24 @@ public class UserProfileService : IUserProfileService
         if (user is null)
             return Result.Failure<SurveyCompletionStatusDto>(UserError.UserNotFound);
 
-        // Check if user has completed survey: must have at least one genre in game OR movie
-        var hasGameGenres = user.GameGenresFav?.Any() ?? false;
+        // Check all survey completion requirements
         var hasMovieGenres = user.MovieGenresFav?.Any() ?? false;
-        var isCompleted = hasGameGenres && hasMovieGenres;
+        var hasGameGenres = user.GameGenresFav?.Any() ?? false;
+        
+        // Check if user has rated at least one movie using a specification
+        var movieRateSpec = new MovieRatedSpecification(userId);
+        var hasMovieRating = await _userMovieRateRepo.CountAsync(movieRateSpec, cancellationToken) > 0;
+
+        // Check if user has rated at least one game using a specification
+        var gameRateSpec = new GameRatedSpecification(userId);
+        var hasGameRating = await _userGameRateRepo.CountAsync(gameRateSpec, cancellationToken) > 0;
+
+        // Survey is complete only if user has:
+        // 1. At least one movie genre selected
+        // 2. At least one game genre selected
+        // 3. At least one movie rated
+        // 4. At least one game rated
+        var isCompleted = hasMovieGenres && hasGameGenres && hasMovieRating && hasGameRating;
 
         var dto = new SurveyCompletionStatusDto
         {
@@ -165,11 +190,23 @@ public class UserProfileService : IUserProfileService
             GameGenresFav = user.GameGenresFav ?? new(),
             MovieGenresFav = user.MovieGenresFav ?? new(),
             Message = isCompleted 
-                ? "Survey completed. User has selected genre preferences." 
-                : "Survey not completed. User has not selected any game or movie genres."
+                ? "Survey completed. User has selected genre preferences and rated content." 
+                : GenerateIncompleteMessage(hasMovieGenres, hasGameGenres, hasMovieRating, hasGameRating)
         };
 
         return Result.Success(dto);
+    }
+
+    private static string GenerateIncompleteMessage(bool hasMovieGenres, bool hasGameGenres, bool hasMovieRating, bool hasGameRating)
+    {
+        var missingItems = new List<string>();
+
+        if (!hasMovieGenres) missingItems.Add("movie genres");
+        if (!hasGameGenres) missingItems.Add("game genres");
+        if (!hasMovieRating) missingItems.Add("movie rating");
+        if (!hasGameRating) missingItems.Add("game rating");
+
+        return $"Survey not completed. Missing: {string.Join(", ", missingItems)}";
     }
 
     private static int CalculateAge(DateTime birthDate)
