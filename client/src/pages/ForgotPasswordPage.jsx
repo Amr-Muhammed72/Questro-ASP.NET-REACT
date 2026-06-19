@@ -2,18 +2,12 @@ import React from 'react';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ForgotPasswordForm from '../features/auth/components/ForgotPasswordForm';
-import bgImage from '../assets/main-background.png'; 
+import PremiumBackground from '../components/ui/PremiumBackground';
 
 const ForgotPasswordPage = () => {
-  const backgroundStyle = {
-    backgroundImage: `url(${bgImage})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-  };
-
   return (
-    <div style={backgroundStyle} className="relative w-full min-h-screen flex items-center justify-center px-4 font-sans bg-black/40 backdrop-blur-sm">
-      <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl w-full max-w-lg p-8 shadow-2xl">
+    <PremiumBackground>
+      <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl w-full max-w-lg p-8 shadow-2xl relative z-10 my-12 mx-4">
         <div className="flex flex-col items-center justify-center mb-8 text-center">
           <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg text-white mb-4">
             <ShieldAlert className="w-8 h-8" />
@@ -33,7 +27,7 @@ const ForgotPasswordPage = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </PremiumBackground>
   );
 };
 

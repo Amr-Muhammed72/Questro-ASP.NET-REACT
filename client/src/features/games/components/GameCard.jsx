@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Calendar, MonitorPlay, Trash2 } from 'lucide-react';
 import OptimizedImage from '../../../components/common/OptimizedImage';

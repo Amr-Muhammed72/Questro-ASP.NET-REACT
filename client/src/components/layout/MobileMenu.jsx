@@ -1,17 +1,42 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../features/auth/store/AuthContext';
 import { authService } from '../../features/auth/api/authService';
 import { useNotificationStore } from '../../features/notifications/store/useNotificationStore';
 import { useProfileStore } from '../../features/profile/store/useProfileStore';
+import { getMyProfile } from '../../features/profile/api/profileService';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut, User, Bell, ChevronDown } from 'lucide-react';
+
+const PORT = import.meta.env.VITE_PORT || 5222;
+const BASE_URL = `http://localhost:${PORT}`;
 
 const MobileMenu = ({ isAuthenticated, onClose }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { unreadCount } = useNotificationStore();
-  const { currentProfile, imageUpdateStamp } = useProfileStore();
+  const { myProfile, imageUpdateStamp, setMyProfile } = useProfileStore();
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (myProfile) {
+        setUserId(myProfile.id || myProfile.userId);
+      } else {
+        const fetchUserId = async () => {
+          try {
+            const profile = await getMyProfile();
+            setMyProfile(profile);
+            setUserId(profile.id || profile.userId);
+          } catch (error) {
+            console.error('Failed to fetch user profile:', error);
+          }
+        };
+        fetchUserId();
+      }
+    }
+  }, [isAuthenticated, myProfile, setMyProfile]);
 
   const baseLinks = [];
 
@@ -56,6 +81,14 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
     hidden: { opacity: 0, x: -20 },
     visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
   };
+
+  const getProfileImageUrl = () => {
+    if (!myProfile?.profilePicUrl) return null;
+    if (myProfile.profilePicUrl.startsWith('http')) return myProfile.profilePicUrl;
+    return `${BASE_URL}${myProfile.profilePicUrl}?t=${imageUpdateStamp}`;
+  };
+
+  const imageUrl = getProfileImageUrl();
 
   return (
     <motion.div
@@ -106,26 +139,28 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
                 className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 text-zinc-100 font-semibold hover:bg-white/10 transition-colors duration-200"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden ring-2 ring-indigo-500/30">
-                    {currentProfile?.profilePicUrl ? (
-                      <img 
-                        src={`http://localhost:5222${currentProfile.profilePicUrl}?t=${imageUpdateStamp}`} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover" 
-                      />
-                    ) : (
-                      <span className="text-white font-bold">
-                        {currentProfile?.firstName ? currentProfile.firstName.charAt(0).toUpperCase() : '?'}
-                      </span>
-                    )}
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-[2px] shadow-lg">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border border-black/50">
+                      {imageUrl ? (
+                        <img 
+                          src={imageUrl} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-300 text-lg font-bold">
+                          {myProfile?.firstName ? myProfile.firstName.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col items-start">
-                    <span className="text-lg">{currentProfile?.firstName || 'Profile'}</span>
+                    <span className="text-lg font-bold">{myProfile?.firstName || 'Profile'}</span>
+                    <span className="text-sm text-zinc-400 font-normal">View Account Options</span>
                   </div>
                 </div>
-                <svg className={`w-5 h-5 transition-transform duration-300 ${isProfileOpen ? 'rotate-180 text-white' : 'text-zinc-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
+                <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isProfileOpen ? 'rotate-180 text-white' : 'text-zinc-400'}`} />
               </button>
 
               <AnimatePresence>
@@ -136,20 +171,24 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="pl-6 pr-4 py-2 space-y-2 border-l-2 border-white/10 ml-6 mt-2">
+                    <div className="pl-6 pr-4 py-2 space-y-2 border-l-2 border-indigo-500/50 ml-6 mt-2">
                       <Link
-                        to="/profile"
+                        to={userId ? `/users/${userId}` : "#"}
                         onClick={onClose}
-                        className="block px-4 py-2 rounded-xl text-lg text-zinc-300 hover:text-white hover:bg-white/5 transition-colors duration-200"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-lg text-zinc-300 hover:text-white hover:bg-white/5 transition-colors duration-200 group"
                       >
+                        <User className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
                         View Profile
                       </Link>
                       <Link
-                        to="/profile?tab=notifications"
+                        to={userId ? `/users/${userId}?tab=notifications` : "#"}
                         onClick={onClose}
-                        className="flex justify-between items-center px-4 py-2 rounded-xl text-lg text-zinc-300 hover:text-white hover:bg-white/5 transition-colors duration-200"
+                        className="flex justify-between items-center px-4 py-3 rounded-xl text-lg text-zinc-300 hover:text-white hover:bg-white/5 transition-colors duration-200 group"
                       >
-                        <span>Notifications</span>
+                        <div className="flex items-center gap-3">
+                          <Bell className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
+                          <span>Notifications</span>
+                        </div>
                         {unreadCount > 0 && (
                           <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-indigo-500 rounded-full">
                             {unreadCount}
@@ -158,8 +197,9 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
                       </Link>
                       <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 rounded-xl text-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors duration-200"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors duration-200 group"
                       >
+                        <LogOut className="w-5 h-5 text-red-400 group-hover:text-red-300 transition-colors" />
                         Sign Out
                       </button>
                     </div>

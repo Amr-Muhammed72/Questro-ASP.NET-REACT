@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,6 +33,21 @@ export const ChildForm = ({ onClose }) => {
   } = useForm({
     resolver: zodResolver(childSchema),
   });
+
+  // Handle Escape key and prevent background scrolling
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   const onSubmit = (data) => {
     setApiError('');
@@ -72,12 +87,12 @@ export const ChildForm = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-900/90 border border-zinc-700/50 rounded-3xl shadow-2xl shadow-purple-900/20">
+      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-900/90 border border-white/10 rounded-3xl shadow-2xl shadow-purple-900/20 backdrop-blur-xl">
         
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-6 bg-zinc-900/95 border-b border-zinc-800 backdrop-blur-md rounded-t-3xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between p-6 bg-zinc-900/95 border-b border-white/10 backdrop-blur-md rounded-t-3xl">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl">
+            <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-purple-500/30 rounded-xl">
               <Baby className="w-6 h-6 text-purple-400" />
             </div>
             <h2 className="text-2xl font-bold text-white">Add Child Account</h2>
@@ -101,14 +116,14 @@ export const ChildForm = ({ onClose }) => {
 
           {/* Account Details */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white border-b border-zinc-800 pb-2">Account Details</h3>
+            <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Account Details</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-400 ml-1">  rname *</label>
+                <label className="text-sm font-medium text-zinc-400 ml-1">Username *</label>
                 <input
                   {...register('userName')}
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                   placeholder="e.g. kid_gamer_99"
                 />
                 {errors.userName && <p className="text-red-400 text-xs ml-1">{errors.userName.message}</p>}
@@ -119,7 +134,7 @@ export const ChildForm = ({ onClose }) => {
                 <input
                   {...register('email')}
                   type="email"
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                   placeholder="parent+ali@example.com"
                 />
                 {errors.email && <p className="text-red-400 text-xs ml-1">{errors.email.message}</p>}
@@ -130,7 +145,7 @@ export const ChildForm = ({ onClose }) => {
                 <input
                   {...register('password')}
                   type="password"
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                   placeholder="••••••••"
                 />
                 {errors.password && <p className="text-red-400 text-xs ml-1">{errors.password.message}</p>}
@@ -141,7 +156,7 @@ export const ChildForm = ({ onClose }) => {
                 <input
                   {...register('confirmPassword')}
                   type="password"
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                   placeholder="••••••••"
                 />
                 {errors.confirmPassword && <p className="text-red-400 text-xs ml-1">{errors.confirmPassword.message}</p>}
@@ -151,7 +166,7 @@ export const ChildForm = ({ onClose }) => {
                 <label className="text-sm font-medium text-zinc-400 ml-1">First Name</label>
                 <input
                   {...register('firstName')}
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                   placeholder="Optional"
                 />
               </div>
@@ -160,7 +175,7 @@ export const ChildForm = ({ onClose }) => {
                 <label className="text-sm font-medium text-zinc-400 ml-1">Last Name</label>
                 <input
                   {...register('lastName')}
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                   placeholder="Optional"
                 />
               </div>
@@ -170,14 +185,14 @@ export const ChildForm = ({ onClose }) => {
                 <input
                   {...register('birthDate')}
                   type="date"
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all [color-scheme:dark]"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all [color-scheme:dark]"
                 />
               </div>
             </div>
           </div>
 
           {/* Restrictions */}
-          <div className="p-5 bg-zinc-950/40 border border-zinc-800/80 rounded-2xl">
+          <div className="p-5 bg-black/20 border border-white/5 rounded-2xl">
             <RestrictionToggles
               blockedMovieGenreIds={blockedMovieGenreIds}
               onChangeBlockedMovieGenres={setBlockedMovieGenreIds}
@@ -187,7 +202,7 @@ export const ChildForm = ({ onClose }) => {
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
             <button
               type="button"
               onClick={onClose}

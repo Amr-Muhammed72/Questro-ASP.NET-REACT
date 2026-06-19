@@ -25,9 +25,27 @@ export const useUpdateChildRestrictions = () => {
   return useMutation({
     mutationFn: ({ childId, restrictionsData }) => 
       familyApi.updateChildRestrictions(childId, restrictionsData),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['family', 'children'] });
       // If you need to invalidate specific child's details query later, you can add it here.
+    },
+  });
+};
+
+export const useChangeChildPassword = () => {
+  return useMutation({
+    mutationFn: ({ childId, passwordData }) =>
+      familyApi.changeChildPassword(childId, passwordData),
+  });
+};
+
+export const useDeleteChild = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (childId) => familyApi.deleteChildAccount(childId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['family', 'children'] });
     },
   });
 };

@@ -33,5 +33,29 @@ export const familyApi = {
       }
       throw error;
     }
+  },
+
+  changeChildPassword: async (childId, passwordData) => {
+    try {
+      const response = await apiClient.put(`/family/children/${childId}/password`, passwordData);
+      return response.data;
+    } catch (error) {
+      if (error.response?.data) {
+        throw error.response.data;
+      }
+      throw error;
+    }
+  },
+
+  deleteChildAccount: async (childId) => {
+    try {
+      const response = await apiClient.delete(`/family/children/${childId}`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.data) {
+        throw error.response.data;
+      }
+      throw error;
+    }
   }
 };

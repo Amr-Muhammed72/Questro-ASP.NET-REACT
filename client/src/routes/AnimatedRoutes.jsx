@@ -45,7 +45,8 @@ export default function AnimatedRoutes() {
       {!isAuthRoute && <Chatbot />}
       <SurveyCompletionGuard>
         <Suspense fallback={<PageLoader />}>
-          <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
+          <main className="min-h-screen flex flex-col">
+            <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
             <Routes location={location} key={location.pathname}>
 
               <Route
@@ -106,7 +107,8 @@ export default function AnimatedRoutes() {
               />
 
             </Routes>
-          </AnimatePresence>
+            </AnimatePresence>
+          </main>
         </Suspense>
       </SurveyCompletionGuard>
       {!isLandingPage && <Footer />}
