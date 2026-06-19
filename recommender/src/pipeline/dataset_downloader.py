@@ -27,12 +27,6 @@ def get_all_datasets() -> dict:
     """Loads all datasets and returns them as lists of dictionaries for the RAG pipeline."""
     print("Initializing Local Dataset Pipeline...\n")
 
-    df_steam = load_or_download_dataset(
-        hf_repo="FronkonGames/steam-games-dataset", 
-        split="train", 
-        filename="steam_games_cached.parquet"
-    )
-
     df_tmdb = load_or_download_dataset(
         hf_repo="ada-datadruids/full_tmdb_movies_dataset",
         split="train",
@@ -46,9 +40,8 @@ def get_all_datasets() -> dict:
     )
 
     print("\nAll datasets loaded and ready!")
-    
+
     return {
-        "steam": df_steam,
         "tmdb": df_tmdb,
         "rawg": df_rawg
     }
