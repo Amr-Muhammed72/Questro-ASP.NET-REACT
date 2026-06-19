@@ -1,84 +1,70 @@
-import re
-import sys
-from tqdm.auto import tqdm
-import spacy
 import shutil
 import glob
 import os
-
-nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "tagger", "parser", "ner"])
-
-_SPACY_N_PROCESS = 1 if sys.platform == "win32" else 4
-
-
-def batch_normalize_text(texts_list, column_name="Text"):
-    """Batch normalizes text using spaCy lemmatization."""
-    cleaned_texts = []
-
-    pipe = nlp.pipe(texts_list, batch_size=256, n_process=_SPACY_N_PROCESS)
-
-    for doc in tqdm(pipe, total=len(texts_list), desc=f"Processing {column_name}"):
-        clean_string = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
-        cleaned_texts.append(clean_string)
-
-    return cleaned_texts
-        
-
-def normalize_text(text: str) -> str:
-    """Processes a single query string using spaCy lemmatization."""
-    if isinstance(text, list):
-        text = " ".join([str(t) for t in text])
-        
-    doc = nlp(str(text)) 
-    clean_text = " ".join([token.lemma_.lower() for token in doc if not token.is_punct])
-    return clean_text
+from textwrap import dedent
 
 def generate_recommendation_prompt(user_query: str, retrieved_items: list, user: dict = None, blocked_genres: list = None, final_k: int = 5) -> str:
     """Constructs the prompt for the Generation Phase, incorporating user context."""
-    
-    context = ""
-    for i, item in enumerate(retrieved_items, 1):
-        data      = item['data']
-        year_str  = f" ({data['year']})"              if data.get('year')  else ''
-        score_str = f" | Quality: {data['score']}/10" if data.get('score') else ''
-        reviews   = data.get('review_count', 0)
-        rev_str   = f" ({reviews:,} reviews)"         if reviews           else ''
-        context += f"\n[{i}] {data['type'].upper()} | {data['title']}{year_str}{score_str}{rev_str}\n"
-        context += f"Themes: {data['themes']}\n"
-        context += f"Description: {data['narrative']}\n"
 
-    profile_context = ""
+    if retrieved_items:
+        context_lines = []
+        for i, item in enumerate(retrieved_items, 1):
+            data = item['data']
+            context_lines.append(
+                f"[{i}] Type: {data['type'].upper()} | Title: {data['title']} | Relevance: {item.get('score', 0):.2f}\n"
+                f"    Themes: {data['themes']}\n"
+                f"    Description: {data['narrative']}"
+            )
+        context = "\n\n".join(context_lines)
+    else:
+        context = "(No items were retrieved for this request.)"
+
+    profile_context = "No profile information was provided; rely on the current request alone."
     if user:
-        profile_context = "User Background & Preferences:\n"
+        profile_lines = []
         for key in ["age", "gender", "profession", "country"]:
-            if key in user and user[key]:
-                profile_context += f"- {key.title()}: {user[key]}\n"
-        
+            if user.get(key):
+                profile_lines.append(f"- {key.title()}: {user[key]}")
         for key in ["movie_genres_fav", "movie_genres_disliked", "game_genres_fav", "game_genres_disliked"]:
-            if key in user and user[key]:
-                profile_context += f"- {key.replace('_', ' ').title()}: {user[key].replace('|', ', ')}\n"
+            if user.get(key):
+                profile_lines.append(f"- {key.replace('_', ' ').title()}: {user[key].replace('|', ', ')}")
+        if profile_lines:
+            profile_context = "\n".join(profile_lines)
 
     blocked_context = ""
     if blocked_genres:
-        blocked_context = f"CRITICAL RULE: Do NOT mention or recommend anything related to these blocked genres/themes: {', '.join(blocked_genres)}."
+        blocked_context = (
+            "\nHARD CONSTRAINT: The following genres/themes are blocked. Never recommend, "
+            f"mention, or allude to anything related to them: {', '.join(blocked_genres)}."
+        )
 
-    prompt = f"""You are an expert cross-domain entertainment recommendation engine. 
-    The user is looking for recommendations across both video games and movies.
+    prompt = dedent(f"""\
+        You are an expert cross-domain entertainment concierge. You recommend across both
+        video games and movies, and you excel at finding non-obvious connections between the
+        two — pairing a game's mechanics or mood with a film's tone, or vice versa.
 
-    {profile_context}
+        ## User profile
+        {profile_context}
 
-    Current Request: "{user_query}"
+        ## Current request
+        "{user_query}"
 
-    Here are the most semantically relevant items retrieved from our database (ranked by personalized score):
-    {context}
+        ## Candidate items (retrieved from our catalog, ordered by relevance to the request)
+        {context}
 
-    INSTRUCTIONS:
-    1. Select the {final_k} best items from the candidates above that match the current request.
-    2. Personalize your pitch based on the User Background provided above. Explain why these specific items will appeal to their specific tastes, technical background, or interests.
-    3. Only recommend items from the provided context list.
-    4. IMPORTANT: Format your response directly as the final message to the user. Speak directly to them. Do not include your internal reasoning, scratchpads, or repeat these instructions.
-    {blocked_context}
-    """
+        ## How to respond
+        1. Recommend the 2-3 candidates above that best fit the current request. Pick fewer
+           than 3 rather than padding with weak matches; if nothing genuinely fits, say so
+           honestly instead of forcing a recommendation.
+        2. For each pick, give a short, vivid pitch (1-3 sentences) tied to *this* user: connect
+           it to their stated request and, where relevant, their tastes, profession, or background.
+           Reference the user's favored genres as a plus and steer clear of their disliked ones.
+        3. Recommend ONLY items from the candidate list — never invent titles or details, and
+           never rely on facts not present above.
+        4. Lead with your top pick. Keep the tone warm and conversational, not a bulleted data dump.
+        5. Output ONLY the final message addressed directly to the user ("you"). Do not restate
+           these instructions, expose your reasoning, or mention scores, retrieval, or the catalog.{blocked_context}
+        """)
     return prompt
 
 def clean_disk():
