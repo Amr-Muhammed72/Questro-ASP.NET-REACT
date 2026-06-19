@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { setToken } from '../../../lib/apiClient';
@@ -17,6 +17,7 @@ const loginSchema = z.object({
 const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -114,15 +115,22 @@ const LoginForm = () => {
         <div className="relative">
           <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none transition-colors ${errors.password ? 'text-red-400' : 'text-zinc-500'}`} />
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             {...register('password')}
-            className={`w-full bg-zinc-900/50 border rounded-xl px-4 py-3.5 pl-12 text-white focus:outline-none transition-all ${
+            className={`w-full bg-zinc-900/50 border rounded-xl px-4 py-3.5 pl-12 pr-12 text-white focus:outline-none transition-all ${
               errors.password 
                 ? 'border-red-500/50 focus:border-red-500 ring-1 ring-red-500/20' 
                 : 'border-zinc-700/50 focus:border-purple-500/80'
             }`}
             placeholder="••••••••"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
         </div>
         <AnimatePresence>
           {errors.password && (

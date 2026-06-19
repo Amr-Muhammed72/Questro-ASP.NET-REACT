@@ -18,6 +18,25 @@ const NotificationsModal = ({ isOpen, onClose }) => {
 
   const [page, setPage] = useState(1);
 
+  // Prevent background scrolling and handle Escape key when modal is open
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (isOpen) {
       fetchNotifications(page, 10);
@@ -74,10 +93,11 @@ const NotificationsModal = ({ isOpen, onClose }) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-[#09090b]/80 backdrop-blur-2xl border border-white/10 rounded-[32px] shadow-[0_8px_30px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col max-h-[85vh]"
+            style={{ willChange: 'transform, opacity' }}
+            className="relative w-full max-w-md bg-[#09090b] border border-white/10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[85vh]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-white/5 bg-[#09090b]/40">
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-white/5 bg-zinc-900/50">
               <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent tracking-tight">
                 All Notifications
               </h2>
@@ -110,10 +130,11 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                     <div
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
+                      style={{ willChange: 'transform' }}
                       className={`group flex gap-4 p-4 rounded-2xl transition-all duration-300 border border-transparent cursor-pointer
                         ${!notification.isRead 
                           ? 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20 shadow-sm' 
-                          : 'bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/10 shadow-sm hover:shadow-lg backdrop-blur-md'
+                          : 'bg-zinc-900/40 hover:bg-zinc-800/60 hover:border-white/10 shadow-sm hover:shadow-lg'
                         }
                       `}
                     >

@@ -2,34 +2,27 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gamepad2, Film, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import DynamicPosterCollage from '../components/ui/DynamicPosterCollage';
 import LoginForm from '../features/auth/components/LoginForm';
-import RealmCard from '../components/ui/RealmCard';
-import bgImage from '../assets/main-background.png';
+import PremiumBackground from '../components/ui/PremiumBackground';
 import logoImg from '../assets/logo.png';
 
 const LoginPage = () => {
-  const backgroundStyle = {
-    backgroundImage: `url(${bgImage})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundAttachment: 'fixed',
-  };
   return (
-    <div style={backgroundStyle} className="relative w-full min-h-screen overflow-hidden font-sans">
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12 bg-black/40">
-        <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-8 items-center">
+    <PremiumBackground>
+      <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-8 items-center px-4 py-12">
           
-          <div className="hidden lg:flex flex-col justify-center space-y-8">
-            <Link to="/" className="text-4xl font-bold text-white flex items-center gap-3">
-               <img src={logoImg} alt="Questro Logo" className="w-12 h-12 object-contain drop-shadow-md" /> Questro
-            </Link>
-            <p className="text-zinc-300 text-lg">Your gateway to cinematic experiences and gaming worlds.</p>
-            
-            <div className="space-y-4">
-              <RealmCard title="Discover Movies" description="Personalized recommendations." icon={Film} colorTheme="cyan" />
-              <RealmCard title="Find Games" description="Find your next adventure." icon={Gamepad2} colorTheme="purple" />
-              <RealmCard title="Rate & Share" description="Read reviews from the community." icon={Star} colorTheme="yellow" />
+          <div className="hidden lg:flex flex-col justify-center h-full relative space-y-8 pr-10">
+            <div className="z-20 relative">
+              <Link to="/" className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 flex items-center gap-4 mb-6">
+                 <img src={logoImg} alt="Questro Logo" className="w-14 h-14 object-contain drop-shadow-xl" /> Questro
+              </Link>
+              <p className="text-zinc-300 text-xl font-medium max-w-md leading-relaxed">
+                Your gateway to cinematic experiences and gaming worlds. Discover, track, and share your favorites.
+              </p>
             </div>
+
+            <DynamicPosterCollage />
           </div>
 
           <div className="flex items-center justify-center lg:justify-end">
@@ -47,9 +40,8 @@ const LoginPage = () => {
               </p>
             </div>
           </div>
-        </div>
       </div>
-    </div>
+    </PremiumBackground>
   );
 };
 

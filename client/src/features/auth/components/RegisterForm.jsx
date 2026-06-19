@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mail, Lock, User, UserCircle, Calendar, Hash, ChevronDown, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, UserCircle, Calendar, Hash, ChevronDown, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,6 +29,8 @@ const registerSchema = z.object({
 
 const RegisterForm = ({ handleRegister, isLoading }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const dropdownRef = useRef(null);
 
   const { register, handleSubmit, setValue, watch, setError, formState: { errors } } = useForm({
@@ -224,13 +226,20 @@ const RegisterForm = ({ handleRegister, isLoading }) => {
         <div className="relative">
           <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${errors.password ? 'text-red-400' : 'text-zinc-500'}`} />
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             {...register('password')}
-            className={`w-full bg-zinc-900/50 border rounded-xl px-3 py-2.5 pl-9 text-white focus:outline-none transition-all text-sm ${
+            className={`w-full bg-zinc-900/50 border rounded-xl px-3 py-2.5 pl-9 pr-10 text-white focus:outline-none transition-all text-sm ${
               errors.password ? 'border-red-500/50 focus:border-red-500 ring-1 ring-red-500/20' : 'border-zinc-700/50 focus:border-purple-500/80'
             }`}
             placeholder="••••••••"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
         {renderError(errors.password)}
       </div>
@@ -240,13 +249,20 @@ const RegisterForm = ({ handleRegister, isLoading }) => {
         <div className="relative">
           <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${errors.confirmPassword ? 'text-red-400' : 'text-zinc-500'}`} />
           <input
-            type="password"
+            type={showConfirmPassword ? 'text' : 'password'}
             {...register('confirmPassword')}
-            className={`w-full bg-zinc-900/50 border rounded-xl px-3 py-2.5 pl-9 text-white focus:outline-none transition-all text-sm ${
+            className={`w-full bg-zinc-900/50 border rounded-xl px-3 py-2.5 pl-9 pr-10 text-white focus:outline-none transition-all text-sm ${
               errors.confirmPassword ? 'border-red-500/50 focus:border-red-500 ring-1 ring-red-500/20' : 'border-zinc-700/50 focus:border-purple-500/80'
             }`}
             placeholder="••••••••"
           />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
+          >
+            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
         {renderError(errors.confirmPassword)}
       </div>
