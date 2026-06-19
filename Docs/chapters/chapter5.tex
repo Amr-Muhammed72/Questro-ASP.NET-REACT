@@ -128,7 +128,82 @@ Both models are pre-trained and loaded once at start-up, keeping per-request lat
 
 \begin{sidewaysfigure}
     \centering
-    \includegraphics[width=1.0\linewidth]{figures/Recommender System Model/CLEPIDTN-Architecture.png}
+    \resizebox{0.78\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\sffamily,
+        node distance=1cm,
+        >={Stealth[length=2.2mm]},
+        box/.style={rectangle, rounded corners=2pt, draw, thick, text centered,
+            align=center, minimum height=0.95cm, inner sep=4pt, font=\sffamily\small},
+        src/.style   ={box, draw=blue!55,   fill=blue!8},
+        prep/.style  ={box, draw=teal!70,   fill=teal!10},
+        tower/.style ={box, draw=violet!60, fill=violet!8},
+        model/.style ={box, draw=magenta!70,fill=magenta!10, font=\sffamily\small\bfseries},
+        cf/.style    ={box, draw=green!55!black, fill=green!10},
+        loss/.style  ={box, draw=orange!80, fill=yellow!18},
+        hybrid/.style={box, draw=red!65,    fill=red!10, font=\sffamily\small\bfseries},
+        final/.style ={box, draw=orange!80, fill=yellow!18, font=\sffamily\small\bfseries},
+        flow/.style  ={->, thick, draw=gray!70},
+        elabel/.style={font=\sffamily\scriptsize\itshape, fill=white, inner sep=1pt,
+            text=gray!70!black},
+        band/.style  ={rounded corners=3pt},
+        bandlbl/.style={font=\sffamily\scriptsize\bfseries, text=gray!55, anchor=west}
+    ]
+        % ---- Data sources row ----
+        \node[src] (tmdb)  {TMDB API};
+        \node[src, right=1.1cm of tmdb]  (rawg)  {RAWG API};
+        \node[prep,right=1.8cm of rawg]  (mlens) {MovieLens\\32M Dataset};
+        \node[prep,right=1.1cm of mlens] (steam) {Steam\\Reviews Dataset};
+        \node[tower,right=1.8cm of steam](survey){User Survey\\Results};
+
+        % ---- Offline preparation row ----
+        \node[prep, below=2.2cm of tmdb, xshift=1.0cm] (enrich) {Offline Enrichment\\\& Caching};
+        \node[prep, below=2.2cm of steam, xshift=-0.6cm] (prep)  {Data Preprocessing\\\& Tokenization};
+
+        % ---- Dual-tower row ----
+        \node[tower, below=2.4cm of prep, xshift=-2.6cm] (utower){User Tower\\(Transformer Encoder)};
+        \node[tower, right=1.3cm of utower] (itower){Item Tower\\(Feature Projection)};
+        \node[cf, right=3.0cm of itower] (cfilter){Collaborative\\Filtering Rec.};
+
+        % ---- Fusion model ----
+        \node[model, below=2.0cm of utower, xshift=1.6cm] (clep){CL-EPIDTN Dual-Tower Model};
+
+        % ---- Outputs ----
+        \node[loss,   below=2.2cm of clep, xshift=-3.2cm] (losses){Training Losses\\(InfoNCE, SSL, AMM)};
+        \node[hybrid, below=2.2cm of clep, xshift=2.8cm]  (hybrid){Hybrid Recommender\\Model};
+        \node[final,  below=1.7cm of hybrid] (finalrec){Final Recommendations};
+
+        % ---- Layer bands (background) ----
+        \begin{scope}[on background layer]
+            \node[band, fill=blue!4,   fit=(tmdb)(survey), inner sep=10pt] (b1) {};
+            \node[band, fill=teal!4,   fit=(enrich)(prep), inner sep=10pt] (b2) {};
+            \node[band, fill=violet!4, fit=(utower)(itower)(clep), inner sep=12pt] (b3) {};
+        \end{scope}
+        \node[bandlbl] at ([yshift=2pt]b1.north west) {DATA SOURCES};
+        \node[bandlbl] at ([yshift=2pt]b2.north west) {OFFLINE DATA PREPARATION};
+        \node[bandlbl] at ([yshift=2pt]b3.north west) {DUAL-TOWER NEURAL NETWORK};
+
+        % ---- Edges ----
+        \draw[flow] (tmdb)  -- (enrich);
+        \draw[flow] (rawg)  -- (enrich);
+        \draw[flow] (mlens) -- (prep);
+        \draw[flow] (steam) -- (prep);
+        \draw[flow] (survey) to[out=-90,in=30] (prep);
+        \draw[flow] (enrich) -- (prep);
+
+        \draw[flow] (prep) to[out=-120,in=90] node[elabel]{encode} (utower.north);
+        \draw[flow] (prep) -- node[elabel]{project} (itower.north);
+        \draw[flow] (prep.east) to[out=-30,in=90] node[elabel,pos=0.6]{CF signals} (cfilter.north);
+
+        \draw[flow] (utower) -- (clep);
+        \draw[flow] (itower) -- (clep);
+
+        \draw[flow] (clep) to[out=-150,in=90] node[elabel]{train} (losses.north);
+        \draw[flow] (clep) to[out=-30,in=120] node[elabel]{fuse} (hybrid.north);
+        \draw[flow, draw=green!55!black] (cfilter) to[out=-90,in=30] node[elabel]{filter} (hybrid.north east);
+        \draw[flow] (hybrid) -- node[elabel]{hybrid output} (finalrec);
+    \end{tikzpicture}%
+    }
     \caption{The CL-EPIDTN dual-tower recommendation model. Cross-domain data sources (TMDB, RAWG, MovieLens-32M, Steam reviews, and survey results) are enriched and tokenized offline, then encoded by a Transformer-based user tower and a feature-projection item tower. The model is trained with contrastive (InfoNCE), self-supervised, and auxiliary masking objectives, and its output is fused with collaborative-filtering signals to produce the final hybrid recommendations.}
     \label{fig:clepidtn_architecture}
 \end{sidewaysfigure}
@@ -158,7 +233,102 @@ A \textbf{title-family boost} further refines results: when a profile is seeded 
 
 \begin{sidewaysfigure}
     \centering
-    \includegraphics[width=1.0\linewidth]{figures/Recommender System Model/Questro-API-Architecture.png}
+    \resizebox{\linewidth}{!}{%
+    \begin{tikzpicture}[
+        font=\sffamily,
+        >={Stealth[length=2.2mm]},
+        box/.style={rectangle, rounded corners=2pt, draw, thick, text centered,
+            align=center, minimum height=1.0cm, minimum width=2.4cm, inner sep=4pt,
+            font=\sffamily\small},
+        client/.style ={box, draw=violet!60, fill=violet!8},
+        rag/.style    ={box, draw=teal!70,   fill=teal!10},
+        ep/.style     ={box, draw=blue!55,   fill=blue!8},
+        eprr/.style   ={box, draw=teal!70,   fill=teal!10},
+        epadd/.style  ={box, draw=green!55!black, fill=green!10},
+        admin/.style  ={box, draw=gray!60,   fill=gray!6, font=\sffamily\scriptsize},
+        hist/.style   ={box, draw=orange!80, fill=orange!10},
+        model/.style  ={box, draw=violet!60, fill=violet!10, minimum width=3.0cm,
+            font=\sffamily\small\bfseries},
+        tfb/.style    ={box, draw=orange!80, fill=yellow!18},
+        blocker/.style={box, draw=red!65,    fill=red!10},
+        state/.style  ={box, draw=blue!55,   fill=blue!10},
+        store/.style  ={cylinder, shape border rotate=90, aspect=0.22, draw, thick,
+            draw=gray!60, fill=gray!8, align=center, minimum height=1.6cm,
+            minimum width=2.2cm, font=\sffamily\small},
+        flow/.style   ={->, thick, draw=gray!70},
+        back/.style   ={->, thick, draw=gray!55, dashed},
+        elabel/.style ={font=\sffamily\scriptsize, fill=white, inner sep=1.5pt,
+            align=center, text=gray!65!black},
+        zonelbl/.style={font=\sffamily\scriptsize\bfseries, text=gray!50, anchor=north west}
+    ]
+        % ---- Client / user space (x = 0) ----
+        \node[client] (userapp) at (0, 3)   {User / Client\\Application};
+        \node[rag]    (ragpipe) at (0,-4)   {RAG\\Pipeline};
+
+        % ---- API gateway endpoints (x = 6) ----
+        \node[ep]    (rec)     at (6, 3)    {POST\\/recommend};
+        \node[eprr]  (rerank)  at (6, 0)    {POST\\/recommend/rerank};
+        \node[epadd] (catalog) at (6,-2.6)  {POST\\/catalog/add};
+        \node[admin] (adminep) at (6,-6)    {POST /admin/reload\\GET /health\\GET /genres};
+
+        % ---- Internal processing: request handlers (x = 11) ----
+        \node[hist]    (history) at (11, 3)    {History\\Resolver};
+        \node[tfb]     (booster) at (11,-0.6)  {Title Family\\Booster};
+        \node[blocker] (blocker) at (11,-2.6)  {Genre\\Blocker};
+
+        % ---- Internal processing: model + state (x = 15.5 / 20) ----
+        \node[model]   (clep)    at (15.5, 0.9) {CL-EPIDTN Model\\(PyTorch)};
+        \node[state]   (state)   at (15.5,-4)   {State\\Manager};
+        \node[store]   (storage) at (20,  -4)   {Artifact\\Storage};
+
+        % ---- Zone bands (background) ----
+        \begin{scope}[on background layer]
+            \node[rounded corners=3pt, fill=violet!4,
+                fit=(userapp)(ragpipe), inner xsep=14pt, inner ysep=18pt] (z1) {};
+            \node[rounded corners=3pt, fill=blue!4,
+                fit=(rec)(rerank)(catalog)(adminep), inner xsep=14pt, inner ysep=18pt] (z2) {};
+            \node[rounded corners=3pt, fill=teal!4,
+                fit=(history)(clep)(booster)(blocker)(state)(storage),
+                inner xsep=16pt, inner ysep=18pt] (z3) {};
+        \end{scope}
+        \node[zonelbl] at ([yshift=-2pt]z1.north west) {CLIENT / USER SPACE};
+        \node[zonelbl] at ([yshift=-2pt]z2.north west) {API GATEWAY \& ENDPOINTS};
+        \node[zonelbl] at ([yshift=-2pt]z3.north west) {INTERNAL PROCESSING \& STATE};
+
+        % ---- Recommendation flow (top lane, left to right) ----
+        \draw[flow] (userapp) -- node[elabel,above]{UserProfile,\\k, offset, genres} (rec);
+        \draw[flow] (rec) -- node[elabel,above]{Resolve IDs \&\\weights $[-1,1]$} (history);
+        \draw[flow] (history) to[out=-30,in=120]
+            node[elabel,pos=0.55]{candidate\\scoring} (clep.north west);
+
+        % ---- Response returns along a dedicated top lane ----
+        \draw[back] (clep.north) to[out=90,in=90,looseness=0.85]
+            node[elabel,pos=0.5]{RecommendResponse} (userapp.north);
+
+        % ---- RAG reranking flow ----
+        \draw[flow] (ragpipe) to[out=60,in=210]
+            node[elabel,pos=0.32]{UserProfile +\\candidates} (rerank);
+        \draw[flow] (rerank) -- node[elabel,pos=0.55]{score\\candidates only} (clep.west);
+
+        % ---- Hot-add / cold-start flow ----
+        \draw[flow] (userapp) to[out=-90,in=180]
+            node[elabel,pos=0.18]{catalogHotAdd} (catalog.west);
+        \draw[flow] (catalog) to[out=-20,in=180]
+            node[elabel,pos=0.5]{inject\\new IDs} (state.west);
+
+        % ---- Internal feeds into the model (fan in from the left) ----
+        \draw[flow] (booster) to[out=20,in=235]
+            node[elabel,pos=0.5]{franchise\\boost} (clep.south west);
+        \draw[flow] (blocker) to[out=10,in=260]
+            node[elabel,pos=0.28]{RAG direct\\scoring} (clep.south);
+        \draw[flow] (state) -- node[elabel,pos=0.42]{hydrate\\tensors} (clep);
+        \draw[flow] (storage) -- node[elabel,above]{load .pt \& .jdb\\on startup} (state);
+
+        % ---- Genre blocker returns the filtered subset to the RAG pipeline ----
+        \draw[flow, draw=red!55] (blocker) to[out=200,in=-15]
+            node[elabel,pos=0.5]{sorted,\\filtered subset} (ragpipe);
+    \end{tikzpicture}%
+    }
     \caption{The Questro Recommender API. A FastAPI gateway exposes the recommendation, reranking, catalog hot-add, and administrative endpoints. Internally, a history resolver, title-family booster, and genre blocker feed the PyTorch CL-EPIDTN model, while a state manager hydrates model tensors and metadata from on-disk artifact storage at start-up.}
     \label{fig:questro_api_architecture}
 \end{sidewaysfigure}

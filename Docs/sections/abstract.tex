@@ -1,13 +1,11 @@
 % \begin{abstract}
-    
+
 \chapter*{\centering {\small {Abstract}}}
-\noindent This project introduces Questro, an intelligent hybrid recommendation platform for both games and movies. Questro combines collaborative filtering,content-based filtering, and social discovery features to deliver personalized, diverse, and easily discoverable recommendations. The platform aggregates rich metadata from multiple sources (genres, platforms, gameplay mechanics,cast, ratings) and employs dimensionality-reduction
-techniqu    es (e.g., SVD) together with clustering to mitigate sparsity and
-improve recommendation quality. To address cold-start challenges,\\ Questro uses hybrid initialization strategies including onboarding questionnaires, metadata-driven heuristics, and user clustering.
-\\
-\\
-\noindent The core recommendation pipeline is extended with social features — shared watchlists/playlists, community ratings, and highlighted reviews to increase trust, engagement, and serendipitous discovery while reducing decision fatigue. Preliminary experiments against baseline models demonstrate measurable improvements in recommendation accuracy and user satisfaction.
-\\
-\\
-\noindent Questro provides a unified platform that transforms content discovery from a solitary algorithmic task into a socially enriched, user-centered experience.
+\noindent Digital entertainment catalogues have grown faster than the tools we use to navigate them. Audiences face ever-expanding libraries of films and games scattered across separate services, and the result is choice paralysis, not abundance. No mainstream platform understands a person's taste in \emph{both} films and games, let alone with safeguards for younger users. This project introduces \textbf{Questro}, a unified, safety-aware platform that places movies and games in a single shared taste space and turns cross-domain preferences into relevant, grounded, and child-safe recommendations.
+
+Questro is built around two engines. \textbf{CL-EPIDTN} is a cross-domain dual-tower Transformer recommender trained with a multi-objective contrastive criterion (InfoNCE plus self-supervised and modality-matching losses) and fused with sentence-transformer content embeddings and a survey-based collaborative filter via reciprocal rank fusion. A \textbf{retrieval-augmented generation (RAG)} assistant then embeds natural-language queries, retrieves candidates from a memory-mapped FAISS index, filters them for parental controls, and grounds a large language model (Google Gemini) on the survivors to keep answers factual rather than hallucinated.
+
+The recommender is evaluated against the \emph{entire} catalogue of roughly $138{,}000$ titles, over two public sources---one for films, one for games---that share \emph{no} common users. Under this strict zero-overlap protocol it ranks a user's held-out item within its top 50 for nearly one user in five ($\mathrm{HR}@50 = 0.185$), surpassing AutoCDSR, a published cross-domain recommender run through the identical pipeline ($\mathrm{HR}@50 = 0.151$). The RAG assistant cleared a 115-query suite with zero failures, mixed both domains in $68.7\%$ of responses, and surfaced the expected item in two-thirds of fact-checked probes.
+
+Single-domain recommenders report higher headline accuracy, but only within one domain, against small sampled pools---a far easier setting. Questro instead solves a strictly harder problem they do not attempt: unifying two entertainment domains, with no shared users, into one coherent, grounded, and safe experience that works end to end.
 % \end{abstract}
