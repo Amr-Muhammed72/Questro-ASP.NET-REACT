@@ -27,12 +27,12 @@ const HomePage = () => {
         {/* We use a negative margin (-mt-24 or -mt-32) and relative z-index to pull the next 
             section UP so it overlaps the Hero's bottom gradient fade. This creates the "melting" illusion. */}
         {isLoggedIn && (
-          <div className="relative z-30 -mt-24 mb-12">
+          <div className="relative z-30 -mt-8 md:-mt-24 mb-12">
             <RecommendationShowcase items={recommendedMedia} isLoading={isRecommendationsLoading} />
           </div>
         )}
 
-        <div className={`relative z-30 ${(!isLoggedIn || (recommendedMedia.length === 0 && !isRecommendationsLoading)) ? '-mt-24' : ''}`}>
+        <div className={`relative z-30 ${(!isLoggedIn || (recommendedMedia.length === 0 && !isRecommendationsLoading)) ? '-mt-8 md:-mt-24' : ''}`}>
           <EditorialPosterGrid 
             items={trendingMedia} 
             label="Hot Right Now" 

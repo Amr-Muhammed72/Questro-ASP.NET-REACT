@@ -25,7 +25,7 @@ export const FamilyDashboard = () => {
       <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none opacity-60 mix-blend-screen z-0" />
       <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none opacity-50 mix-blend-screen z-0" />
       
-      <div className="relative z-10 w-full max-w-[1600px] mx-auto pt-10 transition-all duration-300 flex flex-col">
+      <div className="relative z-10 w-full max-w-[1600px] mx-auto pt-20 transition-all duration-300 flex flex-col">
         <div className="w-full px-4 sm:px-6 md:px-10 lg:px-16 space-y-8">
           
           {/* Header */}

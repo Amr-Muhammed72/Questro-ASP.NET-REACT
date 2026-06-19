@@ -108,7 +108,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
       {/* MASSIVE BOTTOM FADE TO MELT INTO THE NEXT SECTION (Skeleton version) */}
       <div className="absolute bottom-0 left-0 w-full h-[50vh] z-10 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent pointer-events-none" />
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-start pt-20 md:pt-0 pb-6 md:pb-0">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-start pt-20 md:pt-0 pb-16 md:pb-0">
         {/* Left Content Skeleton */}
         <div className="w-full md:w-[55%] pr-0 md:pr-12 flex flex-col justify-center order-2 md:order-1 mt-6 md:mt-0 z-20 shrink-0">
           <div className="w-24 h-8 bg-white/5 rounded-full mb-5 animate-pulse" />
@@ -181,7 +181,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
             {/* The color EXACTLY matches the HomePage background (#09090b) to eliminate harsh lines */}
             <div className="absolute bottom-0 left-0 w-full h-[50vh] z-10 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent pointer-events-none" />
 
-            <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-start pt-20 md:pt-0 pb-6 md:pb-0">
+            <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-start pt-20 md:pt-0 pb-16 md:pb-0">
               
               {/* TEXT CONTENT (LEFT SIDE) */}
               <div className="w-full md:w-[55%] pr-0 md:pr-12 flex flex-col justify-center order-2 md:order-1 mt-6 md:mt-0 z-20 shrink-0">
