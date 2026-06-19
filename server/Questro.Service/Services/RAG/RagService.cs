@@ -1,162 +1,248 @@
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Questro.Core.Entities.Games;
+using Questro.Core.Entities.Movies;
+using Questro.Core.Entities.UserManagement;
+using Questro.Core.Specifications.Family;
+using Questro.Core.Specifications.Games;
+using Questro.Core.Specifications.Movies;
+using Questro.Infrastructure.Abstractions;
 using Questro.Service.Abstractions.RAG;
 using Questro.Shared.Contracts.RAG;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace Questro.Service.Services.RAG;
 
-/// <summary>
-/// Service implementation for RAG recommendations
-/// Communicates with external RAG service for vector search and LLM-based recommendations
-/// </summary>
-public class RagService : IRagService
+public sealed class RagService : IRagService
 {
-    private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
+    private readonly IRagApiService _ragApiService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IGenericRepository<ChildRestriction> _restrictionRepo;
+    private readonly IGenericRepository<GameGenre> _gameGenreRepo;
+    private readonly IGenericRepository<MovieGenre> _movieGenreRepo;
+    private readonly IGenericRepository<UserGameRate> _gameRateRepo;
+    private readonly IGenericRepository<UserGameWishlist> _gameWishlistRepo;
+    private readonly IGenericRepository<UserMovieRate> _movieRateRepo;
+    private readonly IGenericRepository<UserMovieWatchlist> _movieWatchlistRepo;
+    private readonly IGenericRepository<Game> _gameRepo;
+    private readonly ITmdbService _tmdbService;
     private readonly ILogger<RagService> _logger;
-    private readonly string _ragServiceUrl;
-    private readonly int _requestTimeoutSeconds;
 
     public RagService(
-        HttpClient httpClient,
-        IConfiguration configuration,
+        IRagApiService ragApiService,
+        UserManager<ApplicationUser> userManager,
+        IGenericRepository<ChildRestriction> restrictionRepo,
+        IGenericRepository<GameGenre> gameGenreRepo,
+        IGenericRepository<MovieGenre> movieGenreRepo,
+        IGenericRepository<UserGameRate> gameRateRepo,
+        IGenericRepository<UserGameWishlist> gameWishlistRepo,
+        IGenericRepository<UserMovieRate> movieRateRepo,
+        IGenericRepository<UserMovieWatchlist> movieWatchlistRepo,
+        IGenericRepository<Game> gameRepo,
+        ITmdbService tmdbService,
         ILogger<RagService> logger)
     {
-        _httpClient = httpClient;
-        _configuration = configuration;
+        _ragApiService = ragApiService;
+        _userManager = userManager;
+        _restrictionRepo = restrictionRepo;
+        _gameGenreRepo = gameGenreRepo;
+        _movieGenreRepo = movieGenreRepo;
+        _gameRateRepo = gameRateRepo;
+        _gameWishlistRepo = gameWishlistRepo;
+        _movieRateRepo = movieRateRepo;
+        _movieWatchlistRepo = movieWatchlistRepo;
+        _gameRepo = gameRepo;
+        _tmdbService = tmdbService;
         _logger = logger;
-        
-        // Get RAG service URL from configuration, with fallback to localhost
-        _ragServiceUrl = configuration.GetSection("RagService:Url").Value 
-            ?? "http://localhost:5000";
-        
-        // Get request timeout from configuration, default to 30 seconds
-        var timeoutValue = configuration.GetSection("RagService:TimeoutSeconds").Get<int?>();
-        _requestTimeoutSeconds = timeoutValue ?? 30;
     }
 
     public async Task<RagRecommendationResponse> GetRecommendationsAsync(
-        RagRecommendationRequest request,
+        string query,
+        int k,
+        long? userId,
         CancellationToken cancellationToken = default)
     {
-        try
+        var finalRequest = new RagRecommendationRequest
         {
-            // Validate request
-            if (string.IsNullOrWhiteSpace(request.Query))
+            Query = query,
+            K = Math.Clamp(k, 1, 50),
+            AllowAdult = true,
+            BlockedGenres = new List<string>(),
+            User = null
+        };
+
+        if (userId.HasValue)
+        {
+            try
             {
-                return new RagRecommendationResponse
+                var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+                if (user is not null)
                 {
-                    Status = "error",
-                    Error = "Query parameter is required"
-                };
-            }
+                    finalRequest.User = BuildUserProfile(user);
 
-            // Ensure K is within bounds
-            request.K = Math.Min(request.K, 50);
-            request.K = Math.Max(request.K, 1);
-
-            _logger.LogInformation(
-                "Requesting RAG recommendations for query: {Query} with K={K}",
-                request.Query,
-                request.K);
-
-            var requestUri = $"{_ragServiceUrl}/api/recommend";
-            
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_requestTimeoutSeconds));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token);
-
-            var response = await _httpClient.PostAsJsonAsync(
-                requestUri,
-                request,
-                cancellationToken: linkedCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync(linkedCts.Token);
-                _logger.LogWarning(
-                    "RAG service returned status {StatusCode}: {ErrorContent}",
-                    response.StatusCode,
-                    errorContent);
-
-                // If service is initializing (503), return appropriate response
-                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    return new RagRecommendationResponse
+                    // 1. Content restrictions (allow_adult / blocked_genres)
+                    if (user.IsChildAccount)
                     {
-                        Status = "initializing",
-                        Error = "RAG service is still loading. Please retry in a few seconds."
-                    };
+                        finalRequest.AllowAdult = false;
+
+                        var restrictionSpec = new ChildRestrictionByUserIdSpecification(userId.Value);
+                        var restriction = await _restrictionRepo.GetEntityWithSpecAsync(restrictionSpec, cancellationToken);
+
+                        if (restriction is not null)
+                        {
+                            var blockedGenres = new List<string>();
+
+                            if (restriction.BlockedGameGenreIds.Any())
+                            {
+                                var gameGenres = await _gameGenreRepo.ListAllAsync(cancellationToken);
+                                var gameGenreMap = gameGenres
+                                    .Where(x => x.RAWG_Id.HasValue)
+                                    .GroupBy(x => x.RAWG_Id!.Value)
+                                    .ToDictionary(x => x.Key, x => x.First().Name);
+
+                                var gameBlocked = restriction.BlockedGameGenreIds
+                                    .Where(gameGenreMap.ContainsKey)
+                                    .Select(id => gameGenreMap[id]);
+
+                                blockedGenres.AddRange(gameBlocked);
+                            }
+
+                            if (restriction.BlockedMovieGenreIds.Any())
+                            {
+                                var movieGenres = await _movieGenreRepo.ListAllAsync(cancellationToken);
+                                var movieGenreMap = movieGenres
+                                    .Where(x => x.TMDB_Id.HasValue)
+                                    .GroupBy(x => x.TMDB_Id!.Value)
+                                    .ToDictionary(x => x.Key, x => x.First().Name);
+
+                                var movieBlocked = restriction.BlockedMovieGenreIds
+                                    .Where(movieGenreMap.ContainsKey)
+                                    .Select(id => movieGenreMap[id]);
+
+                                blockedGenres.AddRange(movieBlocked);
+                            }
+
+                            finalRequest.BlockedGenres = blockedGenres.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                        }
+                    }
+
+                    // 2. Load and enrich User Ratings/signals
+                    await EnrichUserRatingsAsync(finalRequest.User, userId.Value, cancellationToken);
+
+                    _logger.LogDebug(
+                        "Enriched RAG request with profile and ratings for userId={UserId}",
+                        userId.Value);
                 }
-
-                return new RagRecommendationResponse
-                {
-                    Status = "error",
-                    Error = $"RAG service error: {response.ReasonPhrase}"
-                };
             }
-
-            var ragResponse = await response.Content.ReadFromJsonAsync<RagRecommendationResponse>(cancellationToken: linkedCts.Token)
-                ?? new RagRecommendationResponse { Status = "error", Error = "Empty response from RAG service" };
-
-            _logger.LogInformation(
-                "Successfully retrieved {Count} recommendations from RAG service",
-                ragResponse.RetrievedItems.Count);
-
-            return ragResponse;
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to load user profile/ratings for RAG enrichment (userId={UserId}). Proceeding without full profile/restrictions.",
+                    userId.Value);
+            }
         }
-        catch (OperationCanceledException ex)
+
+        var response = await _ragApiService.GetRecommendationsAsync(finalRequest, cancellationToken);
+
+        if (response is null)
         {
-            _logger.LogWarning(ex, "RAG recommendation request was cancelled or timed out");
+            _logger.LogWarning("RAG API returned null for query={Query}", query);
+
             return new RagRecommendationResponse
             {
                 Status = "error",
-                Error = "Request timeout - RAG service took too long to respond"
+                Query = query,
+                Error = "An error occurred while processing your recommendation request. Please try again."
             };
         }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "HTTP error occurred while calling RAG service");
-            return new RagRecommendationResponse
-            {
-                Status = "error",
-                Error = $"Failed to connect to RAG service: {ex.Message}"
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error occurred in RagService.GetRecommendationsAsync");
-            return new RagRecommendationResponse
-            {
-                Status = "error",
-                Error = "An unexpected error occurred while processing recommendations"
-            };
-        }
+
+        
+        return response;
     }
 
-    public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
+    private static RagUserProfile BuildUserProfile(ApplicationUser user)
     {
-        try
+        return new RagUserProfile
         {
-            _logger.LogInformation("Checking RAG service health");
-            
-            var healthUrl = $"{_ragServiceUrl}/health";
-            
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token);
+            Age = user.Age,
+            Gender = user.Gender,
+            Profession = user.Profession,
+            Country = user.Country,
+            MovieGenresFav = user.MovieGenresFav?.Count > 0
+                ? string.Join("|", user.MovieGenresFav) : null,
+            MovieGenresDisliked = user.MovieGenresDisliked?.Count > 0
+                ? string.Join("|", user.MovieGenresDisliked) : null,
+            GameGenresFav = user.GameGenresFav?.Count > 0
+                ? string.Join("|", user.GameGenresFav) : null,
+            GameGenresDisliked = user.GameGenresDisliked?.Count > 0
+                ? string.Join("|", user.GameGenresDisliked) : null
+        };
+    }
 
-            var response = await _httpClient.GetAsync(healthUrl, linkedCts.Token);
-            
-            bool isHealthy = response.IsSuccessStatusCode;
-            _logger.LogInformation("RAG service health check result: {IsHealthy}", isHealthy);
-            
-            return isHealthy;
-        }
-        catch (Exception ex)
+    private async Task EnrichUserRatingsAsync(
+        RagUserProfile profile,
+        long userId,
+        CancellationToken cancellationToken)
+    {
+        var ratings = new List<RagUserRating>();
+
+        // 1. Movie rates
+        var movieRateSpec = new UserMovieRatesByUserSpecification(userId, 1, 50);
+        var movieRates = await _movieRateRepo.ListReadOnlyAsync(movieRateSpec, cancellationToken);
+        foreach (var rate in movieRates)
         {
-            _logger.LogWarning(ex, "RAG service health check failed");
-            return false;
+            ratings.Add(new RagUserRating
+            {
+                ItemId = $"movie_{rate.Movie.TMDB_Id}",
+                Stars = rate.Stars
+            });
         }
+
+        // 2. Movie watchlists
+        var movieWatchlistSpec = new UserMovieWatchlistByUserSpecification(userId, 1, 50);
+        var movieWatchlists = await _movieWatchlistRepo.ListReadOnlyAsync(movieWatchlistSpec, cancellationToken);
+        foreach (var watchlist in movieWatchlists)
+        {
+            ratings.Add(new RagUserRating
+            {
+                ItemId = $"movie_{watchlist.Movie.TMDB_Id}",
+                Stars = null
+            });
+        }
+
+        // 3. Game rates
+        var gameRateSpec = new UserGameRatesByUserSpecification(userId, 1, 50);
+        var gameRates = await _gameRateRepo.ListReadOnlyAsync(gameRateSpec, cancellationToken);
+        foreach (var rate in gameRates)
+        {
+            ratings.Add(new RagUserRating
+            {
+                ItemId = $"game_{rate.Game.RAWG_Id}",
+                Stars = rate.Stars
+            });
+        }
+
+        // 4. Game wishlists
+        var gameWishlistSpec = new UserGameWishlistByUserSpecification(userId, 1, 50);
+        var gameWishlists = await _gameWishlistRepo.ListReadOnlyAsync(gameWishlistSpec, cancellationToken);
+        foreach (var wishlist in gameWishlists)
+        {
+            ratings.Add(new RagUserRating
+            {
+                ItemId = $"game_{wishlist.Game.RAWG_Id}",
+                Stars = null
+            });
+        }
+
+        profile.Ratings = ratings;
+    }
+
+    private static string? BuildImageUrl(string? imagePath, string size)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+        {
+            return null;
+        }
+
+        return $"https://image.tmdb.org/t/p/{size}{imagePath}";
     }
 }

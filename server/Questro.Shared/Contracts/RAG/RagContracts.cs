@@ -3,6 +3,24 @@ using System.Text.Json.Serialization;
 namespace Questro.Shared.Contracts.RAG;
 
 /// <summary>
+/// Client request DTO for RAG recommendation endpoint containing only query and k
+/// </summary>
+public sealed class RagQueryRequest
+{
+    /// <summary>
+    /// Natural-language search query (required)
+    /// </summary>
+    [JsonPropertyName("query")]
+    public string Query { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Number of results to return (default: 5, max: 50)
+    /// </summary>
+    [JsonPropertyName("k")]
+    public int K { get; set; } = 5;
+}
+
+/// <summary>
 /// Request DTO for RAG recommendation endpoint
 /// </summary>
 public sealed class RagRecommendationRequest

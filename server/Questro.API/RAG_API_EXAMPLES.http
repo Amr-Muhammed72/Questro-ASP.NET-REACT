@@ -1,405 +1,51 @@
-### ==========================================
-### RAG Integration API Examples
-### ==========================================
-### Use this file with REST Client extension
-### Update YOUR_TOKEN_HERE with actual JWT
+@baseUrl = https://localhost:7000
+@token = YOUR_JWT_TOKEN_HERE
 
-@baseUrl = http://localhost:5000
-@token = Bearer YOUR_TOKEN_HERE
-
-### ==========================================
-### HEALTH CHECKS
-### ==========================================
-
-### 1. Check RAG Service Health
-GET {{baseUrl}}/api/recommendations/health
-
-### 2. Check if API is running
-GET {{baseUrl}}/api/recommendations/health
-
-### ==========================================
-### BASIC RECOMMENDATION QUERIES
-### ==========================================
-
-### 3. Simple Query - Action Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
+### Get AI-powered recommendations (basic query)
+POST {{baseUrl}}/api/rag/recommend
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "query": "action-packed games with fast-paced combat",
+  "query": "street level superhero detective game",
   "k": 5,
   "allow_adult": false
 }
 
-### 4. Simple Query - Relaxing Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
+### Get recommendations with blocked genres
+POST {{baseUrl}}/api/rag/recommend
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "query": "relaxing puzzle games to unwind",
-  "k": 5,
-  "allow_adult": false
-}
-
-### 5. Simple Query - Movies
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "superhero movies with great action sequences",
-  "k": 5,
-  "allow_adult": false
-}
-
-### ==========================================
-### FILTERED QUERIES
-### ==========================================
-
-### 6. Query with Blocked Genres
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "open world games",
+  "query": "relaxing open world exploration game",
   "k": 10,
   "allow_adult": false,
-  "blocked_genres": ["Horror", "Violent"]
+  "blocked_genres": ["Horror", "Violence"]
 }
 
-### 7. Query with Many Results
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
+### Get recommendations with explicit user profile (overrides DB profile)
+POST {{baseUrl}}/api/rag/recommend
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "query": "strategy games with deep gameplay",
-  "k": 20,
-  "allow_adult": false
-}
-
-### ==========================================
-### PERSONALIZED QUERIES
-### ==========================================
-
-### 8. Query with User Profile - Young Adult
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "competitive online multiplayer games",
-  "k": 10,
+  "query": "emotional story-driven movie like Interstellar",
+  "k": 5,
   "allow_adult": false,
+  "blocked_genres": ["Horror"],
   "user": {
-    "age": 22,
+    "age": 25,
     "gender": "Male",
     "profession": "Student",
-    "country": "USA",
-    "game_genres_fav": "Action|Shooter|Sports",
-    "game_genres_disliked": "Puzzle|Casual",
+    "country": "Egypt",
+    "movie_genres_fav": "Sci-Fi|Drama",
+    "movie_genres_disliked": "Horror|Romance",
+    "game_genres_fav": "Action|RPG",
+    "game_genres_disliked": "Sports",
     "ratings": [
-      {
-        "item_id": "game_3498",
-        "stars": 5
-      },
-      {
-        "item_id": "game_16405",
-        "stars": 4
-      }
+      { "item_id": "game_271590", "stars": 5.0 },
+      { "item_id": "movie_157336", "stars": 4.5 }
     ]
   }
 }
-
-### 9. Query with User Profile - Adult Gamer
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "immersive story-driven games",
-  "k": 10,
-  "allow_adult": true,
-  "user": {
-    "age": 35,
-    "gender": "Female",
-    "profession": "Engineer",
-    "country": "Canada",
-    "movie_genres_fav": "Drama|Sci-Fi|Mystery",
-    "game_genres_fav": "RPG|Adventure|Narrative",
-    "game_genres_disliked": "Sports|Racing",
-    "ratings": [
-      {
-        "item_id": "game_19487",
-        "stars": 5
-      }
-    ]
-  }
-}
-
-### 10. Query with User Profile - Movie Enthusiast
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "indie films with artistic direction",
-  "k": 8,
-  "allow_adult": false,
-  "user": {
-    "age": 28,
-    "gender": "Other",
-    "profession": "Designer",
-    "country": "UK",
-    "movie_genres_fav": "Documentary|Drama|Romance",
-    "movie_genres_disliked": "Comedy|Horror",
-    "ratings": [
-      {
-        "item_id": "movie_500",
-        "stars": 5
-      },
-      {
-        "item_id": "movie_278",
-        "stars": 4.5
-      }
-    ]
-  }
-}
-
-### ==========================================
-### FAMILY-FRIENDLY QUERIES
-### ==========================================
-
-### 11. Family-Safe Games for Kids
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "fun family-friendly games for kids",
-  "k": 10,
-  "allow_adult": false,
-  "blocked_genres": ["Horror", "Violence", "Explicit"]
-}
-
-### 12. Educational Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "educational games that teach programming",
-  "k": 5,
-  "allow_adult": false
-}
-
-### ==========================================
-### GENRE-SPECIFIC QUERIES
-### ==========================================
-
-### 13. RPG Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "epic role-playing games with character progression",
-  "k": 10,
-  "allow_adult": false,
-  "blocked_genres": ["Sports", "Racing"]
-}
-
-### 14. Strategy Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "turn-based strategy games with tactical depth",
-  "k": 8,
-  "allow_adult": false
-}
-
-### 15. Horror Games (Adult)
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "psychological horror games",
-  "k": 10,
-  "allow_adult": true,
-  "blocked_genres": ["Gore"]
-}
-
-### ==========================================
-### MOOD-BASED QUERIES
-### ==========================================
-
-### 16. High-Energy Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "adrenaline-pumping fast-paced games",
-  "k": 10,
-  "allow_adult": false
-}
-
-### 17. Chill Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "chill indie games for relaxation",
-  "k": 8,
-  "allow_adult": false
-}
-
-### 18. Story-Heavy Games
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "games with compelling narratives and character development",
-  "k": 10,
-  "allow_adult": false
-}
-
-### ==========================================
-### STREAMING/WATCHING QUERIES
-### ==========================================
-
-### 19. Movie Recommendations - Action
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "action-packed blockbuster movies",
-  "k": 10,
-  "allow_adult": false
-}
-
-### 20. Movie Recommendations - Comedy
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "funny comedy movies for a good laugh",
-  "k": 8,
-  "allow_adult": false,
-  "blocked_genres": ["Horror"]
-}
-
-### ==========================================
-### CROSS-MEDIA QUERIES
-### ==========================================
-
-### 21. Multi-Domain Search
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "superhero stories in games and movies",
-  "k": 15,
-  "allow_adult": false
-}
-
-### 22. Sci-Fi Content
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "science fiction adventures",
-  "k": 15,
-  "allow_adult": false
-}
-
-### ==========================================
-### ERROR SCENARIO EXAMPLES
-### ==========================================
-
-### 23. Missing Query (Should fail with 400)
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "k": 5,
-  "allow_adult": false
-}
-
-### 24. Empty Query (Should fail with 400)
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "",
-  "k": 5,
-  "allow_adult": false
-}
-
-### 25. Large K Value (Should be capped at 50)
-POST {{baseUrl}}/api/recommendations/query
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "query": "games",
-  "k": 100,
-  "allow_adult": false
-}
-
-### ==========================================
-### SEARCH CONTROLLER INTEGRATION
-### ==========================================
-
-### 26. Traditional Search
-GET {{baseUrl}}/api/search?q=action%20games&limit=5
-Authorization: {{token}}
-
-### 27. Search with RAG Enabled
-GET {{baseUrl}}/api/search?q=action%20games&limit=5&useRag=true
-Authorization: {{token}}
-
-### 28. Search with Multiple Words
-GET {{baseUrl}}/api/search?q=strategic%20turn-based%20rpg&limit=10&useRag=true
-Authorization: {{token}}
-
-### ==========================================
-### NOTES
-### ==========================================
-###
-### 1. Replace {{token}} with your actual JWT token
-###    Format: Bearer <your-jwt-token-here>
-###
-### 2. Update {{baseUrl}} if using remote RAG service:
-###    @baseUrl = https://bluocaroot-questro-rag.hf.space
-###
-### 3. Common HTTP Status Codes:
-###    200 - Success
-###    400 - Bad request (invalid parameters)
-###    401 - Unauthorized (invalid/missing token)
-###    503 - Service unavailable (RAG initializing)
-###
-### 4. Response includes:
-###    - status: "success" or "error"
-###    - query: echo of your query
-###    - retrieved_items: ranked recommendations
-###    - llm_response: generated explanation
-###
-### 5. First request after RAG restart may return 503
-###    Retry after 5-10 seconds when service initializes
-###
-### ==========================================
