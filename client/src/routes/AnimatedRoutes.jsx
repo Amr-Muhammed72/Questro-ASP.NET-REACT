@@ -11,6 +11,7 @@ import SurveyCompletionGuard from './guards/SurveyCompletionGuard';
 // Shared wrapper
 import PageTransition from '../components/common/PageTransition';
 import NavBar from '../components/layout/NavBar';
+import Chatbot from '../features/chatbot/components/Chatbot';
 
 // ── Eagerly loaded pages ───────────────────────────────────────────────────
 // These are tiny and needed immediately on first paint (unauthenticated flow).
@@ -39,6 +40,7 @@ export default function AnimatedRoutes() {
   return (
     <>
       {!isAuthRoute && <NavBar />}
+      {!isAuthRoute && <Chatbot />}
       <SurveyCompletionGuard>
         <Suspense fallback={<PageLoader />}>
           <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
