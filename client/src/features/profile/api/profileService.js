@@ -141,7 +141,7 @@ const removeMovieFromLiked = async (movieId) => {
 };
 
 const removeMovieFromRated = async (movieId) => {
-  const response = await apiClient.post(`/movie-interactions/${movieId}/rated`);
+  const response = await apiClient.post(`/movie-interactions/${movieId}/rate`, { stars: 0 });
   return response.data;
 };
 
@@ -155,12 +155,12 @@ const removeGameFromWishlist = async (gameId) => {
 };
 
 const removeGameFromLiked = async (gameId) => {
-  const response = await apiClient.post(`/game-interactions/${gameId}/liked`);
+  const response = await apiClient.post(`/game-interactions/${gameId}/like`);
   return response.data;
 };
 
 const removeGameFromRated = async (gameId) => {
-  const response = await apiClient.post(`/game-interactions/${gameId}/rated`);
+  const response = await apiClient.post(`/game-interactions/${gameId}/rate`, { stars: 0 });
   return response.data;
 };
 

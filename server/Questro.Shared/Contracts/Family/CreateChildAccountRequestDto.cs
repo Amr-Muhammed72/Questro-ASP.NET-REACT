@@ -11,6 +11,4 @@ public sealed class CreateChildAccountRequestDto
 	public DateTime? BirthDate { get; set; }
 	public List<int>? BlockedMovieGenreIds { get; set; }
 	public List<int>? BlockedGameGenreIds { get; set; }
-	public string? MaxContentRating { get; set; }
-	public int? MaxMetacriticRating { get; set; }
 }

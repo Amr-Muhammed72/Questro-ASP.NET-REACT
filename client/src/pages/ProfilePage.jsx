@@ -17,7 +17,7 @@ import ActionButtons from '../features/profile/components/ActionButtons';
 import UserLibraries from '../features/profile/components/UserLibraries';
 import FollowersFollowing from '../features/profile/components/FollowersFollowing';
 import EditProfileForm from '../features/profile/components/EditProfileForm';
-import NavBar from '../components/layout/NavBar';
+
 import { AlertCircle } from 'lucide-react';
 import NotificationsTab from '../features/notifications/components/NotificationsTab';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -177,7 +177,7 @@ export default function ProfilePage() {
   return (
     <div className="relative min-h-screen font-sans py-10 bg-black/20">
       <div className="absolute inset-0 -z-10" />
-      <NavBar onVisibilityChange={setIsNavVisible} />
+      
       <div className={`relative z-10 w-full transition-all duration-300 flex flex-col ${isNavVisible ? 'pt-20' : 'pt-4'}`}>
         <div className="w-full px-4 md:px-8 lg:px-12">
 
@@ -267,3 +267,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

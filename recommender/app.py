@@ -147,7 +147,8 @@ def recommend():
             user_query=query,
             retrieved_items=retrieved_results,
             user=user,
-            blocked_genres=blocked_genres
+            blocked_genres=blocked_genres,
+            final_k=k
         )
         
         # --- LLM Generation via Google Gemini ---

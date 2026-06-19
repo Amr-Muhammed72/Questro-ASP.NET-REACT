@@ -3,7 +3,7 @@ import glob
 import os
 from textwrap import dedent
 
-def generate_recommendation_prompt(user_query: str, retrieved_items: list, user: dict = None, blocked_genres: list = None) -> str:
+def generate_recommendation_prompt(user_query: str, retrieved_items: list, user: dict = None, blocked_genres: list = None, final_k: int = 5) -> str:
     """Constructs the prompt for the Generation Phase, incorporating user context."""
 
     if retrieved_items:
@@ -69,7 +69,7 @@ def generate_recommendation_prompt(user_query: str, retrieved_items: list, user:
 
 def clean_disk():
     """Cleans up temporary disk caches if needed."""
-    parquet_files = glob.glob("./data_cache/*.parquet")
+    parquet_files = glob.glob("../../data_cache/*.parquet")
     for file_path in parquet_files:
         try:
             os.remove(file_path)
@@ -77,7 +77,7 @@ def clean_disk():
         except Exception as e:
             print(f"Failed to delete {file_path}: {e}")
 
-    hf_cache_dir = "./hf_cache"
+    hf_cache_dir = "../../hf_cache"
     if os.path.exists(hf_cache_dir):
         try:
             shutil.rmtree(hf_cache_dir)

@@ -36,9 +36,9 @@ public sealed class RawgService : IRawgService
         return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
-    public Task<RawgPagedGameResponse?> DiscoverGamesAsync(
+    public async Task<RawgPagedGameResponse?> DiscoverGamesAsync(
         GameSpecParams specParams,
-        string? maxContentRating = null,
+        bool isChildAccount = false,
         CancellationToken cancellationToken = default)
     {
         var queryParams = new Dictionary<string, string?>
@@ -54,15 +54,15 @@ public sealed class RawgService : IRawgService
             [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
         };
 
-        ApplyRawgContentSafety(queryParams, maxContentRating);
+        ApplyRawgContentSafety(queryParams, isChildAccount);
 
         var query = BuildQuery(queryParams);
-        return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
+        return await GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
-    public Task<RawgPagedGameResponse?> SearchGamesAsync(
+    public async Task<RawgPagedGameResponse?> SearchGamesAsync(
         GameSpecParams specParams,
-        string? maxContentRating = null,
+        bool isChildAccount = false,
         CancellationToken cancellationToken = default)
     {
         // RAWG's games endpoint supports `search` alongside `genres`, `dates`, `metacritic`,
@@ -79,10 +79,10 @@ public sealed class RawgService : IRawgService
             [RawgConstants.QueryKeys.Metacritic] = BuildRawgMetacriticRange(specParams.MinRating, specParams.MaxRating)
         };
 
-        ApplyRawgContentSafety(queryParams, maxContentRating);
+        ApplyRawgContentSafety(queryParams, isChildAccount);
 
         var query = BuildQuery(queryParams);
-        return GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
+        return await GetAsync<RawgPagedGameResponse>($"{BuildEndpoint(RawgConstants.Endpoints.Games)}{query}", cancellationToken);
     }
 
     public Task<RawgGenreListResponse?> GetGameGenresAsync(CancellationToken cancellationToken = default)
@@ -265,15 +265,21 @@ public sealed class RawgService : IRawgService
 
     private static void ApplyRawgContentSafety(
         Dictionary<string, string?> queryParams,
-        string? maxContentRating)
+        bool isChildAccount)
     {
         // ── Global Shield ── always exclude explicit tags for every user ─────
         queryParams[RawgConstants.QueryKeys.ExcludeTags] = "nsfw,erotic,nudity";
 
-       
-        if (string.IsNullOrWhiteSpace(maxContentRating))
+        // ── ESRB Rating Cap ──────────────────────────────────────────────────
+        // Child path:  isChildAccount is true.
+        //              DO NOT send esrb_rating to API so we don't drop Unrated games.
+        //              Filtering happens in-memory instead.
+        // Adult/parent path: isChildAccount is false.
+        //              Hard-cap at Mature (IDs 1-4) platform-wide — Adults Only (ID 5)
+        //              is NEVER served to any account, regardless of age.
+        if (!isChildAccount)
         {
-            queryParams[RawgConstants.QueryKeys.EsrbRating] = "1,2,3,4"; 
+            queryParams[RawgConstants.QueryKeys.EsrbRating] = "1,2,3,4"; // adult/parent cap: max Mature, block Adults Only
         }
     }
 

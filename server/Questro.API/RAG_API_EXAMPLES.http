@@ -1,0 +1,51 @@
+@baseUrl = https://localhost:7000
+@token = YOUR_JWT_TOKEN_HERE
+
+### Get AI-powered recommendations (basic query)
+POST {{baseUrl}}/api/rag/recommend
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "street level superhero detective game",
+  "k": 5,
+  "allow_adult": false
+}
+
+### Get recommendations with blocked genres
+POST {{baseUrl}}/api/rag/recommend
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "relaxing open world exploration game",
+  "k": 10,
+  "allow_adult": false,
+  "blocked_genres": ["Horror", "Violence"]
+}
+
+### Get recommendations with explicit user profile (overrides DB profile)
+POST {{baseUrl}}/api/rag/recommend
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "emotional story-driven movie like Interstellar",
+  "k": 5,
+  "allow_adult": false,
+  "blocked_genres": ["Horror"],
+  "user": {
+    "age": 25,
+    "gender": "Male",
+    "profession": "Student",
+    "country": "Egypt",
+    "movie_genres_fav": "Sci-Fi|Drama",
+    "movie_genres_disliked": "Horror|Romance",
+    "game_genres_fav": "Action|RPG",
+    "game_genres_disliked": "Sports",
+    "ratings": [
+      { "item_id": "game_271590", "stars": 5.0 },
+      { "item_id": "movie_157336", "stars": 4.5 }
+    ]
+  }
+}

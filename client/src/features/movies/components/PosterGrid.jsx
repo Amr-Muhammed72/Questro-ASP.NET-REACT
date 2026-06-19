@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import mediaService from '../../movies/api/media';
 
-const PosterCardDesktop = ({ movie, isLarge }) => (
-  <div className={`relative ${isLarge ? 'aspect-[2/3] w-60 shadow-[0_0_40px_rgba(0,0,0,0.8)]' : 'aspect-[2/3] w-48 shadow-2xl'} rounded-xl overflow-hidden bg-zinc-900 cursor-pointer group transition-transform duration-500 hover:scale-110 hover:z-30`}>
+const PosterCardDesktop = ({ movie, isLarge }) => {
+  const navigate = useNavigate();
+  return (
+  <div 
+    onClick={() => navigate(`/movies/${movie.tmdbId || movie.id}`)}
+    className={`relative ${isLarge ? 'aspect-[2/3] w-60 shadow-[0_0_40px_rgba(0,0,0,0.8)]' : 'aspect-[2/3] w-48 shadow-2xl'} rounded-xl overflow-hidden bg-zinc-900 cursor-pointer group transition-transform duration-500 hover:scale-110 hover:z-30`}
+  >
     <img 
       src={movie.imageUrl} 
       alt={movie.title} 
@@ -12,11 +18,18 @@ const PosterCardDesktop = ({ movie, isLarge }) => (
     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
       <span className="text-white font-extrabold text-sm translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{movie.title}</span>
     </div>
+    </div>
   </div>
-);
+  );
+};
 
-const PosterCardMobile = ({ movie }) => (
-  <div className="relative aspect-[2/3] w-36 sm:w-44 rounded-xl overflow-hidden bg-zinc-900 cursor-pointer shrink-0 snap-center shadow-xl">
+const PosterCardMobile = ({ movie }) => {
+  const navigate = useNavigate();
+  return (
+  <div 
+    onClick={() => navigate(`/movies/${movie.tmdbId || movie.id}`)}
+    className="relative aspect-[2/3] w-36 sm:w-44 rounded-xl overflow-hidden bg-zinc-900 cursor-pointer shrink-0 snap-center shadow-xl"
+  >
     <img 
       src={movie.imageUrl} 
       alt={movie.title} 
@@ -26,8 +39,10 @@ const PosterCardMobile = ({ movie }) => (
     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-3">
       <span className="text-white font-bold text-xs drop-shadow-md">{movie.title}</span>
     </div>
+    </div>
   </div>
-);
+  );
+};
 
 const PosterGrid = () => {
   const [trending, setTrending] = useState([]);

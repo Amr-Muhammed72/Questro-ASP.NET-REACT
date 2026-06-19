@@ -30,6 +30,5 @@ export const useProfileStore = create((set) => ({
     currentProfile: null,
     followStats: null,
     error: null,
-    imageUpdateStamp: Date.now()
   })
 }));

@@ -157,11 +157,18 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<string>("Store_Url")
                         .HasColumnType("nvarchar(max)");
 
+                    b.PrimitiveCollection<string>("Tags")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Trailer_Url")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Website")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("GameId");
@@ -1060,13 +1067,6 @@ namespace Questro.Infrastructure.Migrations
                     b.Property<string>("BlockedMovieGenreIds")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MaxContentRating")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int?>("MaxMetacriticRating")
-                        .HasColumnType("int");
 
                     b.HasKey("UserId");
 
