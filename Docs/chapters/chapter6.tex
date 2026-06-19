@@ -44,7 +44,6 @@ The technology stack was selected to maximize developer velocity without comprom
         Conversational AI Model & Google Gemini via the Generative Language API (default \texttt{gemini-3.5-flash}) \cite{gemini_ref} \\ \hline
         Retrieval Embeddings & \texttt{sentence-transformers} \texttt{multi-qa-mpnet-base-dot-v1} \cite{reimers2019sentencebert} \\ \hline
         Recommender Text Embeddings & \texttt{sentence-transformers} \texttt{all-MiniLM-L6-v2} \cite{wang2020minilm} \\ \hline
-        Offline NLP Preprocessing & spaCy (\texttt{en\_core\_web\_sm} lemmatizer) \\ \hline
     \end{tabular}
 \end{table}
 
@@ -415,7 +414,7 @@ The conversational assistant is a Retrieval-Augmented Generation pipeline implem
 \label{sec:rag_dataflow_sec}
 Figure~\ref{fig:rag_dataflow} shows how data moves through the chatbot, from offline index construction to a grounded answer, in three stages.
 
-\textbf{Offline indexing} unifies the movie and game catalogues, normalizes their text with spaCy lemmatization, assembles a single \texttt{embedding\_text} field per item (narrative plus a ``Themes and tags'' suffix), encodes it with the MPNet sentence encoder, $L_2$-normalizes the resulting vectors, and writes them into a FAISS HNSW graph ($M=32$) alongside a SQLite metadata table.
+\textbf{Offline indexing} unifies the movie and game catalogues, assembles a single \texttt{embedding\_text} field per item (narrative plus a ``Themes and tags'' suffix), encodes it directly---without any lemmatization---with the \texttt{multi-qa-mpnet-base-dot-v1} sentence encoder, $L_2$-normalizes the resulting vectors, and writes them into a FAISS HNSW graph ($M=32$) alongside a SQLite metadata table.
 
 \textbf{Online retrieval} embeds the user's natural-language query with the same encoder, searches the index while over-fetching ten times the requested result count, discards at the vector boundary any candidate that violates the requesting profile's maturity (\texttt{is\_adult}) or blocked-genre rules, and then selects a domain-diverse subset so that both movies and games are represented.
 
@@ -436,7 +435,7 @@ Figure~\ref{fig:rag_dataflow} shows how data moves through the chatbot, from off
 
         % Stage 1: Offline indexing
         \node[hd] (ha) at (0,-1.1) {Offline Indexing};
-        \node[dfbox] (a1) at (-4.95,-2.1) {Preprocess \& unify (spaCy)};
+        \node[dfbox] (a1) at (-4.95,-2.1) {Preprocess \& unify};
         \node[dfbox] (a2) at (-1.65,-2.1) {Build \texttt{embedding\_text}};
         \node[dfbox] (a3) at (1.65,-2.1) {MPNet encode $+$ $L_2$-norm};
         \node[dfbox] (a4) at (4.95,-2.1) {FAISS HNSW ($M{=}32$) $+$ SQLite};
@@ -476,13 +475,13 @@ Figure~\ref{fig:rag_dataflow} shows how data moves through the chatbot, from off
 \end{figure}
 
 \subsection{Embedding Space and Memory-Mapped Vector Index}
-At index-build time every catalog item's \texttt{embedding\_text}---constructed in the preprocessing pipeline by concatenating the narrative with a ``Themes and tags:'' suffix---is encoded by the \texttt{multi-\allowbreak qa-\allowbreak mpnet-\allowbreak base-\allowbreak dot-\allowbreak v1} sentence encoder \cite{reimers2019sentencebert}, which is purpose-trained for semantic question--answer retrieval. The vectors are $L_2$-normalized (so inner-product search is equivalent to cosine similarity) and added to a FAISS \texttt{IndexHNSWFlat} graph with $M = 32$ \cite{johnson2019billion}. The index is persisted to \texttt{faiss\_index.bin} and the item metadata to a SQLite database (\texttt{metadata.db}). At server start-up the index is loaded with \texttt{faiss.IO\_FLAG\_MMAP}, memory-mapping the (multi-gigabyte) graph from SSD so that boot is fast and resident memory stays low, while SQLite provides $O(1)$ keyed metadata lookups.
+At index-build time every catalog item's \texttt{embedding\_text}---constructed in the preprocessing pipeline by concatenating the narrative with a ``Themes and tags:'' suffix---is encoded---without any lemmatization or stemming---by the \texttt{multi-\allowbreak qa-\allowbreak mpnet-\allowbreak base-\allowbreak dot-\allowbreak v1} sentence encoder \cite{reimers2019sentencebert}, which is purpose-trained for asymmetric semantic query-to-passage retrieval. The vectors are $L_2$-normalized (so inner-product search is equivalent to cosine similarity) and added to a FAISS \texttt{IndexHNSWFlat} graph with $M = 32$ \cite{johnson2019billion}. The index is persisted to \texttt{faiss\_index.bin} and the item metadata to a SQLite database (\texttt{metadata.db}). At server start-up the index is loaded with \texttt{faiss.IO\_FLAG\_MMAP}, memory-mapping the (multi-gigabyte) graph from SSD so that boot is fast and resident memory stays low, while SQLite provides $O(1)$ keyed metadata lookups.
 
 \subsection{Orchestration Pipeline}
 A request to \texttt{POST /api/recommend} carries a free-text \texttt{query}, an optional \texttt{user} profile, \texttt{blocked\_genres}, and an \texttt{allow\_adult} flag. The pipeline executes the following stages, illustrated in Figure~\ref{fig:rag_pipeline_impl}:
 
 \begin{enumerate}
-    \item \textbf{Embed and search.} The raw query (intentionally \emph{not} lemmatized, since the encoder is trained on natural text) is embedded and searched against the HNSW index, over-fetching a pool of $10\times$ the requested result count.
+    \item \textbf{Embed and search.} The raw query is embedded directly---with no lemmatization or normalization, since \texttt{multi-qa-mpnet-base-dot-v1} is trained on natural-language text---and searched against the HNSW index, over-fetching a pool of $10\times$ the requested result count.
     \item \textbf{Parental-control filtering at the vector boundary.} Each retrieved candidate is screened \emph{immediately}: if \texttt{allow\_adult} is false, any item whose \texttt{is\_adult} flag is set is discarded; if a non-empty \texttt{blocked\_genres} set is present, any item whose theme tags intersect the blocked set is discarded. This happens \textbf{before} reranking or generation (Section~\ref{sec:vector_boundary} of Chapter~5), so restricted content cannot leak even when it is the closest semantic match.
     \item \textbf{Domain-diversity selection.} To prevent a single-domain result cluster, the selector guarantees at least one movie and one game in the result set before filling remaining slots by score.
     \item \textbf{Personalized reranking.} If a user profile is present, the surviving candidates (at least $20$, i.e. $\max(4k, 20)$) are posted to the recommender's \texttt{/recommend/rerank} endpoint, which scores them against the user's taste. If the recommender is unavailable or scores nothing, the pipeline gracefully falls back to the original FAISS ordering.
@@ -544,6 +543,12 @@ The pipeline was exercised by the evaluation harness \texttt{recommender/\allowb
 % TODO(author): the 9.17 s average latency is dominated by the external Gemini
 % round-trip; if a latency breakdown (retrieval vs. rerank vs. LLM) is desired,
 % instrument the three stages separately in evaluate.py and report the split.
+
+\subsection{Encoder Upgrade over the Earlier Implementation}
+\label{sec:rag_encoder_comparison}
+The current retrieval encoder, \texttt{multi-qa-mpnet-base-dot-v1}, replaced an earlier implementation that embedded items with the general-purpose \texttt{all-MiniLM-L6-v2} model and lemmatized both the catalogue text and the user query with spaCy before encoding. Two changes were made. First, the encoder was upgraded to a model \emph{purpose-trained for asymmetric query-to-passage retrieval}, which matches the chatbot's task---mapping a short free-text query onto longer catalogue descriptions---far more closely than MiniLM's symmetric sentence-similarity objective. Second, lemmatization was removed entirely: transformer sentence encoders are trained on natural language, so stripping inflection from the text degrades rather than helps the match, and dropping spaCy also eliminated a preprocessing dependency and its per-query cost.
+
+The most important effect of this change was qualitative. After switching to the purpose-trained sentence transformer, the retriever stopped behaving like a keyword matcher and began acting as a genuine semantic search: instead of surfacing items merely because their descriptions happened to share surface tokens with the query, it now retrieves items whose \emph{meaning} aligns with the user's intent, matching paraphrases, related concepts, and descriptions that share no literal words with the query. This is the behaviour the conversational assistant requires, because users phrase requests in free natural language that rarely mirrors the wording of a catalogue description.
 
 \section{Frontend Implementation}
 The React 19 client is engineered to feel as responsive as a native application.
