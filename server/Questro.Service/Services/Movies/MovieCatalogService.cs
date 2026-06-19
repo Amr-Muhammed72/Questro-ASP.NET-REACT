@@ -6,6 +6,7 @@ using Questro.Core.Specifications.Family;
 using Questro.Core.Specifications.Movies;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.Tmdb.Contracts;
+using Questro.Service.Abstractions.Cache;
 using Questro.Service.Abstractions.Movies;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Movies;
@@ -21,6 +22,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     private const int SafeDiscoveryPages = 5;
     private static readonly TimeSpan SafeCacheExpiration = TimeSpan.FromMinutes(30);
 
+    private readonly ICacheService _cacheService;
     private readonly ITmdbService _tmdbService;
     private readonly IGenericRepository<MovieGenre> _movieGenreRepository;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -31,6 +33,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     private readonly IGenericRepository<UserMovieWatchlist> _movieWatchlistRepo;
 
     public MovieCatalogService(
+        ICacheService cacheService,
         ITmdbService tmdbService,
         IGenericRepository<MovieGenre> movieGenreRepository,
         UserManager<ApplicationUser> userManager,
@@ -40,6 +43,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
         IGenericRepository<UserMovieRate> movieRateRepo,
         IGenericRepository<UserMovieWatchlist> movieWatchlistRepo)
     {
+        _cacheService = cacheService;
         _tmdbService = tmdbService;
         _movieGenreRepository = movieGenreRepository;
         _userManager = userManager;
@@ -68,8 +72,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
         var genreMap = await GetLocalGenreMapAsync(cancellationToken);
 
         TmdbPagedMovieResponse? tmdbResponse = string.IsNullOrWhiteSpace(parameters.Search)
-            ? await _tmdbService.DiscoverMoviesAsync(parameters, maxContentRating: null, cancellationToken)
-            : await _tmdbService.SearchMoviesAsync(parameters, maxContentRating: null, cancellationToken);
+            ? await _tmdbService.DiscoverMoviesAsync(parameters, isChildAccount: restriction != null, cancellationToken)
+            : await _tmdbService.SearchMoviesAsync(parameters, isChildAccount: restriction != null, cancellationToken);
 
         if (tmdbResponse?.Results is null || tmdbResponse.Results.Count == 0)
         {
@@ -314,21 +318,22 @@ public sealed class MovieCatalogService : IMovieCatalogService
         // Fallback if Recommender fails or returns no items
         if (recommenderResponse?.Recommendations is null || recommenderResponse.Recommendations.Count == 0)
         {
-            return await GetRecommendedAsync(safeTake, userId, cancellationToken);
+            return await GetTrendingAsync(safeTake, userId, cancellationToken);
         }
 
         // 5. Map Recommender Items to MovieListItemDto
         var resultList = new List<MovieListItemDto>();
         foreach (var item in recommenderResponse.Recommendations)
         {
-            if (item.ExternalId <= 0) continue;
+            if (item.itemId <= 0) continue;
 
             // Optional: Parallelize these calls to TMDB
-            var details = await _tmdbService.GetMovieDetailsAsync(item.ExternalId, cancellationToken);
+            if(item.itemId == null) continue;
+            var details = await _tmdbService.GetMovieDetailsAsync(item.itemId, cancellationToken);
             if (details is null) continue;
 
             var movieDto = new MovieListItemDto(
-                MovieId: 0, 
+                MovieId: 0,
                 TmdbId: details.Id,
                 Title: details.Title ?? string.Empty,
                 PosterUrl: BuildImageUrl(details.PosterPath, "w500"),
@@ -348,10 +353,13 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
         if (resultList.Count == 0)
         {
-            return await GetRecommendedAsync(safeTake, userId, cancellationToken);
+            return await GetTrendingAsync(safeTake, userId, cancellationToken);
         }
 
         return Result.Success<IEnumerable<MovieListItemDto>>(resultList);
+
+
+
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -393,8 +401,8 @@ public sealed class MovieCatalogService : IMovieCatalogService
                 };
 
                 tasks.Add(isSearch
-                    ? _tmdbService.SearchMoviesAsync(fetchParams, restriction.MaxContentRating ?? "PG-13", cancellationToken)
-                    : _tmdbService.DiscoverMoviesAsync(fetchParams, restriction.MaxContentRating ?? "PG-13", cancellationToken));
+                    ? _tmdbService.SearchMoviesAsync(fetchParams, isChildAccount: true, cancellationToken)
+                    : _tmdbService.DiscoverMoviesAsync(fetchParams, isChildAccount: true, cancellationToken));
             }
 
             var responses = await Task.WhenAll(tasks);
@@ -507,7 +515,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     }
 
     private static bool HasActiveMovieRestrictions(ChildRestriction r) =>
-        r.BlockedMovieGenreIds.Count > 0 || r.MaxContentRating is not null;
+        r.BlockedMovieGenreIds.Count > 0;
 
     private async Task<ChildRestriction?> GetChildRestrictionAsync(long? userId, CancellationToken cancellationToken)
     {
@@ -524,9 +532,11 @@ public sealed class MovieCatalogService : IMovieCatalogService
 
     private static string BuildSafeCacheKey(string prefix, long userId, ChildRestriction restriction)
     {
-        var genreHash = string.Join(",", restriction.BlockedMovieGenreIds.OrderBy(x => x));
-        var ratingHash = restriction.MaxContentRating ?? "none";
-        return $"{prefix}_{userId}_{genreHash}_{ratingHash}";
+        var genreHash = restriction.BlockedMovieGenreIds.Count > 0 
+            ? string.Join(",", restriction.BlockedMovieGenreIds) 
+            : "none";
+        
+        return $"{prefix}_{userId}_{genreHash}";
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGamesDiscovery } from '../hooks/useGamesDiscovery';
 import SearchView from './SearchView';
@@ -30,6 +30,19 @@ const SearchViewWrapper = () => {
     const filters = buildFilters(searchParams);
     updateFilters(filters);
   }, [searchParams, updateFilters]);
+
+  const prevLoading = useRef(loading);
+  useEffect(() => {
+    if (prevLoading.current === true && loading === false && games.length > 0) {
+      const grid = document.getElementById('results-grid');
+      if (grid) {
+        // Find the top position of the grid, slightly offset for navbar
+        const y = grid.getBoundingClientRect().top + window.scrollY - 100;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }
+    prevLoading.current = loading;
+  }, [loading, games.length]);
 
   return (
     <SearchView

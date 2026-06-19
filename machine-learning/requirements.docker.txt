@@ -1,0 +1,20 @@
+# Runtime dependencies for the CL-EPIDTN recommender API (improved_8).
+# CPU torch is installed separately in the Dockerfile from the PyTorch CPU index.
+# Versions are pinned to match the recommender service for a consistent stack.
+fastapi==0.137.0
+uvicorn==0.49.0
+pydantic==2.13.4
+pandas==3.0.3
+numpy==1.26.4
+# Required to unpickle item_meta.pkl (pandas data uses pyarrow-backed dtypes).
+pyarrow==24.0.0
+tqdm==4.68.2
+
+# Text encoder for catalog hot-add (sentence-transformers/all-MiniLM-L6-v2)
+sentence-transformers==5.5.1
+transformers==5.12.0
+tokenizers==0.22.2
+huggingface_hub==1.19.0
+safetensors==0.8.0
+scikit-learn==1.9.0
+scipy==1.17.1

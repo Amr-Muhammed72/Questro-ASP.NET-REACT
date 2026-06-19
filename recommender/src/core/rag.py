@@ -3,12 +3,11 @@ import json
 import os
 import numpy as np
 import torch 
-from .util import normalize_text
 from sentence_transformers import SentenceTransformer
 import sqlite3
 
 class CrossDomainRAGIndex:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "multi-qa-mpnet-base-dot-v1"):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Initializing embedding model on: {device.upper()}")
         
@@ -26,10 +25,10 @@ class CrossDomainRAGIndex:
         print(f"Generating embeddings for {len(texts)} items...")
         
         embeddings = self.model.encode(
-            texts, 
-            convert_to_numpy=True, 
+            texts,
+            convert_to_numpy=True,
             show_progress_bar=True,
-            batch_size=512 
+            batch_size=128
         )
         
         faiss.normalize_L2(embeddings)
@@ -84,52 +83,60 @@ class CrossDomainRAGIndex:
 
     def retrieve(self, query: str, top_k: int = 5, blocked_genres: list = None, allow_adult: bool = False) -> list:
         """Retrieves the top_k most similar items to the user's query, applying local filters."""
-        
-        clean_query = normalize_text(query)
-        
-        if isinstance(clean_query, list):
-            clean_query = " ".join([str(item) for item in clean_query])
-        else:
-            clean_query = str(clean_query)
-        
-        query_embedding = self.model.encode([clean_query], convert_to_numpy=True)
+
+        # Raw query embeds better — sentence transformers are trained on natural text, not lemmatized input
+        query_embedding = self.model.encode([query], convert_to_numpy=True)
         query_embedding = np.atleast_2d(query_embedding).astype(np.float32)
         faiss.normalize_L2(query_embedding)
-        
-        fetch_k = top_k * 50 if (blocked_genres or not allow_adult) else top_k
+
+        # Fetch a larger pool to support filtering and domain diversity selection
+        fetch_k = top_k * 10
         distances, indices = self.index.search(query_embedding, fetch_k)
-        
+
         blocked_set = set(g.lower() for g in blocked_genres) if blocked_genres else set()
-        
-        results = []
+
+        # Collect all valid candidates in score order
+        candidates = []
         cursor = self.db_conn.cursor()
         for dist, idx in zip(distances[0], indices[0]):
+            if idx == -1:
+                continue
+            cursor.execute('SELECT data FROM metadata WHERE id = ?', (int(idx),))
+            row = cursor.fetchone()
+            if not row:
+                continue
+            data = json.loads(row[0])
+
+            is_adult_val = data.get("is_adult", False)
+            is_adult = is_adult_val.lower() == 'true' if isinstance(is_adult_val, str) else bool(is_adult_val)
+            if not allow_adult and is_adult:
+                continue
+
+            if blocked_set:
+                item_themes = [t.strip().lower() for t in data.get('themes', '').split(',')]
+                if not blocked_set.isdisjoint(item_themes):
+                    continue
+
+            candidates.append({"score": float(dist), "data": data})
+
+        # Guarantee at least one result per domain type (game/movie) to prevent same-domain clustering
+        results = []
+        seen_types = set()
+        deferred = []
+
+        for c in candidates:
+            item_type = c['data'].get('type', 'unknown')
+            if item_type not in seen_types:
+                results.append(c)
+                seen_types.add(item_type)
+            else:
+                deferred.append(c)
+
+        # Fill remaining slots with the next best candidates regardless of type
+        for c in deferred:
             if len(results) >= top_k:
                 break
-                
-            if idx != -1: 
-                cursor.execute('SELECT data FROM metadata WHERE id = ?', (int(idx),))
-                row = cursor.fetchone()
-                if row:
-                    data = json.loads(row[0])
-                    
-                    is_adult_val = data.get("is_adult", False)
-                    if isinstance(is_adult_val, str):
-                        is_adult = is_adult_val.lower() == 'true'
-                    else:
-                        is_adult = bool(is_adult_val)
-                        
-                    if not allow_adult and is_adult:
-                        continue
-                        
-                    if blocked_set:
-                        item_themes = [t.strip().lower() for t in data.get('themes', '').split(',')]
-                        if not blocked_set.isdisjoint(item_themes):
-                            continue
-                    
-                    results.append({
-                        "score": float(dist),
-                        "data": data
-                    })
-                    
-        return results
+            results.append(c)
+
+        results.sort(key=lambda x: x['score'])
+        return results[:top_k]

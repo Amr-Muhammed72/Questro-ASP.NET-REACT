@@ -6,8 +6,8 @@ export const useForgotPassword = () => {
   const [error, setError] = useState(null);
 
   const formatError = (err, defaultMsg) => {
-    const errorData = err.response?.data;
-    return errorData?.en || errorData?.description || defaultMsg;
+    const errorData = err.response?.data || err;
+    return errorData?.en || errorData?.description || errorData?.message || defaultMsg;
   };
 
   const requestOtp = async (email, onSuccess) => {
@@ -18,7 +18,8 @@ export const useForgotPassword = () => {
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {
-      setError({ message: formatError(err, 'Failed to request password reset.'), code: err.response?.data?.code });
+      const errorData = err.response?.data || err;
+      setError({ message: formatError(err, 'Failed to request password reset.'), code: errorData?.code });
       throw err;
     } finally {
       setIsLoading(false);
@@ -33,7 +34,8 @@ export const useForgotPassword = () => {
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {
-      setError({ message: formatError(err, 'Invalid or expired OTP.'), code: err.response?.data?.code });
+      const errorData = err.response?.data || err;
+      setError({ message: formatError(err, 'Invalid or expired OTP.'), code: errorData?.code });
       throw err;
     } finally {
       setIsLoading(false);
@@ -48,7 +50,8 @@ export const useForgotPassword = () => {
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {
-      setError({ message: formatError(err, 'Failed to reset password.'), code: err.response?.data?.code });
+      const errorData = err.response?.data || err;
+      setError({ message: formatError(err, 'Failed to reset password.'), code: errorData?.code });
       throw err;
     } finally {
       setIsLoading(false);

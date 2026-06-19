@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Key, ArrowLeft } from 'lucide-react';
+import { Key, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useOtpVerification } from '../hooks/useOtpVerification';
 import { useAuth } from '../store/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { authService } from '../api/authService';
+import { setToken } from '../../../lib/apiClient';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const OtpForm = ({ email, registrationData, onSuccess }) => {
   const [otp, setOtp] = useState('');
@@ -13,11 +16,21 @@ const OtpForm = ({ email, registrationData, onSuccess }) => {
   const onSubmit = async (event) => {
     event.preventDefault();
     try {
-      const data = await verifyOtp(email, otp, registrationData);
+      let data = await verifyOtp(email, otp, registrationData);
+
+      // Auto-login if registrationData has password and we didn't get a token
+      if ((!data || !data.accessToken) && registrationData?.password) {
+        try {
+          data = await authService.login({ email, password: registrationData.password });
+        } catch (loginErr) {
+          console.error("Auto-login failed:", loginErr);
+        }
+      }
 
       if (data && data.accessToken) {
+        setToken(data.accessToken);
         login(data.accessToken);
-        navigate('/');
+        navigate('/survey');
       } else if (onSuccess) {
         onSuccess(data);
       }
@@ -36,11 +49,22 @@ const OtpForm = ({ email, registrationData, onSuccess }) => {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg">
-          {error.message}
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-start gap-3 bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-xl shadow-lg shadow-red-500/5"
+          >
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-300">OTP Verification Failed</p>
+              <p>{error.message}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div>
         <label className="block text-sm font-medium text-zinc-300 mb-2">
           Enter 6-digit OTP sent to {email}

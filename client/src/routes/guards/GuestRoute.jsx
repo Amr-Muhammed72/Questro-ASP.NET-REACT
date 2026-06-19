@@ -5,7 +5,7 @@ const GuestRoute = ({ children }) => {
   const { isLoggedIn } = useAuth();
   
   if (isLoggedIn) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/home" replace />;
   }
   
   return children;

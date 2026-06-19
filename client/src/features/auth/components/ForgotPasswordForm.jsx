@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Mail, Lock, KeyRound } from 'lucide-react';
+import { Mail, Lock, KeyRound, AlertCircle } from 'lucide-react';
 import { useForgotPassword } from '../hooks/useForgotPassword';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ForgotPasswordForm = () => {
   const [step, setStep] = useState(1);
@@ -55,11 +56,22 @@ const ForgotPasswordForm = () => {
 
   return (
     <div className="space-y-4">
-      {(error || matchError) && (
-        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg">
-          {matchError || error?.message}
-        </div>
-      )}
+      <AnimatePresence>
+        {(error || matchError) && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-start gap-3 bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-xl shadow-lg shadow-red-500/5"
+          >
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-300">Request Failed</p>
+              <p>{matchError || error?.message}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* STEP 1: EMAIL */}
       {step === 1 && (

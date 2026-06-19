@@ -8,8 +8,6 @@ export const EditRestrictionsModal = ({ child, onClose }) => {
   
   const [blockedMovieGenreIds, setBlockedMovieGenreIds] = useState(initialRestrictions.blockedMovieGenreIds || []);
   const [blockedGameGenreIds, setBlockedGameGenreIds] = useState(initialRestrictions.blockedGameGenreIds || []);
-  const [maxContentRating, setMaxContentRating] = useState(initialRestrictions.maxContentRating || null);
-  const [maxMetacriticRating, setMaxMetacriticRating] = useState(initialRestrictions.maxMetacriticRating ?? null);
   const [apiError, setApiError] = useState('');
 
   const updateMutation = useUpdateChildRestrictions();
@@ -19,8 +17,6 @@ export const EditRestrictionsModal = ({ child, onClose }) => {
     const payload = {
       blockedMovieGenreIds: Array.isArray(blockedMovieGenreIds) ? blockedMovieGenreIds.filter(id => id != null) : [],
       blockedGameGenreIds: Array.isArray(blockedGameGenreIds) ? blockedGameGenreIds.filter(id => id != null) : [],
-      maxContentRating: maxContentRating || null,
-      maxMetacriticRating: maxMetacriticRating || null,
     };
 
     updateMutation.mutate(
@@ -79,10 +75,6 @@ export const EditRestrictionsModal = ({ child, onClose }) => {
               onChangeBlockedMovieGenres={setBlockedMovieGenreIds}
               blockedGameGenreIds={blockedGameGenreIds}
               onChangeBlockedGameGenres={setBlockedGameGenreIds}
-              maxContentRating={maxContentRating}
-              onChangeMaxContentRating={setMaxContentRating}
-              maxMetacriticRating={maxMetacriticRating}
-              onChangeMaxMetacriticRating={setMaxMetacriticRating}
             />
           </div>
 

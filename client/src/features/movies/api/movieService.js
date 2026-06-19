@@ -96,6 +96,28 @@ export const getRecommendedForMe = async (take = 18, signal) => {
   return response.data;
 };
 
+/**
+ * Fetch detailed information for a specific movie.
+ * @param {number|string} tmdbId   - TMDB ID of the movie
+ * @param {AbortSignal} [signal]   - Optional cancellation signal
+ * @returns {Promise<Object>} MovieDetailsDto
+ */
+export const getMovieDetails = async (tmdbId, signal) => {
+  const response = await apiClient.get(`/movies/${tmdbId}`, { signal });
+  return response.data;
+};
+
+/**
+ * Fetch cast and crew for a specific movie.
+ * @param {number|string} tmdbId   - TMDB ID of the movie
+ * @param {AbortSignal} [signal]   - Optional cancellation signal
+ * @returns {Promise<Object>} StaffResponseDto
+ */
+export const getMovieStaff = async (tmdbId, signal) => {
+  const response = await apiClient.get(`/staff/${tmdbId}`, { signal });
+  return response.data;
+};
+
 const movieService = {
   getGenres,
   discoverMovies,
@@ -103,6 +125,8 @@ const movieService = {
   getRecentlyAdded,
   getRecommended,
   getRecommendedForMe,
+  getMovieDetails,
+  getMovieStaff,
 };
 
 export default movieService;

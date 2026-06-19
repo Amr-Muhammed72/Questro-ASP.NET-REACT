@@ -106,7 +106,15 @@ export const useBrowseData = () => {
         else if (Array.isArray(recommendedData)) setRecommended(recommendedData);
 
         let genresList = genresRes?.data || genresRes || [];
-        genresList.sort((a, b) => a.name.localeCompare(b.name));
+        genresList.sort((a, b) => {
+          const aName = a.name.toLowerCase();
+          const bName = b.name.toLowerCase();
+          const isALast = aName === 'romantic' || aName === 'romance' || aName === 'documentary';
+          const isBLast = bName === 'romantic' || bName === 'romance' || bName === 'documentary';
+          if (isALast && !isBLast) return 1;
+          if (!isALast && isBLast) return -1;
+          return a.name.localeCompare(b.name);
+        });
         allGenresRef.current = genresList;
 
         // Load the first chunk immediately (fire-and-forget — no await blocking render)

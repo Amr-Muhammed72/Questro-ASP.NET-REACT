@@ -7,4 +7,5 @@ public sealed record MovieReviewDto(
     string? UserName,
     string Body,
     string? Sentiment,
-    DateTime Timestamp);
+    DateTime Timestamp,
+    string? UserProfilePictureUrl = null);

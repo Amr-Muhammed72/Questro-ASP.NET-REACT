@@ -19,6 +19,7 @@ public sealed class MovieDetailsService : IMovieDetailsService
     private readonly IGenericRepository<UserMovieLike> _userMovieLikeRepository;
     private readonly IGenericRepository<UserMovieRate> _userMovieRateRepository;
     private readonly IGenericRepository<UserMovieWatchlist> _userMovieWatchlistRepository;
+    private readonly IGenericRepository<UserMovieWatched> _userMovieWatchedRepository;
     private readonly ITmdbService _tmdbService;
     private readonly IMovieSyncService _movieSyncService;
 
@@ -29,6 +30,7 @@ public sealed class MovieDetailsService : IMovieDetailsService
         IGenericRepository<UserMovieLike> userMovieLikeRepository,
         IGenericRepository<UserMovieRate> userMovieRateRepository,
         IGenericRepository<UserMovieWatchlist> userMovieWatchlistRepository,
+        IGenericRepository<UserMovieWatched> userMovieWatchedRepository,
         ITmdbService tmdbService,
         IMovieSyncService movieSyncService)
     {
@@ -38,6 +40,7 @@ public sealed class MovieDetailsService : IMovieDetailsService
         _userMovieLikeRepository = userMovieLikeRepository;
         _userMovieRateRepository = userMovieRateRepository;
         _userMovieWatchlistRepository = userMovieWatchlistRepository;
+        _userMovieWatchedRepository = userMovieWatchedRepository;
         _tmdbService = tmdbService;
         _movieSyncService = movieSyncService;
     }
@@ -73,7 +76,13 @@ public sealed class MovieDetailsService : IMovieDetailsService
         var crew = MapCrewCredits(localMovie, tmdbCredits);
         var trailerUrl = ResolveTrailerUrl(tmdbVideos);
         var similar = await MapSimilarMoviesAsync(tmdbSimilar, cancellationToken);
-        var watchProviders = MapWatchProviders(tmdbWatchProviders);
+
+        var releaseDate = ParseDate(tmdbDetails?.ReleaseDate) ?? localMovie?.Release_Date;
+        var watchProviders = MapWatchProviders(
+            tmdbWatchProviders,
+            releaseDate,
+            tmdbDetails?.Homepage,
+            tmdbDetails?.ImdbId ?? localMovie?.IMDB_Id);
 
         var ratingSummary = await BuildRatingSummaryAsync(
             localMovie?.MovieId,
@@ -93,7 +102,7 @@ public sealed class MovieDetailsService : IMovieDetailsService
             tmdbDetails?.Title ?? localMovie?.Title ?? string.Empty,
             tmdbDetails?.Overview ?? localMovie?.Overview,
             tmdbDetails?.Runtime ?? localMovie?.Runtime,
-            ParseDate(tmdbDetails?.ReleaseDate) ?? localMovie?.Release_Date,
+            releaseDate,
             tmdbDetails?.OriginalLanguage ?? localMovie?.Language,
             BuildImageUrl(tmdbDetails?.PosterPath, "w500") ?? localMovie?.Poster_Url,
             BuildImageUrl(tmdbDetails?.BackdropPath, "w780") ?? localMovie?.Backdrop_Url,
@@ -159,9 +168,14 @@ public sealed class MovieDetailsService : IMovieDetailsService
             new UserMovieWatchlistByUserAndMovieSpecification(userId, movieId),
             cancellationToken);
 
+        var watched = await _userMovieWatchedRepository.GetEntityWithSpecAsync(
+            new UserMovieWatchedByUserAndMovieSpecification(userId, movieId),
+            cancellationToken);
+
         return new MovieUserStatusDto(
             like is not null,
             watchlist is not null,
+            watched is not null,
             rate?.Stars);
     }
 
@@ -341,51 +355,101 @@ public sealed class MovieDetailsService : IMovieDetailsService
         return trailer is null ? null : $"https://www.youtube.com/watch?v={trailer.Key}";
     }
 
-    private static MovieWatchProvidersDto? MapWatchProviders(TmdbMovieWatchProvidersResponse? providers)
+    private static MovieWatchProvidersDto? MapWatchProviders(
+        TmdbMovieWatchProvidersResponse? providers,
+        DateTime? releaseDate,
+        string? homepage,
+        string? imdbId)
     {
-        if (providers?.Results is null || providers.Results.Count == 0)
+        if (providers?.Results is not null && providers.Results.Count > 0)
         {
-            return null;
-        }
+            TmdbWatchProviderRegionDto? selectedRegion = null;
+            string? countryCode = null;
 
-        TmdbWatchProviderRegionDto? selectedRegion = null;
-        string? countryCode = null;
-
-        if (providers.Results.TryGetValue("US", out var usRegion) && HasAnyProviders(usRegion))
-        {
-            selectedRegion = usRegion;
-            countryCode = "US";
-        }
-        else
-        {
-            var firstRegion = providers.Results.FirstOrDefault(x => HasAnyProviders(x.Value));
-            if (!string.IsNullOrWhiteSpace(firstRegion.Key))
+            if (providers.Results.TryGetValue("US", out var usRegion) && HasAnyProviders(usRegion))
             {
-                selectedRegion = firstRegion.Value;
-                countryCode = firstRegion.Key;
+                selectedRegion = usRegion;
+                countryCode = "US";
+            }
+            else
+            {
+                var firstRegion = providers.Results.FirstOrDefault(x => HasAnyProviders(x.Value));
+                if (!string.IsNullOrWhiteSpace(firstRegion.Key))
+                {
+                    selectedRegion = firstRegion.Value;
+                    countryCode = firstRegion.Key;
+                }
+            }
+
+            if (selectedRegion is not null && !string.IsNullOrWhiteSpace(countryCode))
+            {
+                return new MovieWatchProvidersDto(
+                    countryCode,
+                    selectedRegion.Link,
+                    selectedRegion.Flatrate
+                        .OrderBy(x => x.DisplayPriority)
+                        .Select(MapWatchProvider)
+                        .ToList(),
+                    selectedRegion.Rent
+                        .OrderBy(x => x.DisplayPriority)
+                        .Select(MapWatchProvider)
+                        .ToList(),
+                    selectedRegion.Buy
+                        .OrderBy(x => x.DisplayPriority)
+                        .Select(MapWatchProvider)
+                        .ToList());
             }
         }
 
-        if (selectedRegion is null || string.IsNullOrWhiteSpace(countryCode))
+        if (releaseDate.HasValue && (DateTime.UtcNow - releaseDate.Value).TotalDays <= 60 && (DateTime.UtcNow - releaseDate.Value).TotalDays >= -60)
         {
-            return null;
+            return new MovieWatchProvidersDto(
+                "US",
+                null,
+                new List<MovieWatchProviderItemDto> { new MovieWatchProviderItemDto(0, "In Theaters", null, 0) },
+                new List<MovieWatchProviderItemDto>(),
+                new List<MovieWatchProviderItemDto>());
         }
 
-        return new MovieWatchProvidersDto(
-            countryCode,
-            selectedRegion.Link,
-            selectedRegion.Flatrate
-                .OrderBy(x => x.DisplayPriority)
-                .Select(MapWatchProvider)
-                .ToList(),
-            selectedRegion.Rent
-                .OrderBy(x => x.DisplayPriority)
-                .Select(MapWatchProvider)
-                .ToList(),
-            selectedRegion.Buy
-                .OrderBy(x => x.DisplayPriority)
-                .Select(MapWatchProvider)
-                .ToList());
+        if (!string.IsNullOrWhiteSpace(homepage))
+        {
+            var homepageLower = homepage.ToLowerInvariant();
+            var knownProviders = new[] { "netflix", "amazon", "primevideo", "disney", "hulu", "max", "apple" };
+            var matchedProvider = knownProviders.FirstOrDefault(p => homepageLower.Contains(p));
+            if (matchedProvider != null)
+            {
+                var providerName = matchedProvider switch
+                {
+                    "netflix" => "Netflix",
+                    "amazon" => "Amazon Prime Video",
+                    "primevideo" => "Amazon Prime Video",
+                    "disney" => "Disney+",
+                    "hulu" => "Hulu",
+                    "max" => "Max",
+                    "apple" => "Apple TV+",
+                    _ => "Streaming Provider"
+                };
+
+                return new MovieWatchProvidersDto(
+                    "US",
+                    homepage,
+                    new List<MovieWatchProviderItemDto> { new MovieWatchProviderItemDto(0, providerName, null, 0) },
+                    new List<MovieWatchProviderItemDto>(),
+                    new List<MovieWatchProviderItemDto>());
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(imdbId))
+        {
+            return new MovieWatchProvidersDto(
+                "US",
+                $"https://www.imdb.com/title/{imdbId}",
+                new List<MovieWatchProviderItemDto> { new MovieWatchProviderItemDto(0, "View on IMDB", null, 0) },
+                new List<MovieWatchProviderItemDto>(),
+                new List<MovieWatchProviderItemDto>());
+        }
+
+        return null;
     }
 
     private static MovieWatchProviderItemDto MapWatchProvider(TmdbWatchProviderDto provider)

@@ -5,7 +5,7 @@ import { useChildren } from '../hooks/useFamily';
 import { useFamilyStore } from '../store/useFamilyStore';
 import { ChildForm } from './ChildForm';
 import { EditRestrictionsModal } from './EditRestrictionsModal';
-import Navbar from '../../../components/layout/NavBar';
+
 export const FamilyDashboard = () => {
   const { data: children, isLoading, isError } = useChildren();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -14,7 +14,7 @@ export const FamilyDashboard = () => {
   return (
     <div>
       <div className="pb-20">
-      <Navbar />
+      
       </div>
       <div className="w-full max-w-6xl mx-auto p-6 md:p-8 space-y-8">
         {/* Header */}
@@ -148,3 +148,4 @@ export const FamilyDashboard = () => {
     </div>
   );
 };
+

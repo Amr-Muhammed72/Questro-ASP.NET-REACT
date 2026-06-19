@@ -9,4 +9,5 @@ public interface IUserProfileService
     Task<Result<UserProfileDto>> UpdateProfileAsync(long userId, UpdateProfileRequestDto request, CancellationToken cancellationToken = default);
     Task<Result<string>> UpdateProfilePictureAsync(long userId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
     Task<Result<UserProfileDto>> SubmitSurveyAsync(long userId, SubmitSurveyRequestDto request, CancellationToken cancellationToken = default);
+    Task<Result<SurveyCompletionStatusDto>> GetSurveyCompletionStatusAsync(long userId, CancellationToken cancellationToken = default);
 }

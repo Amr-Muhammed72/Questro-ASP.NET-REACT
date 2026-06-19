@@ -9,6 +9,7 @@ using Questro.Service.Services.Notifications;
 using Questro.Shared.Contracts.Email;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddApiLayer();
 builder.Services.AddInfrastructureLayer(builder.Configuration);
 builder.Services.AddServiceLayer(builder.Configuration);
