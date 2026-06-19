@@ -99,7 +99,7 @@ const EditorialPosterGrid = ({
           <button 
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
-            className="absolute -left-2 lg:-left-12 top-[35%] -translate-y-1/2 z-20 w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-black/60 flex items-center justify-center text-white disabled:opacity-0 disabled:pointer-events-none hover:bg-zinc-800 transition-all backdrop-blur-md border border-white/10 shadow-2xl opacity-0 group-hover/carousel:opacity-100"
+            className="absolute -left-2 lg:-left-12 top-[35%] -translate-y-1/2 z-20 w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-black/60 hidden md:flex items-center justify-center text-white disabled:opacity-0 disabled:pointer-events-none hover:bg-zinc-800 transition-all backdrop-blur-md border border-white/10 shadow-2xl opacity-0 group-hover/carousel:opacity-100"
           >
             <ChevronLeft className="w-6 h-6 lg:w-8 lg:h-8" />
           </button>
@@ -169,7 +169,7 @@ const EditorialPosterGrid = ({
           <button 
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
-            className="absolute -right-2 lg:-right-12 top-[35%] -translate-y-1/2 z-20 w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-black/60 flex items-center justify-center text-white disabled:opacity-0 disabled:pointer-events-none hover:bg-zinc-800 transition-all backdrop-blur-md border border-white/10 shadow-2xl opacity-0 group-hover/carousel:opacity-100"
+            className="absolute -right-2 lg:-right-12 top-[35%] -translate-y-1/2 z-20 w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-black/60 hidden md:flex items-center justify-center text-white disabled:opacity-0 disabled:pointer-events-none hover:bg-zinc-800 transition-all backdrop-blur-md border border-white/10 shadow-2xl opacity-0 group-hover/carousel:opacity-100"
           >
             <ChevronRight className="w-6 h-6 lg:w-8 lg:h-8" />
           </button>

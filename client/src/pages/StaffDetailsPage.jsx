@@ -49,7 +49,7 @@ const StaffDetailsPage = () => {
 
 
       {/* 🎭 HERO CONTENT */}
-      <div ref={heroRef} className="relative z-10 px-6 md:px-16 mt-8 max-w-7xl mx-auto">
+      <div ref={heroRef} className="relative z-10 px-6 md:px-16 pt-24 md:pt-32 max-w-7xl mx-auto">
         <motion.div 
           variants={containerVariants}
           initial="hidden"

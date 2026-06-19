@@ -96,49 +96,53 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8, ease: "easeInOut" }}
-      className="absolute inset-0 w-full h-full flex flex-col md:flex-row items-center pt-24 md:pt-0 max-w-[1400px] mx-auto px-6 md:px-12 z-20"
+      className="absolute inset-0 w-full h-full"
     >
       {/* Background Pulse */}
-      <div className="absolute inset-0 -z-10 bg-[#07070a] overflow-hidden">
+      <div className="absolute inset-0 z-0 bg-[#07070a] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-zinc-900/50 via-[#07070a] to-zinc-900/50 animate-pulse" />
       </div>
 
+      <div className="absolute inset-0 z-0 bg-gradient-to-t md:bg-gradient-to-r from-[#050505] via-[#050505]/90 md:via-[#050505]/70 to-transparent w-full md:w-[80%]" />
+      
       {/* MASSIVE BOTTOM FADE TO MELT INTO THE NEXT SECTION (Skeleton version) */}
       <div className="absolute bottom-0 left-0 w-full h-[50vh] z-10 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent pointer-events-none" />
 
-      {/* Left Content Skeleton */}
-      <div className="w-full md:w-[55%] pr-0 md:pr-12 flex flex-col justify-center order-2 md:order-1 mt-12 md:mt-0 z-20">
-        <div className="w-24 h-8 bg-white/5 rounded-full mb-5 animate-pulse" />
-        <div className="w-3/4 h-16 bg-white/10 rounded-lg mb-4 animate-pulse" />
-        <div className="w-1/2 h-16 bg-white/10 rounded-lg mb-6 animate-pulse" />
-        
-        <div className="flex gap-3 mb-8">
-          <div className="w-16 h-6 bg-white/5 rounded animate-pulse" />
-          <div className="w-32 h-6 bg-white/5 rounded animate-pulse" />
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-start pt-20 md:pt-0 pb-6 md:pb-0">
+        {/* Left Content Skeleton */}
+        <div className="w-full md:w-[55%] pr-0 md:pr-12 flex flex-col justify-center order-2 md:order-1 mt-6 md:mt-0 z-20 shrink-0">
+          <div className="w-24 h-8 bg-white/5 rounded-full mb-5 animate-pulse" />
+          <div className="w-3/4 h-12 md:h-16 bg-white/10 rounded-lg mb-4 animate-pulse" />
+          <div className="w-1/2 h-12 md:h-16 bg-white/10 rounded-lg mb-6 animate-pulse" />
+          
+          <div className="flex gap-3 mb-8">
+            <div className="w-16 h-6 bg-white/5 rounded animate-pulse" />
+            <div className="w-32 h-6 bg-white/5 rounded animate-pulse" />
+          </div>
+
+          <div className="w-full h-4 bg-white/5 rounded mb-3 animate-pulse" />
+          <div className="w-full h-4 bg-white/5 rounded mb-3 animate-pulse" />
+          <div className="w-2/3 h-4 bg-white/5 rounded mb-10 animate-pulse" />
+          
+          <div className="flex gap-4">
+            <div className="w-40 h-12 bg-white/10 rounded-full animate-pulse" />
+            <div className="w-36 h-12 bg-white/5 rounded-full animate-pulse" />
+          </div>
         </div>
 
-        <div className="w-full h-4 bg-white/5 rounded mb-3 animate-pulse" />
-        <div className="w-full h-4 bg-white/5 rounded mb-3 animate-pulse" />
-        <div className="w-2/3 h-4 bg-white/5 rounded mb-10 animate-pulse" />
-        
-        <div className="flex gap-4">
-          <div className="w-40 h-12 bg-white/10 rounded-full animate-pulse" />
-          <div className="w-36 h-12 bg-white/5 rounded-full animate-pulse" />
-        </div>
-      </div>
-
-      {/* Right Content Skeleton (3D Cards) */}
-      <div className="w-full md:w-[45%] flex justify-center md:justify-end items-center h-[400px] md:h-[650px] order-1 md:order-2 z-20">
-        <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
-          <div className="absolute rounded-xl overflow-hidden bg-white/5 animate-pulse aspect-[2/3] w-[240px] md:w-[360px] shadow-2xl border border-white/5" style={{ transform: 'rotateY(-25deg)', zIndex: 20 }} />
-          <div className="absolute rounded-xl overflow-hidden bg-white/5 animate-pulse aspect-[16/9] w-[320px] md:w-[480px] opacity-40" style={{ transform: 'translateX(120px) translateZ(-300px) scale(0.8) rotateY(-25deg)', zIndex: 10 }} />
+        {/* Right Content Skeleton (3D Cards) */}
+        <div className="w-full md:w-[45%] flex justify-center md:justify-end items-center h-[260px] md:h-[650px] order-1 md:order-2 z-20 mt-2 md:mt-0 shrink-0">
+          <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
+            <div className="absolute rounded-xl overflow-hidden bg-white/5 animate-pulse aspect-[2/3] w-[160px] md:w-[360px] shadow-2xl border border-white/5" style={{ transform: 'rotateY(-25deg)', zIndex: 20 }} />
+            <div className="absolute rounded-xl overflow-hidden bg-white/5 animate-pulse aspect-[16/9] w-[240px] md:w-[480px] opacity-40" style={{ transform: 'translateX(60px) translateZ(-300px) scale(0.8) rotateY(-25deg)', zIndex: 10 }} />
+          </div>
         </div>
       </div>
     </motion.div>
   );
 
   return (
-    <section className="relative w-full h-[85vh] min-h-[700px] bg-[#050505] overflow-hidden flex items-center">
+    <section className="relative w-full min-h-[100vh] md:min-h-[700px] md:h-[85vh] bg-[#050505] overflow-hidden flex items-center">
       <AnimatePresence mode="wait">
         {(isLoading || items.length === 0) ? (
           <LoadingSkeleton />
@@ -171,16 +175,16 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
             </AnimatePresence>
 
             {/* 2. ELEGANT TEXT-PROTECTION GRADIENTS */}
-            <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#050505] via-[#050505]/70 to-transparent w-[80%]" />
+            <div className="absolute inset-0 z-0 bg-gradient-to-t md:bg-gradient-to-r from-[#050505] via-[#050505]/90 md:via-[#050505]/70 to-transparent w-full md:w-[80%]" />
             
             {/* MASSIVE BOTTOM FADE TO MELT INTO THE NEXT SECTION */}
             {/* The color EXACTLY matches the HomePage background (#09090b) to eliminate harsh lines */}
             <div className="absolute bottom-0 left-0 w-full h-[50vh] z-10 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent pointer-events-none" />
 
-            <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 w-full h-full flex flex-col md:flex-row items-center pt-24 md:pt-0">
+            <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-start pt-20 md:pt-0 pb-6 md:pb-0">
               
               {/* TEXT CONTENT (LEFT SIDE) */}
-              <div className="w-full md:w-[55%] pr-0 md:pr-12 flex flex-col justify-center order-2 md:order-1 mt-12 md:mt-0 z-20">
+              <div className="w-full md:w-[55%] pr-0 md:pr-12 flex flex-col justify-center order-2 md:order-1 mt-6 md:mt-0 z-20 shrink-0">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeItem.id + '-text'}
@@ -204,7 +208,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
                       )}
                     </div>
                     
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-5 drop-shadow-lg tracking-tight max-w-3xl">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-5 drop-shadow-lg tracking-tight max-w-3xl">
                       {activeItem.title}
                     </h1>
 
@@ -240,7 +244,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
 
               {/* PARALLAX POSTER CARDS (RIGHT SIDE) */}
               <div 
-                className="w-full md:w-[45%] flex justify-center md:justify-end items-center relative h-[400px] md:h-[650px] order-1 md:order-2 perspective-[2000px]"
+                className="w-full md:w-[45%] flex justify-center md:justify-end items-center relative h-[260px] md:h-[650px] order-1 md:order-2 perspective-[2000px] mt-2 md:mt-0 shrink-0"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
               >
@@ -249,15 +253,19 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
                     const isActive = index === activeIndex;
                     const isMovie = item.type === 'movie';
                     
+                    // Simple responsive offset
+                    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                    const offsetX = isMobile ? 60 : 120;
+                    
                     return (
                       <motion.div
                         key={item.id}
                         onClick={() => setActiveIndex(index)}
                         className={`absolute rounded-xl overflow-hidden cursor-pointer bg-zinc-900 ${
-                          isMovie ? 'aspect-[2/3] w-[240px] md:w-[360px]' : 'aspect-[16/9] w-[320px] md:w-[480px]'
+                          isMovie ? 'aspect-[2/3] w-[160px] md:w-[360px]' : 'aspect-[16/9] w-[240px] md:w-[480px]'
                         }`}
                         animate={{
-                          x: isActive ? 0 : 120,
+                          x: isActive ? 0 : offsetX,
                           z: isActive ? 100 : -300,
                           scale: isActive ? 1 : 0.8,
                           opacity: isActive ? 1 : 0.4,
