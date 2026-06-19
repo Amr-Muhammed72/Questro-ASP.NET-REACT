@@ -40,7 +40,7 @@ internal static class TmdbConstants
 
     internal static class ContentSafety
     {
-        public const string BannedKeywordIds = "156343,190453,161176,104514,163013,10036";
+        public const string BannedKeywordIds = "156343|190453|161176|104514|163013|10036";
         public static readonly HashSet<string> BannedKeywordNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "softcore",
@@ -51,6 +51,16 @@ internal static class TmdbConstants
             "pornography",
             "sex",
             "adult film"
+        };
+
+        public static readonly HashSet<int> BannedMovieIds = new()
+        {
+            259872,  // Skin. Like. Sun.
+            15045,   // American Swing
+            407806,  // Le Clitoris
+            1228206, // 1000 Men and Me: The Bonnie Blue Story
+            15024,   // Damage (1992)
+            3284     // 9 Songs (2004)
         };
     }
 
