@@ -81,7 +81,7 @@ Microsoft SQL Server 2022 is the system of record, accessed through EF Core 8 us
 
 \section{Recommender Subsystem Implementation}
 \label{sec:recommender_impl}
-The recommender is the analytical centerpiece of Questro. It is implemented as a standalone Python service that loads a pre-trained PyTorch model once at start-up and serves stateless inference requests over HTTP. The model, \textbf{CL-EPIDTN} (Contrastive-Learning Enhanced Personalized Item--Domain Transformer Network), is a dual-tower neural architecture trained with a multi-objective contrastive criterion over a unified cross-domain corpus. The end-to-end model is depicted in Figure~\ref{fig:clepidtn_architecture}; the service topology is shown in Figure~\ref{fig:questro_api_architecture}.
+The recommender is the analytical centerpiece of Questro. It is implemented as a standalone Python service that loads a pre-trained PyTorch model once at start-up and serves stateless inference requests over HTTP. The model, \textbf{CL-EPIDTN} (Contrastive Learning-Enhanced Personalized Interaction Dual Tower Network), is a dual-tower neural architecture trained with a multi-objective contrastive criterion over a unified cross-domain corpus. Its design is heavily inspired by the contrastive dual-tower recommender of Yang \textit{et al.}~\cite{yang2025clepidtn}, which we adapt and extend to Questro's cross-domain movie--game setting. The end-to-end model is depicted in Figure~\ref{fig:clepidtn_architecture}; the service topology is shown in Figure~\ref{fig:questro_api_architecture}.
 
 \subsection{Offline Data Engineering and Enrichment}
 \label{sec:offline_data}
@@ -103,7 +103,7 @@ The model (class \texttt{CLEPIDTN}) embeds users and items into a shared $d = 12
 
 \begin{table}[H]
     \centering
-    \caption{Verified CL-EPIDTN configuration (\texttt{RecConfig}).}
+    \caption{CL-EPIDTN configuration hyperparameters.}
     \label{tab:recconfig}
     \begin{tabular}{|l|l|p{6.5cm}|}
         \hline
@@ -204,7 +204,7 @@ so that 5 stars yields $+1.0$, 4 stars $+0.5$, 3 stars $0.0$, 2 stars $-0.5$, an
 
 \begin{table}[H]
     \centering
-    \caption{Interaction signal $\rightarrow$ weight mapping (as implemented).}
+    \caption{Interaction signal to weight mapping.}
     \label{tab:signal_weights}
     \begin{tabular}{|l|l|l|}
         \hline
@@ -280,11 +280,11 @@ The model is evaluated under a \textbf{leave-one-out, leakage-resistant temporal
 \end{align}
 
 \subsubsection{Measured results}
-Table~\ref{tab:clepidtn_measured} reports CL-EPIDTN's measured full-catalog metrics on the temporal test split (1{,}000 sampled test users), together with a popularity baseline evaluated on the same protocol (25{,}836 users), as recorded in the project's training notebook.
+Table~\ref{tab:clepidtn_measured} reports the final CL-EPIDTN (\texttt{improved\_8}) model's measured full-catalog metrics on the leave-one-out temporal test split (1{,}000 test users), alongside two reference points evaluated under the identical protocol: a non-personalized popularity baseline, and \textbf{AutoCDSR} \cite{ju2025autocdsr}, a published cross-domain sequential recommender that the project re-implemented and trained through the \emph{same} MovieLens$+$Steam data pipeline for a fair head-to-head comparison. The two learned models are reported at epoch 10; their best in-training $\mathrm{HR}@10$ values were $0.076$ (CL-EPIDTN, epoch 6) and $0.067$ (AutoCDSR, epoch 7), while the popularity baseline is computed over 25{,}836 users.
 
 \begin{table}[H]
     \centering
-    \caption{Measured full-catalog ranking metrics (leave-one-out temporal split). CL-EPIDTN values are reported at epoch 10; the best observed $\mathrm{HR}@10$ during training was $0.076$ (epoch 6).}
+    \caption{Measured full-catalog ranking metrics for the final model and prior implementations.}
     \label{tab:clepidtn_measured}
     \small
     \setlength{\tabcolsep}{4pt}
@@ -292,16 +292,22 @@ Table~\ref{tab:clepidtn_measured} reports CL-EPIDTN's measured full-catalog metr
         \hline
         \textbf{Method} & \textbf{HR@10} & \textbf{NDCG@10} & \textbf{MRR} & \textbf{HR@50} & \textbf{NDCG@50} \\ \hline
         Popularity baseline & 0.0823 & 0.0363 & --- & 0.2899 & 0.0805 \\ \hline
-        CL-EPIDTN (improved\_8) & 0.0710 & 0.0353 & 0.0299 & 0.1850 & 0.0601 \\ \hline
+        AutoCDSR \cite{ju2025autocdsr} & 0.0630 & 0.0338 & 0.0288 & 0.1510 & 0.0527 \\ \hline
+        \textbf{CL-EPIDTN} (\texttt{improved\_8}) & 0.0710 & 0.0353 & 0.0299 & 0.1850 & 0.0601 \\ \hline
     \end{tabular}
 \end{table}
+
+\subsubsection{Comparison with prior implementations}
+The \texttt{improved\_8} model is the final entry in a line of implementations the project built and evaluated, and Table~\ref{tab:clepidtn_measured} positions it against the strongest of those alternatives. \textbf{AutoCDSR} \cite{ju2025autocdsr} is a transformer-based cross-domain recommender that regulates cross-domain attention through Pareto-optimal multi-task learning; because it was trained and evaluated through the identical data pipeline and protocol, its scores are directly comparable to ours. Among the two learned, personalized recommenders, CL-EPIDTN is uniformly stronger: it raises $\mathrm{HR}@10$ from $0.063$ to $0.071$, $\mathrm{NDCG}@10$ from $0.034$ to $0.035$, and $\mathrm{MRR}$ from $0.029$ to $0.030$, with the largest gains at the deeper cut-off---$\mathrm{HR}@50$ improves from $0.151$ to $0.185$ and $\mathrm{NDCG}@50$ from $0.053$ to $0.060$. The widening advantage at rank~50 indicates that CL-EPIDTN's content channel and multi-objective contrastive training recover a meaningfully larger pool of relevant cross-domain items, rather than merely reordering the top few. The non-personalized popularity baseline scores higher still on raw hit rate, but, as noted earlier, it returns an identical list for every user and performs none of the cross-domain personalization that is the system's purpose.
+
+CL-EPIDTN reached this configuration through several earlier iterations (\texttt{improved}, \texttt{improved\_3}, and \texttt{improved\_4}). Those development stages shared a deliberately smaller training regime---three epochs over at most $300{,}000$ sequence samples, behind a stricter $\geq 4.0$-star rating filter---whereas \texttt{improved\_8} relaxed the rating threshold to $\geq 3.5$ stars, required at least five interactions per item, expanded training to ten epochs over up to $1{,}000{,}000$ samples, and retuned the auxiliary modality-matching weight from $0.05$ to $0.01$. Each change was retained only when it improved validation ranking quality; the earlier variants were exploratory stages superseded by the configuration documented here and were not preserved as separately-benchmarked release candidates, so they are reported qualitatively rather than with comparable metrics.
 
 \subsubsection{Model comparison matrix and contextual justification}
 Table~\ref{tab:baseline_matrix} situates CL-EPIDTN against recognized sequential and cross-domain recommenders. We deliberately do \textbf{not} transcribe single numbers from those papers into the same cells as Questro's, because doing so would be methodologically misleading: the cited baselines report $\mathrm{HR}@10$/$\mathrm{NDCG}@10$ on \textbf{single-domain} corpora under a \textbf{sampled-negative} protocol (typically one positive against 100 sampled negatives), whereas Questro's numbers in Table~\ref{tab:clepidtn_measured} are \textbf{full-catalog} ($\sim$138K-way) rankings over a \textbf{zero-overlap cross-domain} corpus. Under a 100-negative protocol the chance baseline alone is $\mathrm{HR}@10 \approx 0.10$, whereas under full-catalog ranking it is $\approx 7\times10^{-5}$; the two regimes differ by orders of magnitude and are not directly comparable.
 
 \begin{table}[H]
     \centering
-    \caption{Architectural comparison of CL-EPIDTN with recognized baselines. Published metrics are reported by their authors under single-domain, sampled-negative protocols and are therefore not directly comparable to Questro's full-catalog cross-domain numbers.}
+    \caption{Architectural comparison of CL-EPIDTN with recognized baseline recommenders.}
     \label{tab:baseline_matrix}
     \begin{tabular}{|l|p{5.0cm}|p{3.4cm}|}
         \hline
@@ -378,7 +384,7 @@ The pipeline was exercised by the evaluation harness \texttt{recommender/\allowb
 
 \begin{table}[H]
     \centering
-    \caption{Measured RAG pipeline behaviour over the 115-query evaluation suite.}
+    \caption{Measured RAG pipeline behaviour.}
     \label{tab:rag_eval}
     \begin{tabular}{|l|c|}
         \hline
