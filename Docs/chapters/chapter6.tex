@@ -204,20 +204,22 @@ The model (class \texttt{CLEPIDTN}) embeds users and items into a shared $d = 12
 \subsubsection{User Tower}
 The user tower consumes the chronologically ordered sequence of item indices in the user's history (left-padded to \texttt{max\_seq\_len}~$=30$ with a learned padding index). Each history item is mapped through the shared item-identity embedding $\mathbf{E}_{\text{id}}$ and summed with a learned positional embedding. The resulting sequence is processed by a stack of five \texttt{TransformerEncoderLayer}s ($d_{\text{model}}=128$, $4$ heads, feed-forward width $4d=512$, GELU activation, dropout $0.15$, \texttt{batch\_first}); causal masking is disabled by default (\texttt{use\_causal\_attention = False}), so the encoder attends bidirectionally over the (padding-masked) history. From the encoded sequence the tower derives three signals: a \textbf{masked-mean pooled} representation $\mathbf{p}_{\text{seq}}$, the \textbf{most-recent} non-padding token's representation $\mathbf{r}$, and a learned \textbf{user/activity attribute} vector $\mathbf{a}$ (an identity embedding plus an activity-bucket embedding; both are zeroed in the anonymous inference path). A residual augmentation block produces $\tilde{\mathbf{p}}^{u}$, and the final user vector is
 
-\[
+\begin{equation}
 \mathbf{u} = \mathrm{norm}\!\Big(\,W_u\big[\,\mathbf{a}+\tilde{\mathbf{p}}^{u}\;\Vert\;\mathbf{p}_{\text{seq}}\;\Vert\;\mathbf{r}\;\Vert\;\mathbf{a}_{\text{act}}\,\big]\Big),
-\]
+\label{eq:user_vector}
+\end{equation}
 
-where $[\,\cdot\Vert\cdot\,]$ denotes concatenation, $W_u$ is the two-layer projection \texttt{user\_proj} (a $4d\!\to\!d$ GELU MLP with dropout), $\mathbf{a}_{\text{act}}$ is the activity embedding, and $\mathrm{norm}(\cdot)$ is $L_2$ normalization so that $\lVert\mathbf{u}\rVert_2 = 1$.
+where $\mathbf{u}$ is the final user vector; $\mathbf{a}$ is the user/activity attribute vector; $\tilde{\mathbf{p}}^{u}$ is the residual-augmented pooled representation; $\mathbf{p}_{\text{seq}}$ is the masked-mean pooled sequence representation; $\mathbf{r}$ is the most-recent non-padding token's representation; $\mathbf{a}_{\text{act}}$ is the activity-bucket embedding; $[\,\cdot\Vert\cdot\,]$ denotes vector concatenation; $W_u$ is the two-layer projection \texttt{user\_proj} (a $4d\!\to\!d$ GELU MLP with dropout); and $\mathrm{norm}(\cdot)$ is $L_2$ normalization, so that $\lVert\mathbf{u}\rVert_2 = 1$.
 
 \subsubsection{Item Tower}
 The item tower (\texttt{item\_features}) builds an item representation from four feature groups: the masked-mean of its metadata-\textbf{token} embeddings $\mathbf{t}$, a \textbf{domain} embedding $\mathbf{m}$ (movie vs.\ game), the item-\textbf{identity} embedding $\mathbf{e}_{\text{id}}$, and---when the precomputed text tensor is present---a \textbf{text} projection $W_{\text{txt}}\mathbf{x}$ of the MiniLM embedding $\mathbf{x}$. A residual augmentation block yields $\tilde{\mathbf{p}}^{i}$, and the final item vector is
 
-\[
+\begin{equation}
 \mathbf{v} = \mathrm{norm}\!\Big(\,W_i\big[\,\mathbf{e}_{\text{id}}\;\Vert\;\mathbf{t}+\tilde{\mathbf{p}}^{i}\;\Vert\;\mathbf{m}\;\Vert\;W_{\text{txt}}\mathbf{x}\,\big]\Big),
-\]
+\label{eq:item_vector}
+\end{equation}
 
-where $W_i$ is the \texttt{item\_proj} MLP whose input width is $4d$ when text embeddings are available and $3d$ otherwise. During training, token dropout (\texttt{mask\_tokens}) stochastically zeroes a fraction of an item's tokens to produce augmented views for the self-supervised objective.
+where $\mathbf{v}$ is the final item vector; $\mathbf{e}_{\text{id}}$ is the item-identity embedding; $\mathbf{t}$ is the masked-mean of the item's metadata-token embeddings; $\tilde{\mathbf{p}}^{i}$ is the residual-augmented item representation; $\mathbf{m}$ is the domain embedding (movie vs.\ game); $\mathbf{x}$ is the precomputed MiniLM text embedding and $W_{\text{txt}}$ its learned projection; $W_i$ is the \texttt{item\_proj} MLP whose input width is $4d$ when text embeddings are available and $3d$ otherwise; $[\,\cdot\Vert\cdot\,]$ denotes concatenation; and $\mathrm{norm}(\cdot)$ is $L_2$ normalization. During training, token dropout (\texttt{mask\_tokens}) stochastically zeroes a fraction of an item's tokens to produce augmented views for the self-supervised objective.
 
 \subsection{Multi-Objective Training}
 \label{sec:rec_training}
@@ -234,6 +236,8 @@ Training optimizes a weighted sum of three complementary objectives. Let $B$ be 
 \label{eq:infonce}
 \end{equation}
 
+where $\mathcal{L}_{\text{main}}$ is the main contrastive loss; $B$ is the batch size; $\mathbf{u}_i$ and $\mathbf{v}_i$ are the normalized user and positive-item vectors of example $i$; $\mathbf{v}_j$ is the item vector of batch example $j$, which acts as an in-batch negative whenever $j \neq i$; $\tau$ is the softmax temperature; and $\mathbf{u}_i^{\top}\mathbf{v}_j$ denotes their inner-product similarity.
+
 \paragraph{(2) Self-supervised contrastive loss (SSL).} Following the SimCLR-style philosophy of agreement between augmented views \cite{chen2020simclr}, two independently augmented encodings of each user history are produced (via stochastic history dropout) together with two token-masked encodings of each positive item. Writing $\ell(\cdot,\cdot)$ for the InfoNCE operator of Equation~\eqref{eq:infonce}, the SSL loss averages agreement across the pooled-sequence views $(\mathbf{s}^a,\mathbf{s}^b)$, the attribute views $(\mathbf{a}^a,\mathbf{a}^b)$, and the item views $(\mathbf{i}^a,\mathbf{i}^b)$:
 
 \begin{equation}
@@ -244,6 +248,8 @@ Training optimizes a weighted sum of three complementary objectives. Let $B$ be 
 \label{eq:ssl}
 \end{equation}
 
+where $\mathcal{L}_{\text{ssl}}$ is the self-supervised loss; $\ell(\cdot,\cdot)$ is the InfoNCE operator of Equation~\eqref{eq:infonce} applied to a pair of augmented views; and $(\mathbf{s}^a,\mathbf{s}^b)$, $(\mathbf{a}^a,\mathbf{a}^b)$, and $(\mathbf{i}^a,\mathbf{i}^b)$ are the two independently augmented views of the pooled-sequence, attribute, and item representations respectively.
+
 \paragraph{(3) Auxiliary Modality-Matching loss (AMM).} To preserve semantic alignment between the two towers' augmentation projections and the opposite tower's output, a cosine-similarity matching term is applied. Using $\mathrm{sg}[\cdot]$ for the stop-gradient (detach) operator and $\cos(\cdot,\cdot)$ for cosine similarity:
 
 \begin{equation}
@@ -252,6 +258,8 @@ Training optimizes a weighted sum of three complementary objectives. Let $B$ be 
 + \big(1-\cos(\tilde{\mathbf{p}}^{i},\,\mathrm{sg}[\mathbf{u}])\big).
 \label{eq:amm}
 \end{equation}
+
+where $\mathcal{L}_{\text{amm}}$ is the auxiliary modality-matching loss; $\tilde{\mathbf{p}}^{u}$ and $\tilde{\mathbf{p}}^{i}$ are the user- and item-tower augmentation projections; $\mathbf{u}$ and $\mathbf{v}$ are the final user and item vectors; $\cos(\cdot,\cdot)$ is cosine similarity; and $\mathrm{sg}[\cdot]$ is the stop-gradient (detach) operator, which passes its argument through unchanged in the forward pass while blocking gradient flow through it.
 
 Cosine similarity is used rather than mean-squared error specifically to avoid representational collapse.
 
@@ -267,6 +275,8 @@ Cosine similarity is used rather than mean-squared error specifically to avoid r
 \label{eq:total_loss}
 \end{equation}
 
+where $\mathcal{L}$ is the total training loss; $\mathcal{L}_{\text{main}}$, $\mathcal{L}_{\text{ssl}}$, and $\mathcal{L}_{\text{amm}}$ are the contrastive, self-supervised, and modality-matching losses of Equations~\eqref{eq:infonce}--\eqref{eq:amm}; and $\lambda_{\text{ssl}}$ and $\lambda_{\text{amm}}$ are the scalar weights that balance the two auxiliary objectives against the main loss.
+
 Optimization uses Adam at peak learning rate $2\times10^{-3}$ under a \texttt{OneCycleLR} schedule (5\% linear warm-up followed by cosine annealing to zero), with gradient-norm clipping at $1.0$, batch size $512$, for $10$ epochs.
 
 \subsection{Interaction-Signal Weighting}
@@ -278,7 +288,7 @@ w(s) = \mathrm{clamp}\!\Big(\frac{s-3}{2},\,-1,\,1\Big),
 \label{eq:starweight}
 \end{equation}
 
-so that 5 stars yields $+1.0$, 4 stars $+0.5$, 3 stars $0.0$, 2 stars $-0.5$, and 1 star $-1.0$. Implicit and survey signals reuse the same scale: a \texttt{wishlist} action (``Didn't watch/play but would'') maps to the value $3.5$, hence $w = +0.25$; an \texttt{ignore} action (``wouldn't watch/play'') maps to $1.5$, hence $w = -0.75$; an item submitted with no rating at all defaults to a mild positive $+0.25$. Table~\ref{tab:signal_weights} summarizes the mapping exactly as implemented.
+where $w(s)$ is the resulting interaction weight; $s \in [1,5]$ is the numeric star rating; and $\mathrm{clamp}(x,-1,1)$ constrains its argument $x$ to the interval $[-1,1]$. Thus 5 stars yields $+1.0$, 4 stars $+0.5$, 3 stars $0.0$, 2 stars $-0.5$, and 1 star $-1.0$. Implicit and survey signals reuse the same scale: a \texttt{wishlist} action (``Didn't watch/play but would'') maps to the value $3.5$, hence $w = +0.25$; an \texttt{ignore} action (``wouldn't watch/play'') maps to $1.5$, hence $w = -0.75$; an item submitted with no rating at all defaults to a mild positive $+0.25$. Table~\ref{tab:signal_weights} summarizes the mapping exactly as implemented.
 
 \begin{table}[H]
     \centering
@@ -311,7 +321,7 @@ Because the public training users are not Questro users, production inference ru
 \label{eq:anonblend}
 \end{equation}
 
-where $h_t$ and $w_t$ are the $t$-th history item index and its weight. Each candidate $c$ then receives a composite score
+where $\mathbf{u}$ is the blended anonymous user vector; $\mathbf{u}_{\text{seq}}$ is the sequence-derived user vector produced by the tower; $\mathbf{v}_{h_t}$ is the item-tower vector of the $t$-th history item; $h_t$ and $w_t$ are the $t$-th history item index and its signed weight; $\alpha$ is the blend coefficient balancing the sequence vector against the weighted item-vector mean; and $\mathrm{norm}(\cdot)$ is $L_2$ normalization. Each candidate $c$ then receives a composite score
 
 \begin{equation}
 \mathrm{score}(c) = \mathbf{u}^{\top}\mathbf{v}_c
@@ -321,7 +331,7 @@ where $h_t$ and $w_t$ are the $t$-th history item index and its weight. Each can
 \label{eq:finalscore}
 \end{equation}
 
-combining the neural inner product with three content terms: a token-overlap boost $\mathrm{tok}(c)$ (which rewards shared metadata tokens with liked items and penalizes tokens exclusive to disliked items), a text-similarity term $\mathrm{txt}(c)$ computed from the MiniLM embeddings, and a title-token boost $\mathrm{title}(c)$ that matches the tail (title) tokens of the candidate against the history. The implemented weights are $\beta = 0.20$, $\gamma = 0.25$, and $\delta = 0.25$. History items are masked out (score $-\infty$); an optional domain filter restricts candidates to movies or games.
+where $\mathrm{score}(c)$ is the composite score of candidate $c$; $\mathbf{u}$ is the blended user vector from Equation~\eqref{eq:anonblend}; $\mathbf{v}_c$ is the candidate's item vector; and $\mathbf{u}^{\top}\mathbf{v}_c$ is their neural inner product. The remaining three content terms are a token-overlap boost $\mathrm{tok}(c)$ (which rewards shared metadata tokens with liked items and penalizes tokens exclusive to disliked items), a text-similarity term $\mathrm{txt}(c)$ computed from the MiniLM embeddings, and a title-token boost $\mathrm{title}(c)$ that matches the tail (title) tokens of the candidate against the history; their scalar weights are $\beta = 0.20$, $\gamma = 0.25$, and $\delta = 0.25$. History items are masked out (score $-\infty$); an optional domain filter restricts candidates to movies or games.
 
 \subsubsection{Collaborative-filtering fusion}
 For survey-seeded profiles the neural ranking is fused with a survey \textbf{user-based collaborative filter}. Two profiles' similarity blends a shrinkage-corrected cosine over their shared ratings with a cosine over their explicit genre-preference vectors:
@@ -333,7 +343,7 @@ For survey-seeded profiles the neural ranking is fused with a survey \textbf{use
 \label{eq:usercf}
 \end{equation}
 
-where $s_r$ is the cosine over the set $\mathcal{S}$ of co-rated items, $s_g$ the genre-preference cosine, $\kappa$ an overlap-shrinkage factor that discounts similarities resting on few shared items, and $(\omega_r,\omega_g) = (0.7, 0.3)$. The neural and user-CF candidate lists are combined with \textbf{Reciprocal Rank Fusion (RRF)} \cite{cormack2009rrf}:
+where $\mathrm{sim}(u,u')$ is the similarity between survey profiles $u$ and $u'$; $s_r$ is the cosine over the set $\mathcal{S}$ of their co-rated items and $|\mathcal{S}|$ its cardinality; $s_g$ is the cosine over their explicit genre-preference vectors; $\kappa$ is the overlap-shrinkage factor that discounts similarities resting on few shared items; and $\omega_r$ and $\omega_g$ are the rating- and genre-channel weights, set to $(\omega_r,\omega_g) = (0.7, 0.3)$. The neural and user-CF candidate lists are combined with \textbf{Reciprocal Rank Fusion (RRF)} \cite{cormack2009rrf}:
 
 \begin{equation}
 \mathrm{RRF}(c) = \frac{w_{\text{neu}}}{\eta + r_{\text{neu}}(c)} + \frac{w_{\text{cf}}}{\eta + r_{\text{cf}}(c)},
@@ -341,7 +351,7 @@ where $s_r$ is the cosine over the set $\mathcal{S}$ of co-rated items, $s_g$ th
 \label{eq:rrf}
 \end{equation}
 
-where $r_{\text{neu}}(c)$ and $r_{\text{cf}}(c)$ are the (1-based) ranks of candidate $c$ in the neural and user-CF lists respectively, and $\eta$ is the rank constant that damps the influence of very high ranks.
+where $\mathrm{RRF}(c)$ is the fused score of candidate $c$; $r_{\text{neu}}(c)$ and $r_{\text{cf}}(c)$ are its (1-based) ranks in the neural and user-CF lists respectively; $w_{\text{neu}}$ and $w_{\text{cf}}$ are the weights of the two channels; and $\eta$ is the rank constant that damps the influence of very high ranks, with $(\eta, w_{\text{neu}}, w_{\text{cf}}) = (20, 0.75, 0.25)$.
 
 \subsubsection{Serving layer}
 The model is served by FastAPI/Uvicorn on port \texttt{7749}. The service is stateless with respect to user data---every request carries the full profile---and exposes \texttt{/recommend}, \texttt{/recommend/rerank}, \texttt{/catalog/add}, \texttt{/genres}, \texttt{/admin/reload}, and \texttt{/health}. Three behaviours from the implementation are worth recording: (i) when \texttt{blocked\_genres} is supplied the engine \textbf{over-fetches} \texttt{OVERFETCH\_MULTIPLIER}~$=5\times$ the requested page before filtering, guaranteeing a full page after the genre deny-list is applied; (ii) a \textbf{title-family boost} (\texttt{TITLE\_FAMILY\_BOOST}~$=0.40$) injects up to 50 same-franchise candidates and lifts their scores after stripping version/edition words (``Remastered'', ``GOTY'', roman numerals), so obvious sequels outrank generic genre matches; and (iii) responses return the backend provider ID (TMDB for movies, RAWG for games) alongside the model's internal \texttt{item\_key}. The offline script \texttt{build\_full\_catalog.py} bakes the recommender's entire retrievable catalog into the artifacts ahead of time---running the item tower on a clean context---so that the running API never needs to hot-add items on the GPU, a path that previously risked a CUDA device-side assertion under concurrent scoring.
@@ -356,6 +366,8 @@ The model is evaluated under a \textbf{leave-one-out, leakage-resistant temporal
 \mathrm{MRR}    &= \frac{1}{|U|}\sum_{u\in U}\frac{1}{\mathrm{rank}_u}, \\
 \mathrm{NDCG}@K &= \frac{1}{|U|}\sum_{u\in U}\frac{\mathbb{1}\!\left[\mathrm{rank}_u \le K\right]}{\log_2(\mathrm{rank}_u + 1)} .
 \end{align}
+
+where $\mathrm{HR}@K$ is the hit rate at cut-off $K$ (the fraction of users whose held-out item is ranked within the top $K$); $\mathrm{MRR}$ is the mean reciprocal rank; $\mathrm{NDCG}@K$ is the normalized discounted cumulative gain at $K$; $U$ is the evaluation set of users and $|U|$ its size; $\mathrm{rank}_u$ is the predicted rank of user $u$'s single held-out relevant item; $\mathbb{1}[\cdot]$ is the indicator function (equal to $1$ when its condition holds and $0$ otherwise); and $\log_2$ is the base-$2$ logarithm supplying the standard rank discount.
 
 \subsubsection{Measured results}
 Table~\ref{tab:clepidtn_measured} reports the final CL-EPIDTN (\texttt{improved\_8}) model's measured full-catalog metrics on the leave-one-out temporal test split (1{,}000 test users), alongside two reference points evaluated under the identical protocol: a non-personalized popularity baseline, and \textbf{AutoCDSR} \cite{ju2025autocdsr}, a published cross-domain sequential recommender that the project re-implemented and trained through the \emph{same} MovieLens$+$Steam data pipeline for a fair head-to-head comparison. The two learned models are reported at epoch 10; their best in-training $\mathrm{HR}@10$ values were $0.076$ (CL-EPIDTN, epoch 6) and $0.067$ (AutoCDSR, epoch 7), while the popularity baseline is computed over 25{,}836 users.
