@@ -4,7 +4,7 @@ import MovieCard from '../components/MovieCard';
 import CategoryHeader from './CategoryHeader';
 
 export default function MovieRow({ title = 'Featured', movies = [], onTitleClick }) {
-  const displayMovies = movies.slice(0, 10);
+  const displayMovies = movies;
   const rowRef = useRef(null);
   const [isAtStart, setIsAtStart] = useState(true);
   const [isAtEnd, setIsAtEnd] = useState(false);

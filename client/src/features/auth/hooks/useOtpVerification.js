@@ -14,8 +14,8 @@ export const useOtpVerification = () => {
       if (onSuccess) onSuccess(data);
       return data;
     } catch (err) {
-      const errorData = err.response?.data;
-      const errorMessage = errorData?.en || errorData?.description || 'Invalid or expired OTP.';
+      const errorData = err.response?.data || err;
+      const errorMessage = errorData?.en || errorData?.description || errorData?.message || 'Invalid or expired OTP.';
       setError({ message: errorMessage, code: errorData?.code });
       throw err;
     } finally {
@@ -30,8 +30,8 @@ export const useOtpVerification = () => {
       await authService.resendOtp(email);
       if (onSuccess) onSuccess();
     } catch (err) {
-      const errorData = err.response?.data;
-      const errorMessage = errorData?.en || errorData?.description || 'Failed to resend OTP.';
+      const errorData = err.response?.data || err;
+      const errorMessage = errorData?.en || errorData?.description || errorData?.message || 'Failed to resend OTP.';
       setError({ message: errorMessage, code: errorData?.code });
       throw err;
     } finally {

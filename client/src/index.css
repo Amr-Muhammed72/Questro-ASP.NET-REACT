@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+@layer base {
+  button,
+  a,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -8,6 +25,7 @@ html, body, #root {
   background-color: #09090b;
   color: #f4f4f5;
   min-height: 100vh;
+  font-family: 'Outfit', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .star-field {
@@ -25,6 +43,7 @@ html, body, #root {
   position: fixed;
   background: transparent;
   border-radius: 50%;
+  opacity: 0.15;
 }
 
 #stars-small {
@@ -82,6 +101,14 @@ html, body, #root {
 
 .glow-lg {
   box-shadow: 0 0 30px rgba(79, 70, 229, 0.4);
+}
+
+/* Premium Pro Hover States */
+.hover-pro {
+  @apply transition-all duration-500 ease-out;
+}
+.hover-pro:hover {
+  @apply -translate-y-2 shadow-[0_8px_30px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/30;
 }
 
 /* Premium animations */

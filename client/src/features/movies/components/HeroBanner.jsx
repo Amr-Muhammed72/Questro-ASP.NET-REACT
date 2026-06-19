@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Play, Info } from 'lucide-react';
 
 export default function HeroBanner({ movie }) {
+  const navigate = useNavigate();
   if (!movie) return <div className="w-full h-[85vh] min-h-[600px] bg-zinc-900 animate-pulse mb-12" />;
 
   const displayImage = movie.backdropUrl || movie.imageUrl || movie.posterUrl;
@@ -42,7 +44,10 @@ export default function HeroBanner({ movie }) {
           <button className="flex items-center gap-2 bg-white text-black px-6 sm:px-8 py-2.5 sm:py-3 rounded-[4px] font-bold text-base sm:text-lg hover:bg-zinc-300 transition-colors shadow-lg">
             <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current" /> Play
           </button>
-          <button className="flex items-center gap-2 bg-zinc-600/60 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-[4px] font-bold text-base sm:text-lg hover:bg-zinc-600/80 transition-colors backdrop-blur-sm shadow-lg">
+          <button 
+            onClick={() => navigate(`/movies/${movie.tmdbId || movie.id}`)}
+            className="flex items-center gap-2 bg-zinc-600/60 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-[4px] font-bold text-base sm:text-lg hover:bg-zinc-600/80 transition-colors backdrop-blur-sm shadow-lg"
+          >
             <Info className="w-5 h-5 sm:w-6 sm:h-6" /> More Info
           </button>
         </div>

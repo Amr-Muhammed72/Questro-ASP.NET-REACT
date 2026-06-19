@@ -12,6 +12,14 @@ export const gameService = {
   },
 
   /**
+   * Fetch game details by RAWG ID
+   */
+  getGameDetails: async (rawgId, signal) => {
+    const response = await apiClient.get(`/Games/${rawgId}`, { signal });
+    return response.data;
+  },
+
+  /**
    * Fetch all available game genres
    * @returns {Promise<Array>} GameGenreDto[]
    */
@@ -44,6 +52,15 @@ export const gameService = {
   getTrending: async (params = {}) => {
     const response = await apiClient.get('/Games/trending', { params });
     return response.data;
+  },
+
+  /**
+   * Fetch personalised recommendations for the authenticated user
+   */
+  getRecommendedForMe: async (params = {}) => {
+    const response = await apiClient.get('/Games/recommended-for-me', { params });
+    // Parse games as a paged response: result.data
+    return response.data?.data || [];
   },
 
   /**

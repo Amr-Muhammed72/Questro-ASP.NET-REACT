@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Gamepad2, Film, Star } from 'lucide-react';
+import { Gamepad2, Film, Star, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRegister } from '../features/auth/hooks/useRegister';
 import RegisterForm from '../features/auth/components/RegisterForm';
 import OtpForm from '../features/auth/components/OtpForm';
 import RealmCard from '../components/ui/RealmCard';
+import { motion, AnimatePresence } from 'framer-motion';
 import bgImage from '../assets/main-background.png';
 import logoImg from '../assets/logo.png';
 
@@ -22,6 +23,7 @@ const RegisterPage = () => {
       setRegistrationData(userData);
       setShowOtp(true);
     } catch (exception) {
+      throw exception;
     }
   };
 
@@ -61,18 +63,29 @@ const RegisterPage = () => {
                 </p>
               </div>
 
-              {error && !showOtp && (
-                <div className="mb-4 bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg">
-                  {error.message}
-                  {error.details && error.details.length > 0 && (
-                    <ul className="list-disc ml-5 mt-1">
-                      {error.details.map((detail, idx) => (
-                        <li key={idx}>{detail}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
+              <AnimatePresence>
+                {error && !showOtp && !['User.EmailAlreadyExists', 'User.UserNameAlreadyExists', 'User.PasswordsDoNotMatch'].includes(error.code) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-6 flex items-start gap-3 bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-xl shadow-lg shadow-red-500/5"
+                  >
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-red-300">Registration Failed</p>
+                      <p className="mt-0.5">{error.message}</p>
+                      {error.details && error.details.length > 0 && (
+                        <ul className="list-disc ml-4 mt-2 space-y-1">
+                          {error.details.map((detail, idx) => (
+                            <li key={idx} className="text-red-400/90">{detail}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {!showOtp ? (
                 <RegisterForm handleRegister={handleRegister} isLoading={isLoading} />

@@ -40,6 +40,27 @@ public sealed class TmdbMovieDetailsResponse
     [JsonPropertyName("vote_count")]
     public int? VoteCount { get; set; }
 
+    [JsonPropertyName("homepage")]
+    public string? Homepage { get; set; }
+
     [JsonPropertyName("genres")]
     public List<TmdbGenreDto> Genres { get; set; } = new();
+
+    [JsonPropertyName("keywords")]
+    public TmdbKeywordsResponse? Keywords { get; set; }
+}
+
+public sealed class TmdbKeywordsResponse
+{
+    [JsonPropertyName("keywords")]
+    public List<TmdbKeywordDto> Keywords { get; set; } = new();
+}
+
+public sealed class TmdbKeywordDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
 }

@@ -7,6 +7,7 @@ import UserActions from './UserActions';
 import MobileMenu from './MobileMenu';
 import { useAuth } from '../../features/auth/store/AuthContext';
 import NotificationDropdown from '../../features/notifications/components/NotificationDropdown';
+import GlobalSearchDropdown from '../../features/search/components/GlobalSearchDropdown';
 
 const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -66,10 +67,10 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
   return (
     <>
       <nav
-        className={`fixed top-0 w-full z-50 py-3 sm:py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-300 ease-in-out border-b ${
+        className={`fixed top-0 w-full z-[100] py-3 sm:py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-500 ease-out ${
           (isVisible && !forceHidden) ? 'translate-y-0' : '-translate-y-full'
         } ${
-          isScrolled ? 'bg-zinc-950/95 backdrop-blur-md shadow-lg border-zinc-800/50' : 'bg-gradient-to-b from-zinc-950/40 to-transparent border-transparent'
+          isScrolled ? 'bg-[#09090b]/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)] border-b border-white/5' : 'bg-gradient-to-b from-[#09090b]/90 via-[#09090b]/50 to-transparent border-none'
         }`}
       >
         {/* Logo and Brand */}
@@ -89,12 +90,14 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
 
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-4">
+          <GlobalSearchDropdown />
           {isAuthenticated && <NotificationDropdown />}
           {isAuthenticated ? <UserActions /> : <GuestActions />}
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <div className="lg:hidden flex items-center gap-4">
+        {/* Mobile Menu Toggle & Search */}
+        <div className="lg:hidden flex items-center gap-2">
+          <GlobalSearchDropdown />
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 rounded-lg hover:bg-zinc-800/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"

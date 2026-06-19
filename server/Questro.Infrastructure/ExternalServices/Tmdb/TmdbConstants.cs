@@ -8,6 +8,7 @@ internal static class TmdbConstants
         public const string NowPlayingMovie = "movie/now_playing";
         public const string DiscoverMovie = "discover/movie";
         public const string SearchMovie = "search/movie";
+        public const string SearchPerson = "search/person";
         public const string GenreMovieList = "genre/movie/list";
         public const string Movie = "movie";
         public const string Person = "person";
@@ -33,6 +34,34 @@ internal static class TmdbConstants
         // Child Shield — certification filter (Discover only)
         public const string CertificationCountry = "certification_country";
         public const string CertificationLte = "certification.lte";
+        public const string WithoutKeywords = "without_keywords";
+        public const string AppendToResponse = "append_to_response";
+    }
+
+    internal static class ContentSafety
+    {
+        public const string BannedKeywordIds = "156343|190453|161176|104514|163013|10036";
+        public static readonly HashSet<string> BannedKeywordNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "softcore",
+            "intimacy",
+            "unsimulated sex",
+            "erotica",
+            "porn",
+            "pornography",
+            "sex",
+            "adult film"
+        };
+
+        public static readonly HashSet<int> BannedMovieIds = new()
+        {
+            259872,  // Skin. Like. Sun.
+            15045,   // American Swing
+            407806,  // Le Clitoris
+            1228206, // 1000 Men and Me: The Bonnie Blue Story
+            15024,   // Damage (1992)
+            3284     // 9 Songs (2004)
+        };
     }
 
     internal static class QueryValues
