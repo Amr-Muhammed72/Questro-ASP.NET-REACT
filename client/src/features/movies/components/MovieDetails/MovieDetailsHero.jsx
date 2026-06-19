@@ -78,29 +78,23 @@ const MovieDetailsHero = memo(({ movie }) => {
         {backdropUrl && (
           <motion.img
             initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 0.85, scale: 1 }}
+            animate={{ opacity: 0.6, scale: 1 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             src={backdropUrl}
             alt={title}
-            className="w-full h-full object-cover object-top"
+            className="w-full h-full object-cover object-top filter blur-[2px] opacity-60"
             loading="lazy"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         )}
-        {/* Ambient overlay to enhance image colors */}
-        <div className="absolute inset-0 bg-indigo-900/20 mix-blend-overlay z-10" />
-
-        {/* Soft radial melt from center - reduced opacity to let image shine */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_#09090b_100%)] opacity-40 z-10" />
+        {/* Vibrant color overlays for premium feel */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-[#09090b]/80 to-indigo-900/40 mix-blend-overlay z-10" />
         
-        {/* Bottom text protection */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent z-10" />
-        
-        {/* Left side text protection */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#09090b] via-[#09090b]/50 to-transparent z-10" />
+        {/* Soft radial melt from center */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_#09090b_100%)] opacity-80 z-10" />
         
         {/* Heavy bottom fade for melted seamless transition */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 sm:h-72 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-64 sm:h-80 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent z-10" />
       </div>
 
       <div className="w-full max-w-screen-2xl relative z-20 mx-auto px-4 md:px-8 lg:px-12 xl:px-16 flex items-center">
@@ -177,20 +171,46 @@ const MovieDetailsHero = memo(({ movie }) => {
                 <div className="flex flex-col gap-3">
                   <span className="text-xs lg:text-sm text-zinc-400 font-bold uppercase tracking-wider text-center lg:text-left">Available On</span>
                   <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 lg:gap-3">
-                    {uniqueProviders.map(provider => (
-                      <div 
-                        key={provider.providerId} 
-                        className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl overflow-hidden shadow-lg border border-white/10 hover:scale-110 transition-transform duration-300"
-                        title={provider.providerName}
-                      >
-                        <img 
-                          src={provider.logoUrl} 
-                          alt={provider.providerName}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    ))}
+                    {uniqueProviders.map(provider => {
+                      const providerLink = watchProviders?.link;
+                      const logoSrc = provider.logoUrl?.startsWith('http') 
+                        ? provider.logoUrl 
+                        : `https://image.tmdb.org/t/p/original${provider.logoUrl}`;
+                        
+                      const ProviderContent = (
+                        <div 
+                          className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl overflow-hidden bg-zinc-900 shadow-[0_4px_20px_rgba(0,0,0,0.5)] border border-white/10 hover:border-purple-500/50 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group-hover:shadow-purple-500/20 relative flex items-center justify-center"
+                          title={provider.providerName}
+                        >
+                          <span className="text-xs font-bold text-zinc-500 uppercase absolute text-center leading-tight">
+                            {provider.providerName?.substring(0, 2)}
+                          </span>
+                          <img 
+                            src={logoSrc} 
+                            alt={provider.providerName}
+                            className="w-full h-full object-cover relative z-10"
+                            loading="lazy"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        </div>
+                      );
+
+                      return providerLink ? (
+                        <a
+                          key={provider.providerId}
+                          href={providerLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group"
+                        >
+                          {ProviderContent}
+                        </a>
+                      ) : (
+                        <div key={provider.providerId} className="group cursor-pointer">
+                          {ProviderContent}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

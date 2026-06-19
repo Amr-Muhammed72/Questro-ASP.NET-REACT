@@ -119,10 +119,12 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
   return (
     <>
        <motion.div 
+         id={isMyReview ? 'my-review-card' : undefined}
          initial={{ opacity: 0, y: 10 }}
          animate={{ opacity: 1, y: 0 }}
-         className="py-6 border-b border-white/5 last:border-0 group flex flex-col"
+         className="backdrop-blur-md bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl mb-6 flex flex-col relative overflow-hidden"
        >
+          <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
              <Link to={`/users/${review.userId}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -136,9 +138,9 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
                 </div>
                 <div className="flex flex-col">
                    <div className="flex items-center gap-2">
-                      <h5 className="font-bold text-white text-sm">{authorName}</h5>
+                      <h5 className="font-bold text-white text-base lg:text-lg">{authorName}</h5>
                       {isMyReview && (
-                         <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] font-bold rounded uppercase tracking-wider">
+                         <span className="px-2 py-0.5 border border-purple-500/50 text-purple-400 text-[10px] font-bold rounded-full uppercase tracking-wider">
                             You
                          </span>
                       )}
@@ -147,42 +149,56 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
                 </div>
              </Link>
              
-             {/* Rating */}
-             {review.rating ? (
-                <div className="flex items-center gap-0.5 bg-[#111] px-2 py-1 rounded-lg border border-white/5">
-                   {[1, 2, 3, 4, 5].map((star) => (
-                       <Star 
-                          key={star} 
-                          className={clsx(
-                             "w-3 h-3", 
-                             star <= Math.round(review.rating) ? "fill-yellow-500 text-yellow-500" : "fill-zinc-800 text-zinc-800"
-                          )} 
-                       />
-                   ))}
-                </div>
-             ) : null}
+             <div className="flex items-center gap-3">
+                {/* Rating */}
+                {review.rating ? (
+                   <div className="flex items-center gap-0.5 bg-black/40 px-2 py-1 rounded-lg border border-white/10">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                             key={star} 
+                             className={clsx(
+                                "w-3 h-3", 
+                                star <= Math.round(review.rating) ? "fill-yellow-500 text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" : "fill-zinc-800 text-zinc-800"
+                             )} 
+                          />
+                      ))}
+                   </div>
+                ) : null}
+
+                {/* Actions */}
+                {isMyReview && !isEditing && (
+                   <div className="flex items-center gap-1">
+                      <button onClick={() => setIsEditing(true)} className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors" title="Edit Review">
+                         <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-colors" title="Delete Review">
+                         <Trash2 className="w-4 h-4" />
+                      </button>
+                   </div>
+                )}
+             </div>
           </div>
 
           {/* Content */}
           {isEditing ? (
-            <div className="flex flex-col mt-2">
+            <div className="flex flex-col mt-4">
               <textarea
                 value={editBody}
                 onChange={(e) => setEditBody(e.target.value)}
-                className="w-full bg-[#171717] border border-white/10 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-purple-500 transition-colors resize-none h-[140px] text-sm"
+                className="w-full bg-[#111] border border-white/10 rounded-2xl p-5 text-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all resize-none h-[160px] text-base shadow-inner"
                 disabled={updateMutation.isPending}
               />
-              <div className="flex justify-end gap-2 mt-3">
+              <div className="flex justify-end gap-2 mt-4">
                 <button 
                   onClick={() => setIsEditing(false)} 
-                  className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                  className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                   disabled={updateMutation.isPending}
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleUpdate} 
-                  className="px-5 py-2 text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-colors disabled:opacity-50"
+                  className="px-6 py-2.5 text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all hover:-translate-y-0.5 shadow-lg shadow-purple-500/20 disabled:opacity-50"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -190,30 +206,11 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
               </div>
             </div>
           ) : (
-            <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
+            <p className="text-zinc-200 text-lg md:text-xl font-medium leading-relaxed whitespace-pre-wrap mt-4">
               {review.body || review.content}
             </p>
           )}
-
-          {/* Actions */}
-          {isMyReview && !isEditing && (
-             <div className="flex items-center gap-4 mt-4">
-                <button 
-                   onClick={() => setIsEditing(true)}                       
-                   className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-white transition-colors"
-                 >
-                   <Pencil className="w-3.5 h-3.5" />
-                   Edit
-                 </button>
-                 <button 
-                    onClick={() => setShowDeleteConfirm(true)} 
-                    className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-red-400 transition-colors"
-                 >
-                    <Trash2 className="w-3.5 h-3.5" />
-                   Delete
-                </button>
-             </div>
-          )}
+          </div>
        </motion.div>
        
        <DeleteConfirmationModal 
@@ -270,12 +267,13 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
 
    if (!isLoggedIn) {
       return (
-         <div className="bg-[#111] rounded-2xl p-8 flex flex-col items-start border border-white/5">
-            <h3 className="text-xl font-bold text-white mb-2">Your Opinion</h3>
-            <p className="text-zinc-400 mb-6 text-sm">Sign in to share your thoughts and rate this movie.</p>
-            <Link
+          <div className="backdrop-blur-md bg-white/5 rounded-3xl p-8 flex flex-col items-start border border-white/10 shadow-2xl relative overflow-hidden">
+             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
+             <h3 className="relative text-2xl font-black text-white mb-2">Your Opinion</h3>
+             <p className="relative text-zinc-400 mb-6 text-base">Sign in to share your thoughts and rate this movie.</p>
+             <Link
                to="/login"
-               className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors text-sm"
+               className="relative px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors text-sm shadow-lg shadow-purple-500/20"
             >
                Sign In to Review
             </Link>
@@ -284,55 +282,75 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
    }
 
    return (
-      <div className="bg-[#111] rounded-2xl p-8 border border-white/5">
-         <h3 className="text-xl font-bold text-white mb-6">Your Opinion</h3>
-         
-         {/* Rating Section - Always Visible */}
-         <div className={clsx("flex flex-col", !hasReviewed && "mb-8 pb-8 border-b border-white/5")}>
-            <span className="text-sm text-zinc-400 font-medium mb-3">
+       <div className="backdrop-blur-md bg-white/5 rounded-3xl p-8 border border-white/10 shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+          <h3 className="relative text-2xl font-black text-white mb-6">
+            {hasReviewed ? 'Manage Your Review' : 'Your Opinion'}
+          </h3>
+          
+          <div className={clsx("relative flex flex-col", !hasReviewed && "mb-8 pb-8 border-b border-white/10")}>
+             <span className="text-base text-zinc-400 font-medium mb-3">
                {selectedRating > 0 ? 'Your Rating' : 'Rate this movie'}
             </span>
             <div className="flex items-center gap-1 mb-5">
                {[1, 2, 3, 4, 5].map((star) => (
-               <Star
-                  key={star}
-                  className={clsx(
-                     "w-8 h-8 cursor-pointer transition-colors",
-                     star <= (hoverRating || selectedRating)
-                        ? "fill-yellow-500 text-yellow-500"
-                        : "text-zinc-700 hover:text-zinc-500"
-                  )}
+                <Star
+                   key={star}
+                   className={clsx(
+                      "w-8 h-8 cursor-pointer transition-all",
+                      star <= (hoverRating || selectedRating)
+                         ? "fill-yellow-500 text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)] scale-110"
+                         : "text-zinc-700 hover:text-zinc-500"
+                   )}
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
                   onClick={() => setSelectedRating(star)}
                />
                ))}
             </div>
-            <button
-               onClick={handleSaveRating}
-               disabled={selectedRating === 0 || rateMovieMutation.isPending || selectedRating === userRating}
-               className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors w-fit"
-            >
-               {rateMovieMutation.isPending ? 'Saving...' : 'Save Rating'}
-            </button>
+            {hasReviewed ? (
+                selectedRating !== userRating ? (
+                    <button
+                       onClick={handleSaveRating}
+                       disabled={rateMovieMutation.isPending}
+                       className="px-5 py-2.5 backdrop-blur-md bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 text-yellow-500 text-sm font-bold rounded-xl transition-colors w-fit mt-1 shadow-[0_0_15px_rgba(234,179,8,0.15)]"
+                    >
+                       {rateMovieMutation.isPending ? 'Saving...' : 'Update Rating'}
+                    </button>
+                ) : (
+                    <button
+                       onClick={() => document.getElementById('my-review-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                       className="px-5 py-2.5 backdrop-blur-md bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 text-purple-400 text-sm font-bold rounded-xl transition-colors w-fit mt-1"
+                    >
+                       Edit Review Text
+                    </button>
+                )
+            ) : (
+                <button
+                   onClick={handleSaveRating}
+                   disabled={selectedRating === 0 || rateMovieMutation.isPending || selectedRating === userRating}
+                   className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors w-fit"
+                >
+                   {rateMovieMutation.isPending ? 'Saving...' : 'Save Rating'}
+                </button>
+            )}
          </div>
 
-         {/* Review Section - Only visible if not already reviewed */}
          {!hasReviewed ? (
             <div className="flex flex-col mt-8">
                <span className="text-sm text-zinc-400 font-medium mb-3">Write a review</span>
                <textarea
                   value={reviewBody}
-                  onChange={(e) => {
-                     setReviewBody(e.target.value);
-                     setError('');
-                  }}
-                  placeholder="What did you think about this movie?"
-                  className={clsx(
-                     "w-full bg-[#171717] border border-white/10 rounded-xl p-4 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500 transition-colors resize-none h-[140px] text-sm",
-                     error && "border-red-500"
-                  )}
-                  maxLength={1000}
+                   onChange={(e) => {
+                      setReviewBody(e.target.value);
+                      setError('');
+                   }}
+                   placeholder="What did you think about this movie?"
+                   className={clsx(
+                      "w-full bg-[#111] border border-white/10 rounded-2xl p-5 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all resize-none h-[160px] text-base shadow-inner",
+                      error && "border-red-500 focus:ring-red-500/50"
+                   )}
+                   maxLength={1000}
                   disabled={addReviewMutation.isPending}
                />
                <div className="flex flex-col gap-3 mt-3">
@@ -342,11 +360,11 @@ const ReviewComposer = ({ movieId, userRating, hasReviewed }) => {
                      </div>
                      {error && <span className="text-sm text-red-400 font-medium">{error}</span>}
                   </div>
-                  <button
-                     onClick={handleSubmitReview}
-                     disabled={!reviewBody.trim() || addReviewMutation.isPending}
-                     className="w-full px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold rounded-xl transition-colors text-sm"
-                  >
+                   <button
+                      onClick={handleSubmitReview}
+                      disabled={!reviewBody.trim() || addReviewMutation.isPending}
+                      className="w-full px-6 py-3.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold rounded-2xl transition-all hover:-translate-y-1 shadow-lg shadow-purple-500/20 text-base"
+                   >
                      {addReviewMutation.isPending ? 'Publishing...' : 'Publish Review'}
                   </button>
                </div>
@@ -409,19 +427,19 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
          </div>
 
          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            <div className="order-1 lg:order-2 lg:col-span-4 lg:sticky lg:top-24 h-[400px] bg-[#111] animate-pulse rounded-2xl border border-white/5" />
+            <div className="order-1 lg:order-2 lg:col-span-4 lg:sticky lg:top-24 h-[400px] backdrop-blur-md bg-white/5 animate-pulse rounded-3xl border border-white/10" />
             
             <div className="order-2 lg:order-1 lg:col-span-8 flex flex-col">
                {/* Skeleton for reviews header */}
                <div className="flex items-center justify-between mb-6">
-                  <div className="w-24 h-6 bg-[#111] animate-pulse rounded" />
-                  <div className="w-32 h-9 bg-[#111] animate-pulse rounded-lg" />
+                  <div className="w-24 h-6 bg-white/5 animate-pulse rounded" />
+                  <div className="w-32 h-9 bg-white/5 animate-pulse rounded-lg" />
                </div>
                
                {/* Skeleton for review cards */}
                <div className="flex flex-col space-y-6">
                   {[1, 2, 3].map((i) => (
-                     <div key={i} className="h-40 bg-[#111] animate-pulse rounded-2xl border border-white/5" />
+                     <div key={i} className="h-40 backdrop-blur-md bg-white/5 animate-pulse rounded-3xl border border-white/10" />
                   ))}
                </div>
             </div>
@@ -463,7 +481,7 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
                      <select 
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-[#111] border border-white/5 text-zinc-300 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
+                        className="appearance-none backdrop-blur-md bg-white/5 border border-white/10 text-zinc-300 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
                      >
                         <option value="newest">Newest</option>
                         <option value="oldest">Oldest</option>
@@ -474,9 +492,9 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
             </div>
 
             {/* Community Reviews List */}
-            <div>
+            <div className="max-h-[800px] overflow-y-auto pr-2 lg:pr-4 pb-4">
                {reviewsList.length === 0 ? (
-                  <div className="bg-[#111] rounded-2xl p-8 border border-white/5 flex flex-col items-start">
+                  <div className="backdrop-blur-md bg-white/5 rounded-3xl p-8 border border-white/10 flex flex-col items-start">
                      <MessageCircle className="w-8 h-8 text-zinc-600 mb-4" />
                      <h4 className="text-lg font-bold text-white mb-1">No reviews yet</h4>
                      <p className="text-zinc-500 text-sm">
@@ -504,7 +522,7 @@ const MovieDetailsReviews = memo(({ movieId, userRating }) => {
                            <button
                               onClick={() => fetchNextPage()}
                               disabled={isFetchingNextPage}
-                              className="px-6 py-2.5 bg-[#111] border border-white/5 hover:bg-[#171717] text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                              className="px-6 py-2.5 backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
                            >
                               {isFetchingNextPage ? 'Loading more...' : 'Load More Reviews'}
                            </button>
