@@ -26,8 +26,7 @@ using Questro.Service.Abstractions.RAG;
 using Questro.Service.Services.RAG;
 
 using Questro.Shared.Contracts.Email;
-using Questro.Service.Abstractions.Cache;
-using Questro.Service.Services.Cache;
+
 
 namespace Questro.Service;
 
@@ -43,8 +42,8 @@ public static class DependencyInjectionService
         services.AddScoped<IExternalLoginServices, ExternalLoginServices>();
         services.AddScoped<IOTPService, OTPService>();
         services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
-        // cache 
-        services.AddSingleton<ICacheService, CacheService>();
+      
+        
 
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IEmailService, EmailService>();
