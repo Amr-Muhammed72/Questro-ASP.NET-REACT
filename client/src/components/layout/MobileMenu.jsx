@@ -7,7 +7,9 @@ import { useProfileStore } from '../../features/profile/store/useProfileStore';
 import { getMyProfile } from '../../features/profile/api/profileService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, User, Bell, ChevronDown } from 'lucide-react';
-import { SERVER_URL } from '../../lib/apiClient';
+
+const PORT = import.meta.env.VITE_PORT || 5222;
+const BASE_URL = `http://localhost:${PORT}`;
 
 const MobileMenu = ({ isAuthenticated, onClose }) => {
   const navigate = useNavigate();
@@ -83,7 +85,7 @@ const MobileMenu = ({ isAuthenticated, onClose }) => {
   const getProfileImageUrl = () => {
     if (!myProfile?.profilePicUrl) return null;
     if (myProfile.profilePicUrl.startsWith('http')) return myProfile.profilePicUrl;
-    return `${SERVER_URL}${myProfile.profilePicUrl}?t=${imageUpdateStamp}`;
+    return `${BASE_URL}${myProfile.profilePicUrl}?t=${imageUpdateStamp}`;
   };
 
   const imageUrl = getProfileImageUrl();

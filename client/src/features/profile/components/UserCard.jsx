@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users } from 'lucide-react';
-import { SERVER_URL } from '../../../lib/apiClient';
+const BASE_URL = 'http://localhost:5222';
 const getInitialAvatar = (firstName) => {
   if (!firstName) return '?';
   return firstName.charAt(0).toUpperCase();
@@ -11,7 +11,7 @@ const UserCard = memo(({ user, onFollowChange }) => {
   const [imageError, setImageError] = useState(false);
   if (!user) return null;
 
-  const profilePicUrl = user.profilePicUrl ? `${SERVER_URL}${user.profilePicUrl}` : null;
+  const profilePicUrl = user.profilePicUrl ? `${BASE_URL}${user.profilePicUrl}` : null;
   const initials = getInitialAvatar(user.firstName);
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
 

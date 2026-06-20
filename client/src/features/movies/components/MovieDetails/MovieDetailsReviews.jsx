@@ -13,7 +13,6 @@ import {
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
-import { SERVER_URL } from '../../../../lib/apiClient';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, isPending }) => {
   return (
@@ -74,7 +73,7 @@ const ReviewCard = ({ review, movieId, isMyReview }) => {
     if (!review.userProfilePictureUrl) return fallbackAvatarUrl;
     return review.userProfilePictureUrl.startsWith('http')
       ? review.userProfilePictureUrl
-      : `${SERVER_URL}${review.userProfilePictureUrl}`;
+      : `http://localhost:${import.meta.env.VITE_PORT || 5222}${review.userProfilePictureUrl}`;
   });
   
   const formattedDate = new Date(review.timestamp || new Date()).toLocaleDateString('en-US', {

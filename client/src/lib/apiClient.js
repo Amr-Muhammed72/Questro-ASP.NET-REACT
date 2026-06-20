@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-export const SERVER_URL = import.meta.env.VITE_API_URL || 'http://questroapi.runasp.net';
-export const BASE_URL = `${SERVER_URL}/api`;
+const PORT = import.meta.env.VITE_PORT || 5222;
+export const BASE_URL = `http://localhost:${PORT}/api`;
 let token = null;
 
 export const getToken = () => {
