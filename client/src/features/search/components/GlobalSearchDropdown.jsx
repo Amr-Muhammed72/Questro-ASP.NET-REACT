@@ -95,6 +95,12 @@ const GlobalSearchDropdown = () => {
   };
 
   const hasResults = items.length > 0;
+  const hasAnyResults = results && (
+    (results.movies?.length > 0) ||
+    (results.games?.length > 0) ||
+    (results.actors?.length > 0) ||
+    (results.users?.length > 0)
+  );
 
   return (
     <div className="relative flex items-center justify-end" ref={containerRef}>
@@ -154,7 +160,7 @@ const GlobalSearchDropdown = () => {
             className="absolute top-[calc(100%+16px)] right-0 w-[320px] sm:w-[500px] max-h-[75vh] overflow-hidden flex flex-col bg-[#09090b]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] z-[200] ring-1 ring-white/5"
           >
             {/* Filter Tabs */}
-            {hasResults && !isLoading && (
+            {hasAnyResults && !isLoading && (
               <div className="flex gap-2 overflow-x-auto p-3 border-b border-white/5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex-shrink-0 bg-white/[0.02]">
                 {['all', 'movies', 'games', 'actors', 'users'].map(f => (
                   <button
@@ -180,14 +186,14 @@ const GlobalSearchDropdown = () => {
                 </div>
               )}
 
-              {!isLoading && !hasResults && (
+              {!isLoading && !hasAnyResults && (
                 <div className="text-center py-12 text-zinc-500 text-sm flex flex-col items-center">
                   <Search className="w-10 h-10 mb-3 opacity-20" />
                   No results found for "{query}"
                 </div>
               )}
 
-              {!isLoading && hasResults && (
+              {!isLoading && hasAnyResults && (
                 <div className="space-y-6">
                   
                   {/* Movies */}

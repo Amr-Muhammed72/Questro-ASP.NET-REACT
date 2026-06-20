@@ -192,7 +192,11 @@ export const AdvancedFiltersDrawer = ({ isOpen, onClose, mode = 'movies', platfo
           step={0.5}
           value={filters.minRating}
           onChange={(v) => updateFilter('minRating', v)}
-          formatValue={(v) => (v === ratingScale.min ? 'Any' : `${v}+ \u2605`)}
+          formatValue={(v) => {
+            if (v === ratingScale.min) return 'Any';
+            const displayV = mode === 'games' ? v * 2 : v;
+            return `${displayV}+ \u2605`;
+          }}
         />
 
         {/* Genres */}

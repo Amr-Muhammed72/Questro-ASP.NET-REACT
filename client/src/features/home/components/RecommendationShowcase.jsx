@@ -12,15 +12,26 @@ const RecommendationShowcase = ({ items, isLoading = false }) => {
   const movieToSkip = (items || []).find(m => m.type === 'movie');
   const gameToSkip = (items || []).find(m => m.type === 'game');
   
-  const carouselItems = (items || []).filter(item => item !== movieToSkip && item !== gameToSkip).map(item => ({
-    ...item,
-    imageUrl: item.imageUrl || item.originalData?.backdropUrl || item.originalData?.posterUrl || 'https://via.placeholder.com/1280x720?text=No+Image',
-    type: item.type || (item.originalData?.rawgId ? 'game' : 'movie'),
-    rawgId: item.originalData?.rawgId || item.id?.replace('game-', ''),
-    tmdbId: item.originalData?.tmdbId || item.id?.replace('movie-', ''),
-    rating: item.rating || item.originalData?.rating || item.originalData?.tmdbRating,
-    genres: item.originalData?.genres || item.genres
-  }));
+  const carouselItems = (items || []).filter(item => item !== movieToSkip && item !== gameToSkip).map(item => {
+    const isGame = item.type === 'game' || item.originalData?.rawgId;
+    const rawRating = item.rating || item.originalData?.rating;
+    let finalRating = null;
+    if (isGame && rawRating) {
+      finalRating = rawRating * 2;
+    } else if (!isGame) {
+      finalRating = item.rating ? item.rating * 2 : item.originalData?.tmdbRating;
+    }
+
+    return {
+      ...item,
+      imageUrl: item.imageUrl || item.originalData?.backdropUrl || item.originalData?.posterUrl || 'https://via.placeholder.com/1280x720?text=No+Image',
+      type: item.type || (item.originalData?.rawgId ? 'game' : 'movie'),
+      rawgId: item.originalData?.rawgId || item.id?.replace('game-', ''),
+      tmdbId: item.originalData?.tmdbId || item.id?.replace('movie-', ''),
+      rating: finalRating,
+      genres: item.originalData?.genres || item.genres
+    };
+  });
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -168,6 +179,7 @@ const RecommendationShowcase = ({ items, isLoading = false }) => {
                         <span className="flex items-center gap-1 text-yellow-500 font-bold">
                           <Star className="w-3 h-3 fill-yellow-500" />
                           {item.rating.toFixed(1)}
+                          <span className="text-[10px] text-yellow-500/70 font-normal">/10</span>
                         </span>
                       )}
                       <span className="truncate">
