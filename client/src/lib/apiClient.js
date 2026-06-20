@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const SERVER_URL = import.meta.env.VITE_API_URL || 'http://questroapi.runasp.net';
+export const SERVER_URL = import.meta.env.VITE_API_URL || 'https://questroapi.runasp.net';
 export const BASE_URL = `${SERVER_URL}/api`;
 let token = null;
 
@@ -83,8 +83,8 @@ apiClient.interceptors.response.use(
     return Promise.reject(error.response?.data || error);
   }
 );
-export default { 
-  apiClient, 
-  getToken, 
+export default {
+  apiClient,
+  getToken,
   setToken
 };
