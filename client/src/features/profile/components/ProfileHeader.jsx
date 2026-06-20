@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { useProfileStore } from '../store/useProfileStore';
 import { useFamilyStore } from '../../family/store/useFamilyStore';
 import { useNotificationStore } from '../../notifications/store/useNotificationStore';
-const BASE_URL = 'http://localhost:5222';
+import { SERVER_URL } from '../../../lib/apiClient';
 
 const getInitialAvatar = (firstName) => {
   if (!firstName) return '?';
@@ -38,7 +38,7 @@ const ProfileHeader = memo(({
 
   if (!user) return null;
 
-  const profilePicUrl = user.profilePicUrl ? `${BASE_URL}${user.profilePicUrl}?t=${imageUpdateStamp}` : null;
+  const profilePicUrl = user.profilePicUrl ? `${SERVER_URL}${user.profilePicUrl}?t=${imageUpdateStamp}` : null;
   const initials = getInitialAvatar(user.firstName);
 
   const joinDate = user.joinDate ? new Date(user.joinDate).toLocaleDateString('en-US', {
