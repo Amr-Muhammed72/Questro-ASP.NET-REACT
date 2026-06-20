@@ -6,7 +6,7 @@ using Questro.Core.Specifications.Family;
 using Questro.Core.Specifications.Movies;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.Tmdb.Contracts;
-
+using Questro.Service.Abstractions.Cache;
 using Questro.Service.Abstractions.Movies;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Movies;
@@ -22,7 +22,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     private const int SafeDiscoveryPages = 5;
     private static readonly TimeSpan SafeCacheExpiration = TimeSpan.FromMinutes(30);
 
-    
+    private readonly ICacheService _cacheService;
     private readonly ITmdbService _tmdbService;
     private readonly IGenericRepository<MovieGenre> _movieGenreRepository;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -33,7 +33,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
     private readonly IGenericRepository<UserMovieWatchlist> _movieWatchlistRepo;
 
     public MovieCatalogService(
-       
+        ICacheService cacheService,
         ITmdbService tmdbService,
         IGenericRepository<MovieGenre> movieGenreRepository,
         UserManager<ApplicationUser> userManager,
@@ -43,7 +43,7 @@ public sealed class MovieCatalogService : IMovieCatalogService
         IGenericRepository<UserMovieRate> movieRateRepo,
         IGenericRepository<UserMovieWatchlist> movieWatchlistRepo)
     {
-      
+        _cacheService = cacheService;
         _tmdbService = tmdbService;
         _movieGenreRepository = movieGenreRepository;
         _userManager = userManager;

@@ -33,8 +33,4 @@
     <ProjectReference Include="..\Questro.Shared\Questro.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\uploads\profile-pictures\" />
-  </ItemGroup>
-
 </Project>
