@@ -7,7 +7,7 @@ using Questro.Core.Specifications.Family;
 using Questro.Core.Specifications.Games;
 using Questro.Infrastructure.Abstractions;
 using Questro.Infrastructure.ExternalServices.RAWG.Contracts;
-
+using Questro.Service.Abstractions.Cache;
 using Questro.Service.Abstractions.Games;
 using Questro.Shared.Contracts.Common;
 using Questro.Shared.Contracts.Games;
@@ -27,7 +27,7 @@ namespace Questro.Service.Services.Games
         private readonly HybridCache hybridCache; 
 
         private readonly IRawgService _rawgservices;
-       
+        private readonly ICacheService _cacheService;
         private readonly IGenericRepository<GameGenre> _gameGenreRepository;
         private readonly IGenericRepository<Game> _gameRepository;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -38,7 +38,7 @@ namespace Questro.Service.Services.Games
         private readonly IGenericRepository<UserGameWishlist> _gameWishlistRepo;
 
         public GameCatalogServices(
-            
+            ICacheService cacheService,
             HybridCache hybridCache,
             IRawgService rawgservices,
             IGenericRepository<GameGenre> gameGenreRepository,
@@ -50,7 +50,7 @@ namespace Questro.Service.Services.Games
             IGenericRepository<UserGameRate> gameRateRepo,
             IGenericRepository<UserGameWishlist> gameWishlistRepo)
         {
-            
+            _cacheService = cacheService;
             this.hybridCache = hybridCache;
             _rawgservices = rawgservices;
             _gameGenreRepository = gameGenreRepository;
