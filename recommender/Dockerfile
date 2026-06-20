@@ -18,7 +18,7 @@ WORKDIR /app
 
 # --- System dependencies -------------------------------------------------
 # build-essential covers any package without a prebuilt wheel for this
-# platform (e.g. older spaCy C extensions); curl is used by the healthcheck.
+# platform; curl is used by the healthcheck.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl \
     && rm -rf /var/lib/apt/lists/*
@@ -31,9 +31,6 @@ RUN pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
 
 COPY requirements.docker.txt ./
 RUN pip install -r requirements.docker.txt
-
-# spaCy model loaded at import time by src/core/util.py
-RUN python -m spacy download en_core_web_sm
 
 # Pre-download the sentence-transformers embedding model so the container does
 # not need to fetch it from Hugging Face at runtime.

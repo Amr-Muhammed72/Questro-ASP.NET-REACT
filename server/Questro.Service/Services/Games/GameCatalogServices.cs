@@ -241,9 +241,10 @@ namespace Questro.Service.Services.Games
 
         // ── Genres / Platforms / RecommendedForMe ───────────────────────────
 
-        public async Task<Result<PagedResponse<GameListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 20, CancellationToken cancellationToken = default)
+        public async Task<Result<PagedResponse<GameListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 10, CancellationToken cancellationToken = default)
         {
-            var safeTake = 20;
+            var safeTake = take < 1  ? 1 : take;
+            safeTake = take > 10 ? 10 : safeTake;
 
             // 1. Load User Profile
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -297,7 +298,7 @@ namespace Questro.Service.Services.Games
             var recommenderReq = new RecommenderRequest
             {
                 Domain = "game",
-                K = 40,
+                K = safeTake,
                 Offset = 0,
                 BlockedGenres = blockedGenres,
                 User = new RecommenderUserProfile
@@ -359,7 +360,7 @@ namespace Questro.Service.Services.Games
 
             return Result.Success(new PagedResponse<GameListItemDto>
             {
-                Data = resultList.Skip(recommenderReq.Offset).Take(take),
+                Data = resultList,
                 PageNumber = 1,
                 PageSize = safeTake,
                 TotalCount = resultList.Count,

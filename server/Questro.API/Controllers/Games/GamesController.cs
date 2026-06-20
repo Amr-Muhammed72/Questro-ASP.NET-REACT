@@ -134,7 +134,7 @@ namespace Questro.API.Controllers.Games
         }
         [Authorize]
         [HttpGet("recommended-for-me")]
-        public async Task<IActionResult> GetRecommendedForMe([FromQuery] int take = 20, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetRecommendedForMe([FromQuery] int take = 10, CancellationToken cancellationToken = default)
         {
             var userId = GetCurrentUserId();
             if (!userId.HasValue)
