@@ -587,5 +587,194 @@ Testing spanned every boundary of the hybrid system. Backend integration tests v
 \section{System Results and Achievements}
 The implementation delivers a coherent, measurable cross-domain entertainment platform. The recommender serves exact dense-index inference over a $\sim$138{,}000-item cross-domain catalog with sub-second per-request latency, hybridizing a contrastively-trained dual-tower Transformer with content and collaborative signals via reciprocal rank fusion. The RAG chatbot answers free-text queries with zero errors across its evaluation suite, mixes both entertainment domains in 68.7\% of responses, and surfaces the expected ground-truth item two-thirds of the time, all while enforcing child-safety deterministically at the vector boundary so that restricted content never reaches the language model. The ASP.NET Core backend operates statelessly behind a dual-token, \texttt{HttpOnly} security flow that is immune to XSS token theft, and the React 19 frontend abstracts the entire RAG-and-recommender complexity behind an interface whose token renewal is invisible to the user.
 
+\section{User Interface Walkthrough}
+\label{sec:ui_screenshots}
+This section presents a visual walkthrough of the running Questro client, organized along the user journey: onboarding, discovery and browsing, the AI-driven personalization features, the social and profile surfaces, and finally the parental-control workflow. Each screenshot demonstrates, in the deployed interface, a capability whose implementation was described earlier in this chapter.
+
+\subsection{Onboarding and Authentication}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/LandingPage.png}
+    \caption{The public landing page, which introduces Questro's cross-domain recommendation proposition to unauthenticated visitors and routes them to registration or sign-in.}
+    \label{fig:ss_landing}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Register.png}
+    \caption{The registration screen, where a new user supplies account credentials that are validated client-side by React Hook Form and Zod before any network request is made (Section~\ref{sec:security_impl}).}
+    \label{fig:ss_register}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/OTP.png}
+    \caption{The one-time-password verification step, which confirms ownership of the registered e-mail address before the account is activated.}
+    \label{fig:ss_otp}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Login.png}
+    \caption{The sign-in screen; on success the backend issues the short-lived access JWT and the \texttt{HttpOnly} refresh-token cookie of the dual-token flow described in Section~\ref{sec:security_impl}.}
+    \label{fig:ss_login}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Survey.png}
+    \caption{The onboarding taste survey (step~1), which seeds the recommender with the new user's explicit genre preferences and demographic attributes.}
+    \label{fig:ss_survey1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Survey2.png}
+    \caption{The onboarding taste survey (step~2), where the user rates seed titles; these ratings populate the signed interaction weights defined in Section~\ref{sec:signal_weighting} and Table~\ref{tab:signal_weights}.}
+    \label{fig:ss_survey2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Survey3.png}
+    \caption{The onboarding taste survey (final step), confirming the collected preferences that initialize the user's cold-start profile for the collaborative-filtering fusion path.}
+    \label{fig:ss_survey3}
+\end{figure}
+
+\clearpage
+
+\subsection{Discovery and Browsing}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Homepage.png}
+    \caption{The authenticated home page, presenting personalized cross-domain recommendations produced by the CL-EPIDTN engine of Section~\ref{sec:recommender_impl}.}
+    \label{fig:ss_home1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Homepage2.png}
+    \caption{A continued view of the home page, showing additional recommendation rails that interleave movies and games for the same user.}
+    \label{fig:ss_home2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/MoviesHome.png}
+    \caption{The movie discovery page, whose catalog is synthesized live from the TMDB provider under the CQRS-lite ``Live-First'' strategy.}
+    \label{fig:ss_movies1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/MoviesHome2.png}
+    \caption{A further view of the movie discovery page, illustrating filtering and browsing across the live movie catalog.}
+    \label{fig:ss_movies2}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/GamesHome.png}
+    \caption{The game discovery page, populated live from the RAWG provider.}
+    \label{fig:ss_games1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/GamesHome2.png}
+    \caption{A further view of the game discovery page, showing genre browsing and sorting controls.}
+    \label{fig:ss_games2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/GameDetails.png}
+    \caption{A game details page, aggregating provider metadata with the user's own interaction controls (rate, review, and wishlist).}
+    \label{fig:ss_gamedetails1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/GameDetails2.png}
+    \caption{A continued view of the game details page, showing user reviews and related cross-domain recommendations for the selected title.}
+    \label{fig:ss_gamedetails2}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Search.png}
+    \caption{The unified search interface, returning matching movies and games drawn from the live provider catalogs.}
+    \label{fig:ss_search}
+\end{figure}
+
+\subsection{Personalization and AI Features}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/ChatBot.png}
+    \caption{The conversational assistant, backed by the Retrieval-Augmented Generation pipeline of Section~\ref{sec:rag_impl}, answering a free-text request with grounded, personalized recommendations.}
+    \label{fig:ss_chatbot}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Review.png}
+    \caption{The review composer, through which a user submits a star rating and written review; the rating is mapped to an interaction weight per Table~\ref{tab:signal_weights} and feeds back into future recommendations.}
+    \label{fig:ss_review}
+\end{figure}
+
+\clearpage
+
+\subsection{Social and Profile Surfaces}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/UserProfile.png}
+    \caption{A user profile page, displaying the member's reviews, watched/played history, and earned badges.}
+    \label{fig:ss_profile}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/Notifications.png}
+    \caption{The notifications center, surfacing social and system events such as new followers and activity updates.}
+    \label{fig:ss_notifications}
+\end{figure}
+
+\clearpage
+
+\subsection{Parental Controls and Family Management}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/ManageFamily.png}
+    \caption{The family management dashboard, where a supervising parent oversees linked child accounts and their parental-control settings.}
+    \label{fig:ss_managefamily}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/CreateChild.png}
+    \caption{Creating a child account (step~1): the parent provides the child's basic details under the supervising account.}
+    \label{fig:ss_createchild1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/Screenshots/CreateChild2.png}
+    \caption{Creating a child account (step~2): configuring the maturity restrictions and blocked genres that are subsequently enforced at the vector boundary of the RAG pipeline (Section~\ref{sec:rag_impl}).}
+    \label{fig:ss_createchild2}
+\end{figure}
+
+\clearpage
+
 \section{Chapter Summary}
 This chapter documented the concrete implementation of the Questro platform, grounded throughout in its actual source code. We detailed the Clean-Architecture backend (Specification Pattern, Unit of Work, explicit mapping) and its EF Core persistence, then treated the two analytical centerpieces in depth: the \textbf{CL-EPIDTN} dual-tower recommender, including its user and item towers, its full InfoNCE/SSL/AMM multi-objective loss (Equations~\eqref{eq:infonce}--\eqref{eq:total_loss}), its anonymous-inference and RRF hybridization equations, and its measured full-catalog cross-domain metrics with a properly contextualized comparison to single-domain baselines; and the \textbf{RAG chatbot}, including its memory-mapped FAISS index, its parental-control filtering at the vector boundary, and its Gemini-grounded generation. We closed with the frontend, the dual-token security implementation, the testing strategy, and the quantified results that together demonstrate a secure, performant, and genuinely cross-domain system.
