@@ -56,29 +56,23 @@ const GameDetailsHero = memo(({ game }) => {
         {(backdropUrl || posterUrl) && (
           <motion.img
             initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 0.85, scale: 1 }}
+            animate={{ opacity: 0.6, scale: 1 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             src={backdropUrl || posterUrl}
             alt={title}
-            className="w-full h-full object-cover object-top"
+            className="w-full h-full object-cover object-top filter blur-[2px] opacity-60"
             loading="lazy"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         )}
-        {/* Ambient overlay to enhance image colors */}
-        <div className="absolute inset-0 bg-indigo-900/20 mix-blend-overlay z-10" />
-
-        {/* Soft radial melt from center - reduced opacity to let image shine */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_#09090b_100%)] opacity-40 z-10" />
+        {/* Vibrant color overlays for premium feel */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-[#09090b]/80 to-purple-900/40 mix-blend-overlay z-10" />
         
-        {/* Bottom text protection */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent z-10" />
-        
-        {/* Left side text protection */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#09090b] via-[#09090b]/50 to-transparent z-10" />
+        {/* Soft radial melt from center */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_#09090b_100%)] opacity-80 z-10" />
         
         {/* Heavy bottom fade for melted seamless transition */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 sm:h-72 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-64 sm:h-80 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent z-10" />
       </div>
 
       <div className="w-full max-w-screen-2xl relative z-20 mx-auto px-4 md:px-8 lg:px-12 xl:px-16 flex items-center">

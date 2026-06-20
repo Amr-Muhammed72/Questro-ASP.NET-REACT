@@ -85,9 +85,10 @@ const GameDetailsSummary = memo(({ game }) => {
         
         {/* Developers */}
         {game.developers && game.developers.length > 0 && (
-          <div className="bg-[#111] border border-white/5 rounded-2xl p-6 shadow-xl">
-            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Developers</h3>
-            <div className="flex flex-col gap-4">
+          <div className="glassmorphism bg-zinc-900/40 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+            <h3 className="relative text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Developers</h3>
+            <div className="relative flex flex-col gap-4">
               {game.developers.map((dev) => (
                 <div key={dev.id} className="flex items-center gap-4 group">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-900 flex-shrink-0 border border-white/5 relative shadow-md ring-1 ring-white/10">
@@ -104,9 +105,10 @@ const GameDetailsSummary = memo(({ game }) => {
 
         {/* Publishers */}
         {game.publishers && game.publishers.length > 0 && (
-          <div className="bg-[#111] border border-white/5 rounded-2xl p-6 shadow-xl">
-            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Publishers</h3>
-            <div className="flex flex-col gap-4">
+          <div className="glassmorphism bg-zinc-900/40 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+            <h3 className="relative text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Publishers</h3>
+            <div className="relative flex flex-col gap-4">
               {game.publishers.map((pub) => (
                 <div key={pub.id} className="flex items-center gap-4 group">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-900 flex-shrink-0 border border-white/5 relative shadow-md ring-1 ring-white/10">
