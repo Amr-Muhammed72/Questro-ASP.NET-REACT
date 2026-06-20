@@ -65,7 +65,7 @@ const LandingPage = () => {
       <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none opacity-60 mix-blend-screen" />
       <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none opacity-50 mix-blend-screen" />
 
-      <main className="relative z-10 container mx-auto px-6 h-full flex flex-col justify-center">
+      <main className="relative z-10 container mx-auto px-6 h-full flex flex-col justify-center pt-24 sm:pt-32">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24 w-full max-w-7xl mx-auto">
           
           {/* Left Column - Hero Text */}
@@ -73,7 +73,7 @@ const LandingPage = () => {
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="flex-1 text-center lg:text-left pt-16 lg:pt-0"
+            className="flex-1 text-center lg:text-left"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glassmorphism mb-6 text-sm font-medium text-indigo-300 ring-1 ring-indigo-500/30">
               <span className="relative flex h-2 w-2">

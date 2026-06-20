@@ -94,14 +94,14 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-4 justify-end flex-shrink-0 min-w-[200px]">
-            <GlobalSearchDropdown />
+            {isAuthenticated && <GlobalSearchDropdown />}
             {isAuthenticated && <NotificationDropdown />}
             {isAuthenticated ? <UserActions /> : <GuestActions />}
           </div>
 
           {/* Mobile Menu Toggle & Search */}
           <div className="lg:hidden flex items-center gap-3">
-            <GlobalSearchDropdown />
+            {isAuthenticated && <GlobalSearchDropdown />}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors duration-200 focus:outline-none ring-1 ring-white/10"

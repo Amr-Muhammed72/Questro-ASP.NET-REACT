@@ -84,7 +84,9 @@ const GameCard = memo(({ game, isRowItem = false, onRemove }) => {
             {Number(game.rating) > 0 && (
               <div className="bg-zinc-900/80 backdrop-blur-md px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-1 shadow-lg w-fit">
                 <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-500 fill-yellow-500" />
-                <span className="text-xs font-bold text-yellow-500">{Number(game.rating).toFixed(1)}</span>
+                <span className="text-xs font-bold text-yellow-500">
+                  {(Number(game.rating) * 2).toFixed(1)} <span className="text-[10px] text-yellow-500/70 font-normal">/10</span>
+                </span>
               </div>
             )}
 

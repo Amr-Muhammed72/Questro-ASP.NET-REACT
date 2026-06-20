@@ -173,6 +173,25 @@ const MovieDetailsHero = memo(({ movie }) => {
                   <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 lg:gap-3">
                     {uniqueProviders.map(provider => {
                       const providerLink = watchProviders?.link;
+
+                      if (provider.providerName === "In Theaters") {
+                        const InTheatersContent = (
+                          <div className="flex items-center gap-2 px-3 lg:px-4 h-10 lg:h-12 rounded-xl bg-gradient-to-r from-red-600/90 to-rose-600/90 shadow-[0_4px_20px_rgba(225,29,72,0.3)] border border-red-500/40 hover:scale-105 hover:-translate-y-1 transition-all duration-300" title="Now Playing in Cinemas">
+                            <span className="text-lg lg:text-xl drop-shadow-md">🍿</span>
+                            <span className="text-[10px] lg:text-xs font-black text-white uppercase tracking-widest drop-shadow-md">In Cinemas</span>
+                          </div>
+                        );
+                        return providerLink ? (
+                          <a key={provider.providerId} href={providerLink} target="_blank" rel="noopener noreferrer" className="group cursor-pointer">
+                            {InTheatersContent}
+                          </a>
+                        ) : (
+                          <div key={provider.providerId} className="group">
+                            {InTheatersContent}
+                          </div>
+                        );
+                      }
+
                       const logoSrc = provider.logoUrl?.startsWith('http') 
                         ? provider.logoUrl 
                         : `https://image.tmdb.org/t/p/original${provider.logoUrl}`;

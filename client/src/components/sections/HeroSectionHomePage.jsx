@@ -22,7 +22,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
           description: movie.description || movie.originalData?.overview,
           backdropUrl: movie.originalData?.backdropUrl || movie.imageUrl,
           posterUrl: movie.originalData?.posterUrl || movie.imageUrl,
-          rating: movie.rating || movie.originalData?.tmdbRating,
+          rating: movie.rating ? movie.rating * 2 : movie.originalData?.tmdbRating,
           genres: (movie.originalData?.genres || []).map(g => typeof g === 'string' ? g : g.name),
           releaseDate: movie.originalData?.releaseDate,
           linkId: movie.originalData?.tmdbId || movie.id.replace('movie-', '')
@@ -37,7 +37,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
           description: game.description || game.originalData?.description_raw,
           backdropUrl: game.originalData?.background_image || game.imageUrl,
           posterUrl: game.originalData?.posterUrl || game.imageUrl,
-          rating: game.rating,
+          rating: game.rating ? game.rating * 2 : null,
           genres: (game.originalData?.genres || []).map(g => typeof g === 'string' ? g : g.name),
           releaseDate: game.originalData?.releaseDate,
           linkId: game.originalData?.rawgId || game.id.replace('game-', '')
@@ -199,7 +199,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
                       {activeItem.rating && (
                         <span className="flex items-center gap-1.5 text-sm font-bold text-yellow-400">
                           <Star className="w-4 h-4 fill-yellow-400" />
-                          {activeItem.rating.toFixed(1)}
+                          {activeItem.rating.toFixed(1)} <span className="text-[10px] text-yellow-400/70 font-normal">/10</span>
                         </span>
                       )}
                     </div>
