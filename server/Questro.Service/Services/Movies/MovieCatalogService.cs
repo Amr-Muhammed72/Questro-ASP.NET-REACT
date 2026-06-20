@@ -239,9 +239,9 @@ public sealed class MovieCatalogService : IMovieCatalogService
         return Result.Success<IEnumerable<MovieListItemDto>>(mapped);
     }
 
-    public async Task<Result<IEnumerable<MovieListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 20, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<MovieListItemDto>>> GetRecommendedForMeAsync(long userId, int take = 10, CancellationToken cancellationToken = default)
     {
-        var safeTake = take < 1 ? DefaultTake : take;
+        var safeTake = take < 1 ? 10 : take;
 
         // 1. Load User Profile
         var user = await _userManager.FindByIdAsync(userId.ToString());

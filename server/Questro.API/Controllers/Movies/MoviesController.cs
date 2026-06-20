@@ -100,7 +100,7 @@ public class MoviesController : ControllerBase
     }
 
     [HttpGet("recommended")]
-    public async Task<IActionResult> GetRecommended([FromQuery] int take = 20, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetRecommended([FromQuery] int take = 10, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
         var result = await _movieCatalogService.GetRecommendedAsync(take, userId, cancellationToken);
@@ -121,7 +121,7 @@ public class MoviesController : ControllerBase
 
     [Authorize]
     [HttpGet("recommended-for-me")]
-    public async Task<IActionResult> GetRecommendedForMe([FromQuery] int take = 20, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetRecommendedForMe([FromQuery] int take = 10, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue)
