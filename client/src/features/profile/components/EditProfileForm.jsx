@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { X, Upload } from 'lucide-react';
+import { SERVER_URL } from '../../../lib/apiClient';
 
 const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
   const [formData, setFormData] = useState({
@@ -15,7 +16,7 @@ const EditProfileForm = memo(({ user, onSave, onCancel, isLoading }) => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [fileError, setFileError] = useState('');
   const [previewUrl, setPreviewUrl] = useState(
-    user?.profilePicUrl ? `http://localhost:5222${user.profilePicUrl}?t=${Date.now()}` : null
+    user?.profilePicUrl ? `${SERVER_URL}${user.profilePicUrl}?t=${Date.now()}` : null
   );
 
   const handleInputChange = (e) => {
