@@ -37,7 +37,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
           description: game.description || game.originalData?.description_raw,
           backdropUrl: game.originalData?.background_image || game.imageUrl,
           posterUrl: game.originalData?.posterUrl || game.imageUrl,
-          rating: game.rating,
+          rating: game.rating * 2 || game.originalData?.rating * 2,
           genres: (game.originalData?.genres || []).map(g => typeof g === 'string' ? g : g.name),
           releaseDate: game.originalData?.releaseDate,
           linkId: game.originalData?.rawgId || game.id.replace('game-', '')
