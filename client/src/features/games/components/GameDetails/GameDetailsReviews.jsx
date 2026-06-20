@@ -14,6 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
+import { SERVER_URL } from '../../../../lib/apiClient';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, isPending }) => {
   return (
@@ -73,7 +74,7 @@ const ReviewCard = ({ review, gameId, isMyReview }) => {
     if (!rawAvatar) return fallbackAvatarUrl;
     return rawAvatar.startsWith('http')
       ? rawAvatar
-      : `http://localhost:${import.meta.env.VITE_PORT || 5222}${rawAvatar}`;
+      : `${SERVER_URL}${rawAvatar}`;
   });
   
   const formattedDate = new Date(review.timestamp || review.createdAt || new Date()).toLocaleDateString('en-US', {
