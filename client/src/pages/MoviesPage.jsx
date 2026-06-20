@@ -134,8 +134,6 @@ const MoviesPage = () => {
               Explore thousands of movies tailored to your taste with our powerful filters.
             </p>
 
-            <ActiveFiltersBar searchParams={searchParams} setSearchParams={setSearchParams} />
-
             <div className="relative w-full max-w-3xl mt-4">
               <div className="relative flex items-center w-full bg-zinc-900/80 border border-zinc-700 rounded-full p-1.5 shadow-2xl backdrop-blur-md transition-all focus-within:border-zinc-500">
                 <div className="pl-4 text-zinc-400 pointer-events-none">
@@ -178,6 +176,8 @@ const MoviesPage = () => {
                 </button>
               </div>
             </div>
+
+            <ActiveFiltersBar mode="movies" searchParams={searchParams} setSearchParams={setSearchParams} />
           </div>
         </div>
 

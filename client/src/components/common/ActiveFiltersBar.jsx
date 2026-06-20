@@ -1,8 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, FilterX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getGenres as getMovieGenres } from '../../features/movies/api/movieService';
+import { gameService } from '../../features/games/api/gameService';
 
-export const ActiveFiltersBar = ({ searchParams, setSearchParams }) => {
+export const ActiveFiltersBar = ({ searchParams, setSearchParams, mode = 'movies' }) => {
+  const [genreMap, setGenreMap] = useState({});
+  const [platformMap, setPlatformMap] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchMaps = async () => {
+      try {
+        if (mode === 'movies') {
+          const data = await getMovieGenres();
+          const list = Array.isArray(data) ? data : (data.data || []);
+          const map = {};
+          list.forEach(g => map[String(g.genreId || g.id)] = g.name);
+          if (isMounted) setGenreMap(map);
+        } else if (mode === 'games') {
+          const [genreData, platformData] = await Promise.all([
+            gameService.getGenres(),
+            gameService.getPlatforms()
+          ]);
+          
+          const gList = Array.isArray(genreData) ? genreData : (genreData.data || []);
+          const gMap = {};
+          gList.forEach(g => gMap[String(g.genreId || g.id)] = g.name);
+          
+          const pList = Array.isArray(platformData) ? platformData : (platformData.data || []);
+          const pMap = {};
+          pList.forEach(p => pMap[String(p.platformId || p.id)] = p.name);
+          
+          if (isMounted) {
+            setGenreMap(gMap);
+            setPlatformMap(pMap);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load filter maps in ActiveFiltersBar', err);
+      }
+    };
+    
+    fetchMaps();
+    
+    return () => { isMounted = false; };
+  }, [mode]);
+
   const activeFilters = [];
   
   for (const [key, value] of searchParams.entries()) {
@@ -12,8 +57,14 @@ export const ActiveFiltersBar = ({ searchParams, setSearchParams }) => {
     let label = key.charAt(0).toUpperCase() + key.slice(1);
     let displayValue = value;
     
-    if (key === 'genreId') label = 'Genre';
-    if (key === 'platformId') label = 'Platform';
+    if (key === 'genreId') {
+      label = 'Genre';
+      if (genreMap[value]) displayValue = genreMap[value];
+    }
+    if (key === 'platformId') {
+      label = 'Platform';
+      if (platformMap[value]) displayValue = platformMap[value];
+    }
     if (key === 'minRating') label = 'Min Rating';
     if (key === 'maxRating') label = 'Max Rating';
     if (key === 'sort') {
