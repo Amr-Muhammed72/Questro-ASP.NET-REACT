@@ -22,7 +22,7 @@ const HeroSectionHomePage = ({ isLoading, displayMedia = [] }) => {
           description: movie.description || movie.originalData?.overview,
           backdropUrl: movie.originalData?.backdropUrl || movie.imageUrl,
           posterUrl: movie.originalData?.posterUrl || movie.imageUrl,
-          rating: movie.rating || movie.originalData?.tmdbRating,
+          rating: movie.rating ? movie.rating * 2 : movie.originalData?.tmdbRating,
           genres: (movie.originalData?.genres || []).map(g => typeof g === 'string' ? g : g.name),
           releaseDate: movie.originalData?.releaseDate,
           linkId: movie.originalData?.tmdbId || movie.id.replace('movie-', '')

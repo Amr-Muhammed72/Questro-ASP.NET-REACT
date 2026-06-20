@@ -19,7 +19,7 @@ const RecommendationShowcase = ({ items, isLoading = false }) => {
     if (isGame && rawRating) {
       finalRating = rawRating * 2;
     } else if (!isGame) {
-      finalRating = item.rating || item.originalData?.tmdbRating;
+      finalRating = item.rating ? item.rating * 2 : item.originalData?.tmdbRating;
     }
 
     return {
