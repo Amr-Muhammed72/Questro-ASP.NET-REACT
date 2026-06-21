@@ -36,7 +36,7 @@ public class UserProfileController : ApiControllerBase
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
-        var result = await _userProfileService.UpdateProfileAsync(userId.Value, request, cancellationToken);
+        Shared.Result.Result<UserProfileDto>? result = await _userProfileService.UpdateProfileAsync(userId.Value, request, cancellationToken);
         return HandleResult(result);
     }
 
