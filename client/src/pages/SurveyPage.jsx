@@ -29,7 +29,7 @@ export default function SurveyPage() {
   const combinedError = genresError || formError;
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 md:p-8 font-sans relative">
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center py-12 px-4 md:px-8 font-sans relative">
       <div className="absolute top-4 right-4 md:top-8 md:right-8">
         <button 
           onClick={logout} 

@@ -40,7 +40,7 @@ export default function AnimatedRoutes() {
   const isAuthRoute = hideNavBarPaths.includes(location.pathname);
   const isLandingPage = location.pathname === '/';
 
-  const isNoScrollPage = isLandingPage || isAuthRoute;
+  const isNoScrollPage = isLandingPage || ['/login', '/register', '/forgot-password'].includes(location.pathname);
 
   return (
     <>
