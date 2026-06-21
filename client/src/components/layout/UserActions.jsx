@@ -83,6 +83,7 @@ const UserActions = () => {
           <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border border-black/50">
             {imageUrl ? (
               <img 
+                key={imageUrl}
                 src={imageUrl} 
                 alt="Profile" 
                 className="w-full h-full object-cover"
