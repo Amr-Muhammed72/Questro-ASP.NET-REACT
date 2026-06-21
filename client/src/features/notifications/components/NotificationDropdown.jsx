@@ -6,7 +6,7 @@ import { useProfileStore } from '../../profile/store/useProfileStore';
 import { getMyProfile } from '../../profile/api/profileService';
 import NotificationsModal from './NotificationsModal';
 
-const NotificationDropdown = ({ direction = 'down', mobileView = false }) => {
+const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -44,21 +44,6 @@ const NotificationDropdown = ({ direction = 'down', mobileView = false }) => {
     startPolling();
     return () => stopPolling();
   }, [startPolling, stopPolling]);
-
-  // Lock body scroll when dropdown is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-      document.documentElement.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-      document.documentElement.style.overflow = 'unset';
-    };
-  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -121,37 +106,21 @@ const NotificationDropdown = ({ direction = 'down', mobileView = false }) => {
   };
 
   return (
-    <div className={`relative ${mobileView ? 'w-full h-full flex items-center justify-center' : ''}`} ref={dropdownRef}>
-      {/* Invisible backdrop to catch outside clicks reliably and stop background scroll */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-40 touch-none"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsOpen(false);
-          }}
-        />
-      )}
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={mobileView 
-          ? "relative flex flex-col items-center justify-center w-full h-full space-y-1 text-zinc-400 hover:text-zinc-200 transition-colors z-50" 
-          : "relative p-2 rounded-full hover:bg-zinc-800/50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50 z-50"}
+        className="relative p-2 rounded-full hover:bg-zinc-800/50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
       >
-        <div className={`relative flex items-center justify-center transition-transform duration-300 ${isOpen ? 'scale-110' : ''}`}>
-          <Bell className={mobileView ? `w-6 h-6 ${isOpen ? 'text-indigo-400' : ''}` : "w-5 h-5 text-zinc-300"} />
-          {unreadCount > 0 && (
-            <span className={`absolute inline-flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)] ${mobileView ? '-top-1 -right-1 w-4 h-4' : 'top-1.5 right-1.5 w-4 h-4'}`}>
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </div>
-        {mobileView && <span className={`text-[10px] font-medium ${isOpen ? 'text-indigo-400' : ''}`}>Notifications</span>}
+        <Bell className="w-5 h-5 text-zinc-300" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
       </button>
 
       {isOpen && (
-        <div className={`absolute ${direction === 'up' ? 'bottom-full mb-2 right-[-2rem] sm:right-0' : 'mt-2 right-0'} w-80 sm:w-96 rounded-[32px] bg-[#09090b]/95 backdrop-blur-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.4)] overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200 overscroll-contain`}>
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-[32px] bg-[#09090b]/80 backdrop-blur-2xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.4)] overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
           <div className="p-5 border-b border-white/5 bg-[#09090b]/40">
             <h3 className="text-lg font-bold bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent">Notifications</h3>
           </div>

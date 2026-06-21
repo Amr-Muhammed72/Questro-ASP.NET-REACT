@@ -32,7 +32,7 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
   };
 
   return (
-    <Link to={`/movies/${movieId}`} className={`group/card flex flex-col cursor-pointer bg-[#09090b]/60 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 hover:bg-white/5 hover:border-white/20 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-1.5 transition-all duration-500 ${containerWidthClass}`}>
+    <Link to={`/movies/${movieId}`} className={`group/card flex flex-col cursor-pointer bg-[#09090b]/60 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-2 hover:bg-white/5 hover:border-white/20 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-1.5 transition-all duration-500 w-full ${containerWidthClass}`}>
       <div className={`relative flex-shrink-0 rounded-[1.1rem] overflow-hidden bg-zinc-900 w-full aspect-[2/3] border border-white/5`}>
 
         {displayImage ? (
@@ -129,7 +129,7 @@ const MovieCard = memo(({ movie, isRowItem = false, onRemove }) => {
         </div>
       </div>
 
-      <div className="mt-3 mb-2 px-2 flex flex-col items-center justify-start text-center h-10 overflow-hidden">
+      <div className="mt-3 mb-2 px-2 flex flex-col items-center justify-center text-center">
         <h4 className="text-xs sm:text-sm text-zinc-100 font-bold line-clamp-2 leading-snug tracking-wide" title={movie.title}>
           {movie.title}
         </h4>

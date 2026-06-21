@@ -29,6 +29,8 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const decoded = jwtDecode(token);
+      console.log(token);
+      console.log('Decoded JWT:', decoded);
       
       const isChildClaim = decoded.IsChildAccount || decoded.isChildAccount || decoded.ischildaccount || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/ischildaccount'];
       const isChild = String(isChildClaim).toLowerCase() === "true" || isChildClaim === true;

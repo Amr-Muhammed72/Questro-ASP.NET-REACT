@@ -119,10 +119,10 @@ const GamesPage = () => {
       <div className="relative z-10 w-full transition-all duration-300 flex flex-col">
 
         {/* Hero Section Container */}
-        <div className={`w-full relative flex flex-col items-center justify-center min-h-[40vh] md:min-h-[65vh] px-4 overflow-hidden mb-8 ${isNavVisible && !areFiltersOpen ? 'pt-24 pb-12 md:pt-32 md:pb-16' : 'pt-16 pb-8 md:pt-16 md:pb-12'}`}>
+        <div className={`w-full relative flex flex-col items-center justify-center min-h-[50vh] md:min-h-[65vh] px-4 overflow-hidden mb-8 ${isNavVisible && !areFiltersOpen ? 'pt-32 pb-16' : 'pt-16 pb-12'}`}>
           <HeroBackground type="games" />
 
-          <div className="relative z-10 w-full max-w-4xl flex flex-col items-center mt-0 md:mt-[-2rem]">
+          <div className="relative z-10 w-full max-w-4xl flex flex-col items-center mt-[-2rem]">
             
             <div className="mb-6 px-5 py-1.5 rounded-full border border-zinc-700/60 bg-zinc-900/60 backdrop-blur-md text-xs font-bold tracking-[0.2em] text-zinc-300 uppercase">
               Ultimate Game Library
