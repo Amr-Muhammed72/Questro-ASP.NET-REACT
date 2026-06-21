@@ -104,7 +104,7 @@ const NavBar = ({ onVisibilityChange, forceHidden = false }) => {
             {isAuthenticated && <GlobalSearchDropdown />}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors duration-200 focus:outline-none ring-1 ring-white/10"
+              className="hidden md:flex p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors duration-200 focus:outline-none ring-1 ring-white/10"
               aria-label="Toggle menu"
               aria-expanded={isMobileMenuOpen}
             >

@@ -295,3 +295,23 @@
     opacity: 1;
   }
 }
+
+@media (max-width: 768px) {
+  .chatbot-overlay {
+    bottom: calc(6.5rem + env(safe-area-inset-bottom));
+    right: 1rem;
+  }
+
+  .chatbot-window {
+    position: fixed;
+    top: calc(1rem + env(safe-area-inset-top, 48px));
+    bottom: calc(6rem + 60px + env(safe-area-inset-bottom, 20px));
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+  }
+}
