@@ -10,7 +10,7 @@ export const notificationService = {
     const response = await apiClient.get(`/notifications`, {
       params: { pageIndex, pageSize },
     });
-    // console.log('Fetched notifications:', response.data); // Debug log
+    //  // Debug log
     return response.data;
   },
 

@@ -71,9 +71,9 @@ const EditorialPosterGrid = ({
           </div>
 
           <div className="relative -mx-6 px-6 overflow-hidden">
-            <div className="flex gap-4 sm:gap-6 pb-8 pt-4">
+            <div className="flex gap-3 sm:gap-6 pb-8 pt-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="shrink-0 w-[240px] sm:w-[280px] lg:w-[320px]">
+                <div key={i} className="shrink-0 w-[220px] sm:w-[260px] md:w-[280px] lg:w-[320px]">
                   <div className="aspect-[16/9] rounded-2xl bg-white/5 animate-pulse mb-4 shadow-lg border border-white/5" />
                   <div>
                     <div className="w-3/4 h-5 bg-white/10 rounded animate-pulse mb-3" />
@@ -119,7 +119,7 @@ const EditorialPosterGrid = ({
           <motion.div
             ref={scrollContainerRef}
             onScroll={checkScroll}
-            className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-8 pt-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-3 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-8 pt-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {carouselItems.map((item, idx) => (
               <motion.div
@@ -127,7 +127,7 @@ const EditorialPosterGrid = ({
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="snap-start shrink-0 w-[240px] sm:w-[280px] lg:w-[320px] group cursor-pointer"
+                className="snap-start shrink-0 w-[220px] sm:w-[260px] md:w-[280px] lg:w-[320px] group cursor-pointer"
               >
                 <Link to={`/${item.type === 'game' ? 'games' : 'movies'}/${item.linkId}`} className="block w-full">
                   <div className="relative aspect-[16/9] rounded-2xl overflow-hidden shadow-lg mb-4 bg-zinc-900">

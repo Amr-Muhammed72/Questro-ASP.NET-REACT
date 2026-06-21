@@ -11,6 +11,7 @@ import SurveyCompletionGuard from './guards/SurveyCompletionGuard';
 // Shared wrapper
 import PageTransition from '../components/common/PageTransition';
 import NavBar from '../components/layout/NavBar';
+import BottomNav from '../components/layout/BottomNav';
 import Footer from '../components/layout/Footer';
 import Chatbot from '../features/chatbot/components/Chatbot';
 
@@ -39,13 +40,16 @@ export default function AnimatedRoutes() {
   const isAuthRoute = hideNavBarPaths.includes(location.pathname);
   const isLandingPage = location.pathname === '/';
 
+  const isNoScrollPage = isLandingPage || isAuthRoute;
+
   return (
     <>
       {!isAuthRoute && <NavBar />}
-      {!isAuthRoute && <Chatbot />}
+      {!isAuthRoute && !isLandingPage && <Chatbot />}
+      {!isAuthRoute && !isLandingPage && <BottomNav />}
       <SurveyCompletionGuard>
         <Suspense fallback={<PageLoader />}>
-          <main className="min-h-screen flex flex-col">
+          <main className={`flex flex-col ${isNoScrollPage ? 'h-[100dvh] overflow-hidden' : 'min-h-screen pb-20 md:pb-0'}`}>
             <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo(0, 0)}>
             <Routes location={location} key={location.pathname}>
 
@@ -111,7 +115,7 @@ export default function AnimatedRoutes() {
           </main>
         </Suspense>
       </SurveyCompletionGuard>
-      {!isLandingPage && <Footer />}
+      {!isLandingPage && !isAuthRoute && <Footer />}
     </>
   );
 }

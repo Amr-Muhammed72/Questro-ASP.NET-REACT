@@ -53,6 +53,13 @@ export default function ProfilePage() {
     setIsNavVisible(!showEditModal);
   }, [showEditModal]);
 
+  // Open notifications modal if URL tab is set to notifications
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      setShowNotificationsModal(true);
+    }
+  }, [activeTab]);
+
   // ── Single unified effect — replaces two separate getMyProfile() calls ─────
   useEffect(() => {
     const token = getToken();
@@ -175,7 +182,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="relative min-h-screen font-sans py-10 bg-[#09090b] overflow-x-hidden">
+    <div className="relative min-h-screen font-sans py-10 bg-transparent overflow-x-hidden">
       {/* Background Starfield */}
       <div className="star-field">
         <div className="star-layer" id="stars-small"></div>
@@ -244,26 +251,7 @@ export default function ProfilePage() {
                 </AnimatePresence>
               </div>
 
-              <FollowersFollowingModal
-                isOpen={showFollowModal}
-                onClose={() => setShowFollowModal(false)}
-                userId={currentProfile?.userId}
-                initialTab={followModalTab}
-              />
 
-              <NotificationsModal
-                isOpen={showNotificationsModal}
-                onClose={() => setShowNotificationsModal(false)}
-              />
-
-              {showEditModal && isOwnProfile && (
-                <EditProfileForm
-                  user={currentProfile}
-                  onSave={handleEditProfile}
-                  onCancel={() => setShowEditModal(false)}
-                  isLoading={isUpdating}
-                />
-              )}
             </>
           ) : (
             !isLoading && (
@@ -274,6 +262,38 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {currentProfile && (
+        <>
+          <FollowersFollowingModal
+            isOpen={showFollowModal}
+            onClose={() => setShowFollowModal(false)}
+            userId={currentProfile?.userId}
+            initialTab={followModalTab}
+          />
+
+          <NotificationsModal
+            isOpen={showNotificationsModal}
+            onClose={() => {
+              setShowNotificationsModal(false);
+              if (activeTab === 'notifications') {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete('tab');
+                setSearchParams(newParams);
+              }
+            }}
+          />
+
+          {showEditModal && isOwnProfile && (
+            <EditProfileForm
+              user={currentProfile}
+              onSave={handleEditProfile}
+              onCancel={() => setShowEditModal(false)}
+              isLoading={isUpdating}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }
