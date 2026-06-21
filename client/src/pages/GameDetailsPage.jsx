@@ -87,8 +87,8 @@ export default function GameDetailsPage() {
         <GameDetailsHero game={game} />
       </div>
 
-      <main className="relative z-20 w-full px-4 md:px-8 lg:px-12 xl:px-16 -mt-8 md:-mt-24 lg:-mt-32 pb-32 space-y-12 md:space-y-24">
-        <div className="max-w-screen-2xl mx-auto space-y-12 md:space-y-24">
+      <main className="relative z-20 w-full px-4 md:px-8 lg:px-12 xl:px-16 -mt-16 md:-mt-24 lg:-mt-32 pb-32 space-y-16 md:space-y-24">
+        <div className="max-w-screen-2xl mx-auto space-y-16 md:space-y-24">
             <GameDetailsSummary game={game} />
             
             {/* Lazy Loaded Sections */}

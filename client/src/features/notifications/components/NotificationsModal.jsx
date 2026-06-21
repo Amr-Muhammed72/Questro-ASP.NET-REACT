@@ -26,16 +26,13 @@ const NotificationsModal = ({ isOpen, onClose }) => {
 
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
       document.addEventListener('keydown', handleKeyDown);
     } else {
       document.body.style.overflow = 'unset';
-      document.documentElement.style.overflow = 'unset';
       document.removeEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.body.style.overflow = 'unset';
-      document.documentElement.style.overflow = 'unset';
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
@@ -90,7 +87,7 @@ const NotificationsModal = ({ isOpen, onClose }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm touch-none"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
