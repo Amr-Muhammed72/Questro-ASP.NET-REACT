@@ -10,9 +10,16 @@ export default function GameRatingStep({ formData, updateFormData }) {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const data = await gameService.getTrending({ take: 24 });
-        const items = Array.isArray(data) ? data : (data.data || data.items || data.results || []);
-        setGames(items);
+        // Fetch highly recognizable games without any filters
+        const data = await gameService.discoverGames({ sort: 'popularity.desc' }, 1, 60);
+        let items = Array.isArray(data) ? data : (data.data || data.items || data.results || []);
+        
+        // Shuffle the array to provide a random mix of well-known games
+        for (let i = items.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [items[i], items[j]] = [items[j], items[i]];
+        }
+        setGames(items.slice(0, 24));
       } catch (error) {
         console.error('Failed to fetch games:', error);
       } finally {
@@ -63,9 +70,9 @@ export default function GameRatingStep({ formData, updateFormData }) {
         </p>
         <div className="inline-flex items-center gap-2 px-4 py-2 mt-4 rounded-full bg-zinc-800/50 border border-zinc-700">
           <span className="text-sm font-medium text-white">
-            Games rated: <span className={formData.gameRatings.length >= 2 ? "text-green-400" : "text-indigo-400"}>{formData.gameRatings.length}</span>/2
+            Games rated: <span className={formData.gameRatings.length >= 1 ? "text-green-400" : "text-indigo-400"}>{formData.gameRatings.length}</span>/1
           </span>
-          {formData.gameRatings.length >= 2 && (
+          {formData.gameRatings.length >= 1 && (
             <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full ml-2">Minimum met</span>
           )}
         </div>
@@ -85,7 +92,7 @@ export default function GameRatingStep({ formData, updateFormData }) {
               whileHover={{ scale: 1.02 }}
               className={`relative rounded-xl overflow-hidden transition-all duration-300 ${
                 isRated ? 'ring-2 ring-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'ring-1 ring-zinc-800'
-              } ${!isRated && formData.gameRatings.length >= 2 ? 'opacity-70' : 'opacity-100'}`}
+              } ${!isRated && formData.gameRatings.length >= 1 ? 'opacity-70' : 'opacity-100'}`}
             >
               <div className="aspect-[2/3] relative group">
                 <img 

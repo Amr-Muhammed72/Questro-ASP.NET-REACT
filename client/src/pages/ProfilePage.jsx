@@ -154,8 +154,8 @@ export default function ProfilePage() {
       await updateProfile(profileData);
       if (avatarFile) {
         await uploadProfilePicture(avatarFile);
-        // Add a slight delay to ensure the backend has completely written the file before we re-fetch the profile
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Add a delay to ensure the backend has completely written the file before we re-fetch the profile
+        await new Promise(resolve => setTimeout(resolve, 1500));
         setImageUpdateStamp(Date.now());
       }
       const updatedProfile = await getUserProfile(currentProfile?.userId || userId);

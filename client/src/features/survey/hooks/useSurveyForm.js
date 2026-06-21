@@ -108,8 +108,8 @@ export const useSurveyForm = () => {
     if (step === 1) return formData.likedMovieGenres.length >= 1 && formData.likedMovieGenres.length <= 3 && formData.dislikedMovieGenres.length <= 3;
     if (step === 2) return formData.likedGameGenres.length >= 1 && formData.likedGameGenres.length <= 3 && formData.dislikedGameGenres.length <= 3;
     if (step === 3) return true; // Country is optional
-    if (step === 4) return formData.movieRatings.length >= 2;
-    if (step === 5) return formData.gameRatings.length >= 2;
+    if (step === 4) return formData.movieRatings.length >= 1;
+    if (step === 5) return formData.gameRatings.length >= 1;
     return true;
   };
 
