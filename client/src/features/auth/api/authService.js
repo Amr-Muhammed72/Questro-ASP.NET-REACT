@@ -44,6 +44,15 @@ export const authService = {
   },
 
   /**
+   * Resend OTP for Registration
+   * @param {string} email
+   */
+  resendRegisterOtp: async (email) => {
+    const response = await apiClient.post('/OTP/Register-Resend-OTP', { email });
+    return response.data;
+  },
+
+  /**
    * Refresh the access token using the HttpOnly cookie
    */
   refreshToken: async () => {

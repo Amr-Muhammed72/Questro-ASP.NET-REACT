@@ -53,6 +53,13 @@ export default function ProfilePage() {
     setIsNavVisible(!showEditModal);
   }, [showEditModal]);
 
+  // Open notifications modal if URL tab is set to notifications
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      setShowNotificationsModal(true);
+    }
+  }, [activeTab]);
+
   // ── Single unified effect — replaces two separate getMyProfile() calls ─────
   useEffect(() => {
     const token = getToken();
@@ -253,7 +260,14 @@ export default function ProfilePage() {
 
               <NotificationsModal
                 isOpen={showNotificationsModal}
-                onClose={() => setShowNotificationsModal(false)}
+                onClose={() => {
+                  setShowNotificationsModal(false);
+                  if (activeTab === 'notifications') {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.delete('tab');
+                    setSearchParams(newParams);
+                  }
+                }}
               />
 
               {showEditModal && isOwnProfile && (

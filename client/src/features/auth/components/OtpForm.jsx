@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Key, ArrowLeft, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Key, ArrowLeft, AlertCircle, Clock } from 'lucide-react';
 import { useOtpVerification } from '../hooks/useOtpVerification';
 import { useAuth } from '../store/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -12,6 +12,34 @@ const OtpForm = ({ email, registrationData, onSuccess }) => {
   const { verifyOtp, resendOtp, isLoading, isResending, error } = useOtpVerification();
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const savedTime = localStorage.getItem(`otpResendTimeout_${email}`);
+    if (savedTime) {
+      const remaining = Math.floor((parseInt(savedTime, 10) - Date.now()) / 1000);
+      return remaining > 0 ? remaining : 0;
+    }
+    const initialTime = 180;
+    localStorage.setItem(`otpResendTimeout_${email}`, (Date.now() + initialTime * 1000).toString());
+    return initialTime;
+  });
+
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      localStorage.removeItem(`otpResendTimeout_${email}`);
+      return;
+    }
+    const timerId = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, [timeLeft, email]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   const onSubmit = async (event) => {
     event.preventDefault();
@@ -41,7 +69,12 @@ const OtpForm = ({ email, registrationData, onSuccess }) => {
 
   const handleResend = async () => {
     try {
-      await resendOtp(email);
+      const isRegisterPhase = !!registrationData;
+      await resendOtp(email, isRegisterPhase);
+      
+      const initialTime = 180;
+      localStorage.setItem(`otpResendTimeout_${email}`, (Date.now() + initialTime * 1000).toString());
+      setTimeLeft(initialTime);
     } catch (err) {
       // Error is handled by the hook
     }
@@ -59,7 +92,9 @@ const OtpForm = ({ email, registrationData, onSuccess }) => {
           >
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-red-300">OTP Verification Failed</p>
+              <p className="font-semibold text-red-300">
+                {error.type === 'resend' ? 'Failed to Resend OTP' : 'OTP Verification Failed'}
+              </p>
               <p>{error.message}</p>
             </div>
           </motion.div>
@@ -91,14 +126,28 @@ const OtpForm = ({ email, registrationData, onSuccess }) => {
         {isLoading ? 'Verifying...' : 'Verify OTP'}
       </button>
 
-      <div className="text-center mt-4">
+      <div className="flex flex-col items-center justify-center mt-6 space-y-2">
+        <p className="text-sm text-zinc-400">Didn't receive the code?</p>
         <button
           type="button"
           onClick={handleResend}
-          disabled={isResending}
-          className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+          disabled={isResending || timeLeft > 0}
+          className={`flex items-center space-x-2 text-sm font-medium px-4 py-2 rounded-full transition-all ${
+            timeLeft > 0 
+              ? 'bg-zinc-800/50 text-zinc-500 cursor-not-allowed' 
+              : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300'
+          }`}
         >
-          {isResending ? 'Resending...' : 'Resend OTP'}
+          {isResending ? (
+            <span>Resending...</span>
+          ) : timeLeft > 0 ? (
+            <>
+              <Clock className="w-4 h-4" />
+              <span>Resend available in {formatTime(timeLeft)}</span>
+            </>
+          ) : (
+            <span>Resend OTP</span>
+          )}
         </button>
       </div>
 

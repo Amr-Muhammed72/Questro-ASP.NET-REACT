@@ -88,7 +88,7 @@ const FeatureStrip = () => {
         </div>
 
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"
+          className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-5 gap-4 md:gap-6"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -96,11 +96,21 @@ const FeatureStrip = () => {
         >
           {features.map((feature, idx) => {
             const IconComponent = feature.icon;
+            
+            // On md (tablet), we use a 6-col grid:
+            // Items 0,1,2 take 2 cols each (filling row 1).
+            // Item 3 starts at col 2 and takes 2 cols (centering row 2).
+            // Item 4 takes the next 2 cols.
+            // On lg (desktop), we use a 5-col grid and everyone takes 1 col.
+            const gridClass = idx === 3 
+              ? "md:col-start-2 md:col-span-2 lg:col-start-auto lg:col-span-1" 
+              : "md:col-span-2 lg:col-span-1";
+
             return (
               <motion.div
                 key={idx}
                 variants={itemVariants}
-                className={`group relative p-6 md:p-8 rounded-2xl backdrop-blur-xl bg-white/5 border ${feature.borderColor} ${feature.hoverColor} transition-all duration-500 hover:bg-white/8`}
+                className={`group relative p-6 md:p-8 rounded-2xl backdrop-blur-xl bg-white/5 border ${feature.borderColor} ${feature.hoverColor} transition-all duration-500 hover:bg-white/8 ${gridClass}`}
               >
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${feature.color} to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}
