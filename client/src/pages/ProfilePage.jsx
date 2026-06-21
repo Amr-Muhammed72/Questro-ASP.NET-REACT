@@ -251,7 +251,33 @@ export default function ProfilePage() {
                 </AnimatePresence>
               </div>
 
+              <FollowersFollowingModal
+                isOpen={showFollowModal}
+                onClose={() => setShowFollowModal(false)}
+                userId={currentProfile?.userId}
+                initialTab={followModalTab}
+              />
 
+              <NotificationsModal
+                isOpen={showNotificationsModal}
+                onClose={() => {
+                  setShowNotificationsModal(false);
+                  if (activeTab === 'notifications') {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.delete('tab');
+                    setSearchParams(newParams);
+                  }
+                }}
+              />
+
+              {showEditModal && isOwnProfile && (
+                <EditProfileForm
+                  user={currentProfile}
+                  onSave={handleEditProfile}
+                  onCancel={() => setShowEditModal(false)}
+                  isLoading={isUpdating}
+                />
+              )}
             </>
           ) : (
             !isLoading && (
@@ -262,38 +288,6 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
-
-      {currentProfile && (
-        <>
-          <FollowersFollowingModal
-            isOpen={showFollowModal}
-            onClose={() => setShowFollowModal(false)}
-            userId={currentProfile?.userId}
-            initialTab={followModalTab}
-          />
-
-          <NotificationsModal
-            isOpen={showNotificationsModal}
-            onClose={() => {
-              setShowNotificationsModal(false);
-              if (activeTab === 'notifications') {
-                const newParams = new URLSearchParams(searchParams);
-                newParams.delete('tab');
-                setSearchParams(newParams);
-              }
-            }}
-          />
-
-          {showEditModal && isOwnProfile && (
-            <EditProfileForm
-              user={currentProfile}
-              onSave={handleEditProfile}
-              onCancel={() => setShowEditModal(false)}
-              isLoading={isUpdating}
-            />
-          )}
-        </>
-      )}
     </div>
   );
 }
