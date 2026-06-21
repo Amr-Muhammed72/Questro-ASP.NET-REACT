@@ -44,8 +44,8 @@ export default function GameRow({ title = '', games = [], onTitleClick }) {
     <section className="group/row mb-8 text-white w-full">
       {title && <CategoryHeader title={title} onTitleClick={onTitleClick} />}
 
-      <div className="group/slider flex items-center w-full">
-        <div className="w-10 sm:w-12 md:w-16 shrink-0 flex items-center justify-center">
+      <div className="group/slider flex items-center w-[calc(100%+2rem)] -ml-4 md:w-full md:ml-0">
+        <div className="hidden md:flex w-12 md:w-16 shrink-0 items-center justify-center">
           <button 
             className={`flex h-16 w-8 cursor-pointer items-center justify-center rounded-md bg-zinc-800/80 shadow-md backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-zinc-700 hover:text-white opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 ${
               isAtStart ? 'invisible' : 'visible'
@@ -60,16 +60,18 @@ export default function GameRow({ title = '', games = [], onTitleClick }) {
         <div
           ref={rowRef}
           onScroll={handleRowScroll}
-          className="flex-1 flex flex-nowrap overflow-x-auto overflow-y-visible gap-3 sm:gap-4 md:gap-5 scroll-smooth snap-x snap-mandatory py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex-1 flex flex-nowrap overflow-x-auto overflow-y-visible gap-3 sm:gap-4 md:gap-5 scroll-smooth snap-x snap-mandatory py-4 px-4 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {displayGames.map((game, index) => (
             <div key={game.rawgId || game.gameId || index} className="snap-start shrink-0">
                <GameCard game={game} isRowItem={true} />
             </div>
           ))}
+          {/* Spacer to allow the last item to scroll past padding on mobile */}
+          <div className="w-1 shrink-0 md:hidden"></div>
         </div>
 
-        <div className="w-10 sm:w-12 md:w-16 shrink-0 flex items-center justify-center">
+        <div className="hidden md:flex w-12 md:w-16 shrink-0 items-center justify-center">
           <button 
             className={`flex h-16 w-8 cursor-pointer items-center justify-center rounded-md bg-zinc-800/80 shadow-md backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-zinc-700 hover:text-white opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 ${
               isAtEnd ? 'invisible' : 'visible'
