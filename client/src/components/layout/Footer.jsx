@@ -31,17 +31,9 @@ const Footer = () => {
   };
 
   return (
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-    <footer className="w-full border-t border-white/5 bg-[#050507] relative mt-auto z-10 overflow-hidden">
-=======
-    <footer className="w-full relative mt-auto z-10 overflow-hidden bg-transparent">
->>>>>>> Stashed changes
-=======
     <footer className="w-full relative mt-auto z-10 overflow-hidden bg-[#09090b]">
->>>>>>> parent of 83c155b (Merge pull request #111 from Amr-Muhammed72/revert-108-fix/mobile-ui-improvements)
       {/* Premium Top Edge Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-indigo-500/10 to-transparent"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[200px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8 relative z-10">
