@@ -175,7 +175,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="relative min-h-screen font-sans py-10 bg-[#09090b] overflow-x-hidden">
+    <div className="relative min-h-screen font-sans py-10 bg-transparent overflow-x-hidden">
       {/* Background Starfield */}
       <div className="star-field">
         <div className="star-layer" id="stars-small"></div>
