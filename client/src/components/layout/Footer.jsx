@@ -31,7 +31,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="w-full relative mt-auto z-10 overflow-hidden bg-[#09090b]">
+    <footer className="w-full relative mt-auto z-10 overflow-hidden bg-transparent">
       {/* Premium Top Edge Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[200px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
