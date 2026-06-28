@@ -220,18 +220,16 @@ public class AuthController : ControllerBase
         Response.Cookies.Delete("refreshToken");
         return Ok(new { message = "Logged out successfully" });
     }
-
-  
     private void SetRefreshTokenInCookie(string token, DateTime expiry)
     {
         Response.Cookies.Append("refreshToken", token, new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.None, 
             Expires = expiry,
             IsEssential = true
         });
     }
- 
+
 }

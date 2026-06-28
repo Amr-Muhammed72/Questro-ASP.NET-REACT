@@ -1,10 +1,10 @@
-using Hangfire;
 using Microsoft.AspNetCore.Identity;
 
 using Microsoft.Extensions.Caching.Memory;
 using Questro.Core.Entities.UserManagement;
 using Questro.Service.Abstractions.Auth;
 using Questro.Service.Abstractions.Email;
+using Questro.Shared.Contracts.Auth;
 using Questro.Shared.Contracts.OTP;
 using Questro.Shared.ErrorHandle.OTP;
 using Questro.Shared.ErrorHandle.Users;
@@ -19,37 +19,41 @@ namespace Questro.Service.Services.Auth
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMemoryCache _cache;
-        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly IEmailTemplateService _emailTemplateService;
+        private readonly IEmailService _emailService;
         
-        public OTPService(UserManager<ApplicationUser> userManager, IMemoryCache cache, IBackgroundJobClient backgroundJobClient,
-            IEmailTemplateService emailTemplateService )
+        public OTPService(UserManager<ApplicationUser> userManager, IMemoryCache cache,
+            IEmailTemplateService emailTemplateService,
+            IEmailService emailService)
         {
             _userManager = userManager;
             _cache = cache;
-            _backgroundJobClient = backgroundJobClient;
             _emailTemplateService = emailTemplateService;
+            _emailService = emailService;
             
         }
        
-        public  Task<Result> SendOTPAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<Result> SendOTPAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default)
         {
             
             var email = request.Email?.Trim().ToLowerInvariant();
             if(string.IsNullOrEmpty(email))
-                return Task.FromResult(Result.Failure(OTPError.UserNotFound)); var key = $"OTP:{email}";
+                return Result.Failure(OTPError.UserNotFound); var key = $"OTP:{email}";
             if (_cache.TryGetValue(key, out var value))
-                return Task.FromResult(Result.Failure(OTPError.OtpAlreadySent));
+                return Result.Failure(OTPError.OtpAlreadySent);
             var otp = GenerateOtp();
             _cache.Set(key,value: HashOtp(otp),TimeSpan.FromMinutes(3));
             var subject = "Your OTP Verification Code";
             var body = _emailTemplateService.GetOtpEmailBody(otp, expiryMinutes: 3);
 
-            BackgroundJob.Enqueue<IEmailService>(s =>
-                     s.SendEmailAsync(email, subject, body));
-            return Task.FromResult(Result.Success());
+            await _emailService.SendEmailAsync(email, subject, body);
+            return Result.Success();
         }
-
+        async Task<Result> IOTPService.RegisterResendOTPAsync(SendOtpRequestDto request, CancellationToken cancellationToken)
+        {
+            var res = await SendOTPAsync(new(request.Email));
+            return res;
+        }
         public  Task<Result> VerifyOTPAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken = default)
         {
             var email = request.Email.Trim().ToLowerInvariant();
@@ -85,8 +89,7 @@ namespace Questro.Service.Services.Auth
             var subject = "Your New OTP Verification Code";
             var body = _emailTemplateService.GetOtpEmailBody(otp, expiryMinutes: 3);
 
-            BackgroundJob.Enqueue<IEmailService>(s =>
-                s.SendEmailAsync(email, subject, body));
+            await _emailService.SendEmailAsync(email, subject, body);
 
             return Result.Success();
         }
@@ -100,5 +103,8 @@ namespace Questro.Service.Services.Auth
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(otp));
             return Convert.ToBase64String(bytes);
         }
+
+        
+        
     }
 }

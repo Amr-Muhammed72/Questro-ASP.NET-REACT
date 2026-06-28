@@ -39,4 +39,4 @@ staticwebassets.removed.txt
 # OS
 *.DS_Store
 Thumbs.db
-
+appsettings.json

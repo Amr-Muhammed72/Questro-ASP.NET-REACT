@@ -174,11 +174,20 @@ public static class DependencyInjectionInfrastructure
         .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(attempt)))
         .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
-        services.AddStackExchangeRedisCache(options =>
+        var redisConnectionString = configuration["Redis:ConnectionString"];
+        if (string.IsNullOrWhiteSpace(redisConnectionString))
         {
-            options.Configuration = configuration["Redis:ConnectionString"];
-            options.InstanceName = "RecommendationApp:";
-        });
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+                options.InstanceName = "RecommendationApp:";
+            });
+        }
+
         services.AddHybridCache();
 
         return services;

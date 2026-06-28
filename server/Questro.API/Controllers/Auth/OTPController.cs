@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Questro.Service.Abstractions.Auth;
+using Questro.Shared.Contracts.Auth;
 using Questro.Shared.Contracts.OTP;
 
 namespace Questro.API.Controllers.Auth
@@ -19,6 +20,13 @@ namespace Questro.API.Controllers.Auth
         {
             var result = await _otpService.ResendOTPAsync(request, cancellationToken);
             return result.IsSuccess ? Ok(new {Message = "OTP sent to your email" }) : BadRequest(result.Error);
+        }
+        [HttpPost("Register-Resend-OTP")]
+        public async Task<IActionResult> RegisterResendOtp(SendOtpRequestDto request, CancellationToken cancellationToken)
+        {
+            var result = await _otpService.RegisterResendOTPAsync(request, cancellationToken);
+            return result.IsSuccess ? Ok(new { Message = "OTP sent to your email" }) : BadRequest(result.Error);
+
         }
     }
 }

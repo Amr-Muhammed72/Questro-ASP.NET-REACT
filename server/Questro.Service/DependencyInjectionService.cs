@@ -70,10 +70,27 @@ public static class DependencyInjectionService
         services.AddScoped<NewContentNotificationJob>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionService).Assembly);
-        services.AddHangfireServer();
-        services.AddHangfire(config =>
-                            config.UseSqlServerStorage
-                            (configuration.GetConnectionString("DefaultConnection")));
+
+        var hangfireEnabled = configuration.GetValue("Hangfire:Enabled", true);
+        if (hangfireEnabled)
+        {
+            services.AddHangfire(config =>
+            {
+                config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                      .UseSimpleAssemblyNameTypeSerializer()
+                      .UseRecommendedSerializerSettings()
+                      .UseSqlServerStorage(
+                          configuration.GetConnectionString("DefaultConnection"),
+                          new Hangfire.SqlServer.SqlServerStorageOptions
+                          {
+                              PrepareSchemaIfNecessary = true,
+                              UseRecommendedIsolationLevel = true,
+                              CommandTimeout = TimeSpan.FromSeconds(30),
+                              SchemaName = "HangFire"
+                          });
+            });
+            services.AddHangfireServer();
+        }
         services.Configure<EmailSettings>(
                     configuration.GetSection("EmailSettings"));
         return services;
