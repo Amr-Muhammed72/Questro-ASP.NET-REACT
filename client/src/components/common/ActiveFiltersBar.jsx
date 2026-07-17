@@ -134,3 +134,4 @@ export const ActiveFiltersBar = ({ searchParams, setSearchParams, mode = 'movies
     </motion.div>
   );
 };
+

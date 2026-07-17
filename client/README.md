@@ -1,73 +1,107 @@
-# Questro - Frontend Client
+# 🎬 Questro - Frontend Client
 
-This is the frontend client for **Questro**, an interactive entertainment discovery platform. Dive into a seamless experience to explore movies, games, cast details, and more. Built with modern web technologies, the app ensures performance, a sleek user interface, and smooth micro-animations.
+Welcome to the frontend repository for **Questro**! 👋
+
+Questro is an interactive entertainment discovery platform designed to help users dive into a seamless experience to explore movies, games, cast details, and more. 
+
+We built this client with a focus on **performance**, **scalability**, and most importantly, providing a **beautiful, fluid user experience** using modern web technologies and subtle micro-animations.
+
+---
+
+## ✨ Key Features
+
+- **Blazing Fast**: Powered by React 19 and Vite for instant server start and lightning-fast HMR.
+- **Beautiful UI**: Styled with Tailwind CSS v4 and brought to life with Framer Motion fluid micro-animations.
+- **Robust State Management**: Leveraging Zustand for lightweight global state and React Query for powerful data caching and asynchronous state.
+- **Secure Authentication**: Implements a secure credentials and OTP-based authentication flow with HTTP-only cookies and short-lived access tokens.
+- **Scalable Architecture**: Organized using a feature-based directory structure to keep the codebase clean and maintainable as it grows.
+
+---
 
 ## 🚀 Tech Stack
 
-- **Framework**: [React 19](https://react.dev/) powered by [Vite](https://vitejs.dev/) for an exceptionally fast development experience.
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) for utility-first, scalable styling.
-- **State & Data Fetching**: 
-  - [Zustand](https://github.com/pmndrs/zustand) for lightweight, global client state management.
-  - [React Query (TanStack)](https://tanstack.com/query/latest) for powerful asynchronous state management, caching, and data fetching.
-- **Routing**: [React Router v7](https://reactrouter.com/) for declarative client-side navigation.
-- **API Requests**: [Axios](https://axios-http.com/) for network communication with our backend services.
-- **Animations**: [Framer Motion](https://www.framer.com/motion/) to power interactive and dynamic fluid micro-animations.
-- **Forms & Validation**: [React Hook Form](https://react-hook-form.com/) combined with [Zod](https://zod.dev/) for robust schema-based validation.
-- **Icons**: [Lucide React](https://lucide.dev/) for a clean and consistent icon set.
+We carefully selected our tech stack to ensure the best developer and user experience:
 
-## 🛠️ Installation & Setup
+- **Core**: [React 19](https://react.dev/) & [Vite](https://vitejs.dev/)
+- **Styling & UI**: [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/), [Lucide React](https://lucide.dev/) (Icons)
+- **State & Data**: [React Query v5](https://tanstack.com/query/latest), [Zustand](https://github.com/pmndrs/zustand)
+- **Routing**: [React Router v7](https://reactrouter.com/)
+- **Networking**: [Axios](https://axios-http.com/)
+- **Forms**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
 
-Before you start, ensure you have **Node.js** (v18+) and **npm** installed on your system.
+---
+
+## 🛠️ Getting Started
+
+Follow these steps to get the project up and running on your local machine.
+
+### Prerequisites
+
+You'll need **Node.js** (v18 or higher) and **npm** installed on your system.
+
+### Installation
 
 1. **Navigate to the client directory**:
    ```bash
    cd client
    ```
 
-2. **Install dependencies**:
+2. **Install the dependencies**:
    ```bash
    npm install
    ```
 
-3. **Environment Variables**:
-   Create a `.env` file in the root of the `client` directory (if not already present) and configure your backend URL or any necessary keys. Example:
+3. **Set up environment variables**:
+   Create a `.env` file in the root of the `client` directory. You can use this example to connect to your local backend:
    ```env
    VITE_API_BASE_URL=http://localhost:5222/api
    ```
 
-## 💻 Running the Application
+### Running the App
 
-To start the Vite development server with Hot Module Replacement (HMR):
+Start the Vite development server with Hot Module Replacement (HMR):
 
 ```bash
 npm run dev
 ```
 
-Open your browser and navigate to the address shown in your terminal (usually `http://localhost:5173`) to view the application.
+Your app should now be running at `http://localhost:5173`! 🎉
 
-## 📦 Scripts
+---
 
-- `npm run dev`: Starts the development server.
-- `npm run build`: Compiles the application for production.
-- `npm run preview`: Bootstraps a local server to preview the production build.
-- `npm run lint`: Runs ESLint to identify syntax and styling issues.
+## 📂 Project Structure
 
-## 📂 Project Architecture
+To keep things organized and maintainable, we use a domain-driven, feature-based architecture. Here's a quick tour of the `src/` directory:
 
-The application is structured using a feature-based architecture within the `src/` directory to improve scalability and maintainability:
+- 📁 **`/api`**: Centralized Axios configurations and global API utilities.
+- 📁 **`/assets`**: Static files like images, fonts, and global stylesheets (`index.css`).
+- 📁 **`/components`**: Reusable UI building blocks (buttons, inputs, modals, etc.) shared across features.
+- 📁 **`/features`**: The core domains of the app (`auth`, `movies`, `games`, `profile`, `chatbot`). Each feature module contains its own components, logic, and API calls.
+- 📁 **`/hooks`**: Shared custom React hooks.
+- 📁 **`/lib`**: Third-party library initializations and wrappers.
+- 📁 **`/pages`**: Top-level route components representing full views.
+- 📁 **`/routes`**: Routing configuration mapping URLs to pages.
+- 📁 **`/utils`**: Helpful utility functions and shared methods.
 
-- **`/api`**: Centralized Axios configurations and global API utilities.
-- **`/assets`**: Static files like images, fonts, and global stylesheets (`index.css`).
-- **`/components`**: Reusable, cross-feature UI widgets (e.g., buttons, inputs, modals).
-- **`/features`**: Domain-driven modules containing their own components, API calls, and logic. Includes modules such as `auth`, `movies`, `games`, `profile`, `notifications`, and `chatbot`.
-- **`/hooks`**: Custom React hooks for shared application logic.
-- **`/lib`**: Third-party library initializations and wrappers.
-- **`/pages`**: Top-level route components that act as entry points to the application's views.
-- **`/routes`**: Application routing configuration linking paths to pages.
-- **`/utils`**: Helper functions and shared utility methods.
+---
 
 ## 🔐 Authentication Flow
 
-The platform utilizes a secure authentication flow:
-1. **Credentials & OTP**: Users authenticate via standard credentials and must verify their session using a backend-dispatched One-Time Password (OTP).
-2. **Token Management**: The frontend handles short-lived access tokens via `Zustand` memory state and relies on secure `HttpOnly` cookies for refresh tokens.
+Security is a priority. Here's how our auth flow works under the hood:
+
+1. **Login**: Users authenticate with standard credentials.
+2. **Verification (OTP)**: A One-Time Password is sent by the backend to verify the session.
+3. **Token Management**: Once verified, the app receives a short-lived access token (stored safely in memory via Zustand) and a refresh token (stored securely as an `HttpOnly` cookie).
+
+---
+
+## 📜 Available Scripts
+
+- `npm run dev`: Starts the development server.
+- `npm run build`: Bundles the application for production.
+- `npm run preview`: Bootstraps a local server to preview the production build.
+- `npm run lint`: Runs ESLint to identify syntax and styling issues.
+
+---
+
+*Happy coding! If you have any questions or run into issues, feel free to explore the code or reach out.* 🚀
